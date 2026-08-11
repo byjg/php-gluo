@@ -205,8 +205,21 @@ public function putExampleCrudStatus(HttpResponse $response, HttpRequest $reques
 
 :::tip No registration needed
 `config/dev/07-controllers.php` autowires the whole controller namespace with a single
-`Autowire::rule()`, so a new controller is resolved without an entry of its own. Keep it
-in that namespace and the constructor is injected for you.
+`Autowire::rule()`, so a new controller is resolved without an entry of its own.
+
+Three things to keep in mind:
+
+- **No-constructor controllers work too.** A controller that declares no constructor
+  degrades to `withConstructorNoArgs()` automatically — an ActiveRecord-style controller
+  needs no special case.
+- **An explicit binding wins.** If a controller needs something the rule cannot express
+  (a scalar constructor argument, say), add one by hand in the same file and it takes
+  precedence over the pattern.
+- **The namespace matters.** A controller placed outside the pattern's namespace is not
+  covered and the route will fail with **501** rather than being built without its
+  dependencies.
+
+Keep your controllers in the expected namespace and the constructor is injected for you.
 :::
 
 :::tip Service Layer
