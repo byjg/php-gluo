@@ -9,7 +9,7 @@ REST controllers in this architecture map HTTP routes to PHP methods using PHP 8
 
 ## Defining Routes with PHP Attributes
 
-Annotate controller classes with `zircote/swagger-php` attributes to describe each endpoint. The tooling generates `api/public/docs/openapi.json` from these annotations, and `OpenApiRouteList` uses that file to dispatch requests at runtime.
+Annotate controller classes with `zircote/swagger-php` attributes to describe each endpoint. The tooling generates `public/docs/openapi.json` from these annotations, and `OpenApiRouteList` uses that file to dispatch requests at runtime.
 
 ```php
 namespace RestReferenceArchitecture\Controller;
@@ -178,7 +178,7 @@ $response->write(['result' => 'ok']);
 
 ## Using an Existing OpenAPI Specification
 
-If you already have an OpenAPI JSON spec, place it at `api/public/docs/openapi.json`. Set the `operationId` for each path to route requests to the correct controller method:
+If you already have an OpenAPI JSON spec, place it at `public/docs/openapi.json`. Set the `operationId` for each path to route requests to the correct controller method:
 
 ```json
 {

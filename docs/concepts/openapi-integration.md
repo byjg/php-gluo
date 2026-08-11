@@ -17,7 +17,7 @@ This document explains what OpenAPI is, how the reference architecture uses it, 
 
 ## How swagger-php Scans Your Code
 
-The project uses [`zircote/swagger-php`](https://zircote.github.io/swagger-php/guide/) to scan PHP attribute annotations and produce `api/public/docs/openapi.json`. It scans your `api/src/` directory plus the gluo-core `Trait/` directory (so the `OaCreatedAt`/`OaUpdatedAt`/`OaDeletedAt` properties appear in your schemas).
+The project uses [`zircote/swagger-php`](https://zircote.github.io/swagger-php/guide/) to scan PHP attribute annotations and produce `public/docs/openapi.json`. It scans your `src/` directory plus the gluo-core `Trait/` directory (so the `OaCreatedAt`/`OaUpdatedAt`/`OaDeletedAt` properties appear in your schemas).
 
 Run the generator whenever you add or change annotations:
 
@@ -25,11 +25,11 @@ Run the generator whenever you add or change annotations:
 APP_ENV=dev composer run openapi
 ```
 
-The composer script invokes `swagger-php` with those scan paths (see `getOpenApiScanPaths()` in `ByJG\Gluo\Builder\BaseScripts`). The output is written to `api/public/docs/openapi.json`.
+The composer script invokes `swagger-php` with those scan paths (see `getOpenApiScanPaths()` in `ByJG\Gluo\Builder\BaseScripts`). The output is written to `public/docs/openapi.json`.
 
 ## The Generated File
 
-`api/public/docs/openapi.json` is **generated** and should be committed to version control so that:
+`public/docs/openapi.json` is **generated** and should be committed to version control so that:
 
 - The application can boot without running the generator.
 - Tests can validate responses even in CI environments.
@@ -52,7 +52,7 @@ See [Testing](../guides/testing.md) for practical examples.
 ## Keeping the Spec in Sync
 
 :::tip Keep docs in sync
-Whenever you change PHP attribute annotations in `api/src/`, rerun `APP_ENV=dev composer run openapi`. The regenerated `api/public/docs/openapi.json` is what `OpenApiRouteList` reads at runtime and what the tests validate against.
+Whenever you change PHP attribute annotations in `src/`, rerun `APP_ENV=dev composer run openapi`. The regenerated `public/docs/openapi.json` is what `OpenApiRouteList` reads at runtime and what the tests validate against.
 :::
 
 A common workflow:
@@ -67,4 +67,4 @@ A common workflow:
 - [REST Controllers](../guides/rest-controllers.md) - Defining routes with PHP attributes
 - [Testing](../guides/testing.md) - Contract testing with OpenApiValidation
 - [Request Lifecycle](request-lifecycle.md) - How the spec drives runtime routing
-- [Frontend (Vite)](../guides/frontend.md) - The optional `html/` SPA that consumes these documented endpoints
+- [Frontend (Vite)](../guides/frontend.md) - The optional `frontend/` SPA that consumes these documented endpoints

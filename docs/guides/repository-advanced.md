@@ -450,7 +450,7 @@ class ProjectRepository extends BaseRepository
 
 Add static query methods directly to your model:
 
-**Location**: `api/src/Model/Note.php`
+**Location**: `src/Model/Note.php`
 
 ```php
 class Note

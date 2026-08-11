@@ -11,7 +11,7 @@ After [creating the project](installation.md), you're ready to create your own t
 
 Create a new migration file in the `migrations` folder using the format `0000X-message.sql`, where `X` represents a sequential number that determines execution order.
 
-1. Create an "up" migration file `api/db/migrations/up/00002-create-table-example.sql`:
+1. Create an "up" migration file `db/migrations/up/00002-create-table-example.sql`:
 
 ```sql
 create table example_crud
@@ -23,7 +23,7 @@ create table example_crud
 );
 ```
 
-2. Create a corresponding "down" migration file `api/db/migrations/down/00001-rollback-table-example.sql` for rollbacks:
+2. Create a corresponding "down" migration file `db/migrations/down/00001-rollback-table-example.sql` for rollbacks:
 
 ```sql
 drop table example_crud;
@@ -86,16 +86,16 @@ APP_ENV=dev composer run codegen -- --table example_crud --save all
 ```
 
 This creates:
-- `api/src/Model/ExampleCrud.php` - Model class
-- `api/src/Repository/ExampleCrudRepository.php` - Repository class
-- `api/src/Service/ExampleCrudService.php` - Service class
-- `api/src/Controller/ExampleCrudController.php` - REST controller
-- `api/tests/Controller/ExampleCrudTest.php` - Functional tests
+- `src/Model/ExampleCrud.php` - Model class
+- `src/Repository/ExampleCrudRepository.php` - Repository class
+- `src/Service/ExampleCrudService.php` - Service class
+- `src/Controller/ExampleCrudController.php` - REST controller
+- `tests/Controller/ExampleCrudTest.php` - Functional tests
 
 :::tip Automatic Configuration
 The repository and service are automatically registered in:
-- `api/config/dev/04-repositories.php`
-- `api/config/dev/05-services.php`
+- `config/dev/04-repositories.php`
+- `config/dev/05-services.php`
 
 No manual configuration needed!
 :::
@@ -114,7 +114,7 @@ See [Code Generator Documentation](../reference/code-generator.md) for details.
 
 ## Run the Tests
 
-The automatically generated test is located at `api/tests/Controller/ExampleCrudTest.php`.
+The automatically generated test is located at `tests/Controller/ExampleCrudTest.php`.
 
 Run it:
 
@@ -130,7 +130,7 @@ Initial tests **_will fail_** because we need to:
 composer run openapi
 ```
 
-2. Fix the test data by updating `api/tests/Controller/ExampleCrudTest.php`:
+2. Fix the test data by updating `tests/Controller/ExampleCrudTest.php`:
 
  
 Locate:

@@ -622,7 +622,7 @@ class Product
 
 **Problem**: Timestamps in wrong timezone
 
-**Solution**: Set timezone in `api/config/<env>/02-security.php`:
+**Solution**: Set timezone in `config/<env>/02-security.php`:
 
 ```php
 return [

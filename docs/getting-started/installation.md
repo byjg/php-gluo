@@ -115,15 +115,21 @@ A Gluo project is a small monorepo:
 
 ```
 my-api/
-├── api/          # the PHP REST API (src, config, db, tests, composer.json, vendor)
-├── html/         # the Vite frontend (only when Install Frontend = Yes)
-├── docker/       # Dockerfiles
+├── composer.json     # the single manifest — the repo root is the PHP app root
+├── src/              # Model, Repository, Service, Controller
+├── config/           # dev / test / staging / prod
+├── db/               # migrations + base.sql
+├── public/           # the docroot (app.php, OpenAPI docs)
+├── templates/
+├── tests/
+├── frontend/         # the Vite frontend (only when Install Frontend = Yes)
+├── docker/           # Dockerfiles
 ├── docs/
 └── docker-compose.yml
 ```
 
-Run PHP tooling from the repo root through the proxy scripts (`composer test`,
-`composer migrate`, `composer openapi`), or directly inside `api/`.
+Run PHP tooling from the repo root (`composer test`, `composer migrate`,
+`composer openapi`) — there is one manifest and one `vendor/`.
 
 #### Configuration Options
 
@@ -136,7 +142,7 @@ Run PHP tooling from the repo root through the proxy scripts (`composer test`,
 - **Database password**: Password that will be injected in your `.env` files
 - **Dev/Test database name**: Logical databases used for the dev and test environments (for SQLite, this is the file path)
 - **Timezone**: Server timezone (e.g., `UTC`, `America/New_York`, `Europe/London`)
-- **Install Frontend**: Whether to include the `html/` Vite app (login, reset, dashboard, profile). See the [Frontend guide](../guides/frontend.md).
+- **Install Frontend**: Whether to include the `frontend/` Vite app (login, reset, dashboard, profile). See the [Frontend guide](../guides/frontend.md).
 - **Install Examples**: Whether to include example code (Project/Task/Note demonstrating the three patterns, plus Sample endpoints — and, if the frontend is installed, its example screens)
 
 The two options combine into three shapes:

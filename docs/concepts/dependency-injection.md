@@ -9,7 +9,7 @@ The project uses the [PSR-11](https://www.php-fig.org/psr/psr-11/) container to 
 
 ## Configuration Structure
 
-The configuration is organized by environment in the `api/config/{environment}/` folders. Each environment can have:
+The configuration is organized by environment in the `config/{environment}/` folders. Each environment can have:
 
 - **credentials.env** - Environment variables (database connections, API keys, JWT secrets, etc.)
 - **Numbered PHP files** - Dependency injection bindings organized by layer:
@@ -24,7 +24,7 @@ You must set the `APP_ENV` environment variable to specify which environment to 
 
 ### Example: credentials.env
 
-```env title="api/config/dev/credentials.env"
+```env title="config/dev/credentials.env"
 WEB_SERVER=localhost
 DASH_SERVER=localhost
 WEB_SCHEMA=http
@@ -38,7 +38,7 @@ CORS_SERVERS=.*
 
 ### Example: 01-infrastructure.php
 
-```php title="api/config/dev/01-infrastructure.php"
+```php title="config/dev/01-infrastructure.php"
 <?php
 
 use ByJG\Cache\Psr16\BaseCacheEngine;
@@ -67,7 +67,7 @@ Config::get('WEB_SERVER');
 
 ## Environment Hierarchy
 
-The environments and their inheritance are defined in `ByJG\Gluo\Config\BaseConfigBootstrap` (byjg/gluo-core); the project's `api/config/ConfigBootstrap.php` just extends it.
+The environments and their inheritance are defined in `ByJG\Gluo\Config\BaseConfigBootstrap` (byjg/gluo-core); the project's `config/ConfigBootstrap.php` just extends it.
 
 The project has four environments with the following inheritance hierarchy:
 
@@ -94,11 +94,11 @@ graph TD
 - **prod** inherits from **staging** and **dev** (with caching enabled)
 
 Child environments override parent configurations. For example:
-- `api/config/dev/credentials.env` defines base database connection
-- `api/config/prod/credentials.env` overrides with production database connection
-- `api/config/prod/01-infrastructure.php` overrides to use FileSystemCache instead of NoCache
+- `config/dev/credentials.env` defines base database connection
+- `config/prod/credentials.env` overrides with production database connection
+- `config/prod/01-infrastructure.php` overrides to use FileSystemCache instead of NoCache
 
-The project bootstrap in `api/config/ConfigBootstrap.php` is intentionally tiny — the
+The project bootstrap in `config/ConfigBootstrap.php` is intentionally tiny — the
 environment set, inheritance and caching live in gluo-core, so improvements arrive with
 `composer update`:
 
@@ -137,7 +137,7 @@ Dependency Injection (DI) decouples your code from specific implementations, mak
 
 You might want caching enabled in production but disabled in development for easier debugging.
 
-**Development** - `api/config/dev/01-infrastructure.php`:
+**Development** - `config/dev/01-infrastructure.php`:
 
 ```php
 <?php
@@ -152,7 +152,7 @@ return [
 ];
 ```
 
-**Production** - `api/config/prod/01-infrastructure.php`:
+**Production** - `config/prod/01-infrastructure.php`:
 
 ```php
 <?php

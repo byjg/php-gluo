@@ -92,9 +92,9 @@ composer migrate -- --env=dev down --version=0
 
 ## Create a New Migration Version
 
-Create a new file in the `api/db/migrations/up` folder with the format `00XXX-description.sql`, where `XXX` is a sequential number:
+Create a new file in the `db/migrations/up` folder with the format `00XXX-description.sql`, where `XXX` is a sequential number:
 
-**Example:** `api/db/migrations/up/00003-add-users-table.sql`
+**Example:** `db/migrations/up/00003-add-users-table.sql`
 
 ```sql
 CREATE TABLE users (
@@ -106,9 +106,9 @@ CREATE TABLE users (
 
 ### Rollback Support
 
-To support rollbacks, create a corresponding file in `api/db/migrations/down`:
+To support rollbacks, create a corresponding file in `db/migrations/down`:
 
-**Example:** `api/db/migrations/down/00002-rollback-users-table.sql`
+**Example:** `db/migrations/down/00002-rollback-users-table.sql`
 
 ```sql
 DROP TABLE users;

@@ -136,7 +136,7 @@ class ProductService extends BaseService
 
 ### Step 2: Register in DI Container
 
-Add to `api/config/dev/05-services.php`:
+Add to `config/dev/05-services.php`:
 
 ```php
 <?php
@@ -357,7 +357,7 @@ APP_ENV=dev composer run codegen -- --table products all --save
 The service will automatically:
 - Extend `BaseService`
 - Inject the corresponding repository
-- Be registered in `api/config/dev/05-services.php`
+- Be registered in `config/dev/05-services.php`
 
 ---
 
@@ -572,7 +572,7 @@ class OrderService extends BaseService
 }
 ```
 
-Register in `api/config/<env>/05-services.php`:
+Register in `config/<env>/05-services.php`:
 
 ```php
 use RestReferenceArchitecture\Service\OrderService;

@@ -1,9 +1,9 @@
 # Build the Vite app and serve the static output with byjg/static-httpserver.
 FROM node:22-alpine AS builder
 WORKDIR /app
-COPY html/package.json html/package-lock.json* ./
+COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
-COPY html/ ./
+COPY frontend/ ./
 RUN npm run build
 
 FROM byjg/static-httpserver

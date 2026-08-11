@@ -7,21 +7,41 @@
   "prefer-stable": true,
   "license": "MIT",
   "require": {
-    "php": ">=8.3 <8.6"
+    "php": ">=8.3 <8.6",
+    "ext-json": "*",
+    "ext-openssl": "*",
+    "ext-curl": "*",
+    "byjg/gluo-core": "^7.0",
+    "byjg/scriptify": "^6.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.5.8",
+    "vimeo/psalm": "^6.13"
   },
   "autoload": {
     "psr-4": {
-      "Builder\\": "api/builder/"
+      "RestReferenceArchitecture\\": "src/",
+      "Builder\\": "builder/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Test\\": "tests/"
     }
   },
   "scripts": {
     "post-create-project-cmd": "Builder\\PostCreateScript::run",
-    "test": "@php -r \"exit((int) passthru('composer --working-dir=api test '.implode(' ', array_slice($argv, 1))));\"",
-    "migrate": "@php -r \"exit((int) passthru('composer --working-dir=api migrate '.implode(' ', array_slice($argv, 1))));\"",
-    "codegen": "@php -r \"exit((int) passthru('composer --working-dir=api codegen '.implode(' ', array_slice($argv, 1))));\"",
-    "openapi": "@php -r \"exit((int) passthru('composer --working-dir=api openapi '.implode(' ', array_slice($argv, 1))));\"",
-    "psalm": "@php -r \"exit((int) passthru('composer --working-dir=api psalm '.implode(' ', array_slice($argv, 1))));\"",
-    "terminal": "@php -r \"exit((int) passthru('composer --working-dir=api terminal '.implode(' ', array_slice($argv, 1))));\"",
+    "test": [
+      "@openapi:check",
+      "./vendor/bin/phpunit"
+    ],
+    "migrate": "Builder\\Scripts::migrate",
+    "codegen": "Builder\\Scripts::codeGenerator",
+    "openapi": "Builder\\Scripts::genOpenApiDocs",
+    "openapi:check": "Builder\\Scripts::checkOpenApi",
+    "terminal": "./vendor/bin/scriptify terminal --preload ./templates/scriptify/scriptify.php --env APP_ENV=$APP_ENV",
+    "psalm": "vendor/bin/psalm",
+    "compile": "git pull && composer run openapi && composer run test",
     "up-local-dev": "docker compose -f docker-compose.yml up -d",
     "down-local-dev": "docker compose -f docker-compose.yml down"
   }

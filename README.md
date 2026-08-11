@@ -15,8 +15,8 @@ Every new REST API needs the same boilerplate: authentication, migrations, an OR
 
 Gluo splits the problem the right way:
 
-- **Your project** (`composer create-project byjg/gluo`) — a full-stack monorepo: the PHP REST API in `api/`, an optional Vite + React frontend in `html/`, plus `docker-compose.yml` and `docker/`. Generated once, renamed to your namespace, fully yours: change, remove, or replace anything.
-- **The framework core** ([`byjg/gluo-core`](https://github.com/byjg/php-gluo-core)) — base classes, auth flow, attributes, code generator, and test harness live in `api/vendor/` and improve with a plain `composer update`. No copy-paste to stay current.
+- **Your project** (`composer create-project byjg/gluo`) — a full-stack monorepo: the PHP REST API at the repository root, an optional Vite + React frontend in `frontend/`, plus `docker-compose.yml` and `docker/`. Generated once, renamed to your namespace, fully yours: change, remove, or replace anything.
+- **The framework core** ([`byjg/gluo-core`](https://github.com/byjg/php-gluo-core)) — base classes, auth flow, attributes, code generator, and test harness live in `vendor/` and improve with a plain `composer update`. No copy-paste to stay current.
 
 ## Quick Start
 
@@ -36,15 +36,21 @@ curl http://localhost:8080/sample/ping
 ```
 
 Commands like `composer migrate`, `composer test`, `composer codegen`, `composer openapi`,
-and `composer psalm` run from the repository root — the root `composer.json` proxies them
-into the `api/` project (they also work from inside `api/`).
+and `composer psalm` run from the repository root — there is a single `composer.json`, and
+the repository root *is* the PHP application root.
 
 ### What you get
 
 ```
 my-api/
-├── api/                  # PHP REST API — src/, config/, db/, tests/, public/, composer.json, vendor/
-├── html/                 # optional Vite + React frontend (React 19 + Vite 6 + Tailwind)
+├── composer.json         # the single manifest (the repo root is the PHP app root)
+├── src/                  # Model, Repository, Service, Controller
+├── config/               # dev / test / staging / prod
+├── db/                   # migrations + base.sql
+├── public/               # the docroot: app.php, OpenAPI docs
+├── templates/            # email + scriptify templates
+├── tests/
+├── frontend/             # optional Vite + React frontend (React 19 + Vite 6 + Tailwind)
 ├── docker/               # Dockerfile (API) + Dockerfile-html (frontend)
 ├── docker-compose.yml    # API :8080, frontend :7080, MySQL :3306
 └── docs/
@@ -52,9 +58,9 @@ my-api/
 
 The `create-project` installer offers two toggles:
 
-- **Install Frontend** — keep the `html/` SPA (login, password-reset, dashboard, and profile
-  screens, wired to the API over JWT). Say no and `html/`, its Docker image, and the `html`
-  compose service are removed, leaving a pure API project.
+- **Install Frontend** — keep the `frontend/` SPA (login, password-reset, dashboard, and profile
+  screens, wired to the API over JWT). Say no and `frontend/`, its Docker image, and the
+  `frontend` compose service are removed, leaving a pure API project.
 - **Install Examples** — keep the demo entities (`Project`, `Task`, `Note`) and their frontend
   pages. Say no and you get a clean app shell (auth + profile only, no example CRUD).
 
@@ -99,7 +105,7 @@ mindmap
 - 📖 **OpenAPI-first** — routes are driven by `openapi.json`; Swagger UI, contract testing, and docs stay in sync automatically
 - 🗄️ **Database migrations** — versioned up/down SQL migrations with a one-command runner and ORM integration
 - 🧪 **In-process testing** — `FakeApiRequester` runs the full API stack inside PHPUnit, no web server needed
-- 🎨 **Optional React frontend** — a Vite + React 19 + Tailwind SPA in `html/` with login, password-reset, dashboard, and profile screens already wired to the API over JWT
+- 🎨 **Optional React frontend** — a Vite + React 19 + Tailwind SPA in `frontend/` with login, password-reset, dashboard, and profile screens already wired to the API over JWT
 - 🐳 **Docker ready** — MySQL, PHP-FPM, Nginx, and the frontend pre-configured; `docker compose up -d` and you're running
 - 🔄 **Updatable core** — framework fixes and features arrive with `composer update byjg/gluo-core`; your code stays untouched
 - ⚙️ **PSR standards** — PSR-7 (HTTP messages), PSR-11 (container), PSR-6/16 (cache)
@@ -113,14 +119,15 @@ composer codegen -- --env=dev --table=project all --save
 
 ### Getting Started
 1. **[Installation & Setup](docs/getting-started/installation.md)** – Install the starter, configure environments, and review prerequisites.
-2. **[Create Your First Table](docs/getting-started/first-table.md)** – Define your first migration and schema.
-3. **[Add Fields](docs/getting-started/add-field.md)** – Safely evolve existing tables.
-4. **[Create REST Endpoints](docs/getting-started/first-endpoint.md)** – Generate REST handlers from your tables.
-5. **[Windows Setup](docs/getting-started/windows.md)** – WSL/Windows-specific checklist.
-6. **[Unattended Setup](docs/getting-started/unattended-setup.md)** – Automate installs for CI/CD pipelines.
+2. **[Coming from Laravel, Symfony or Drupal](docs/getting-started/coming-from-laravel-symfony.md)** – Concept and command mapping, plus the four things that genuinely work differently.
+3. **[Create Your First Table](docs/getting-started/first-table.md)** – Define your first migration and schema.
+4. **[Add Fields](docs/getting-started/add-field.md)** – Safely evolve existing tables.
+5. **[Create REST Endpoints](docs/getting-started/first-endpoint.md)** – Generate REST handlers from your tables.
+6. **[Windows Setup](docs/getting-started/windows.md)** – WSL/Windows-specific checklist.
+7. **[Unattended Setup](docs/getting-started/unattended-setup.md)** – Automate installs for CI/CD pipelines.
 
 ### Guides
-- **[Frontend (Vite + React)](docs/guides/frontend.md)** – Run and customize the optional `html/` SPA that talks to the API over JWT.
+- **[Frontend (Vite + React)](docs/guides/frontend.md)** – Run and customize the optional `frontend/` SPA that talks to the API over JWT.
 - **[REST Controllers](docs/guides/rest-controllers.md)** – Define routes with PHP attributes; keep controllers thin.
 - **[Authentication](docs/guides/authentication.md)** – Configure JWT login flows and RBAC enforcement.
 - **[Database Migrations](docs/guides/migrations.md)** – Version and run schema migrations in every environment.
@@ -149,8 +156,8 @@ composer codegen -- --env=dev --table=project all --save
 ## Real-World Example
 
 ```bash
-# 1. Create database table (migrations live under api/)
-cat > api/db/migrations/up/00002-create-products.sql << 'EOF'
+# 1. Create database table (migrations live under db/)
+cat > db/migrations/up/00002-create-products.sql << 'EOF'
 CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -203,7 +210,7 @@ You just created a complete CRUD API with:
 
 ## Your Code vs. the Framework
 
-The starter generates a project that is fully yours — `api/src/`, `api/config/`, `api/db/`, `html/`, `docker/`:
+The starter generates a project that is fully yours — `src/`, `config/`, `db/`, `frontend/`, `docker/`:
 - ✅ Full control over every file the generator gave you
 - ✅ Base classes are thin extension points (`BaseLoginController`, `BaseRepository`, `BaseService`, …) — override what you need
 - ✅ Framework improvements arrive via `composer update byjg/gluo-core`

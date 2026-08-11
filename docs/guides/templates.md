@@ -18,18 +18,18 @@ Guide to customizing the code generator templates to match your project's specif
 
 ## Overview
 
-The code generator uses [JinjaPhp](https://github.com/byjg/jinja_php) templates shipped inside **byjg/gluo-core** (`api/vendor/byjg/gluo-core/templates/codegen/`), so template improvements arrive with `composer update`.
+The code generator uses [JinjaPhp](https://github.com/byjg/jinja_php) templates shipped inside **byjg/gluo-core** (`vendor/byjg/gluo-core/templates/codegen/`), so template improvements arrive with `composer update`.
 
 **Template Engine**: JinjaPhp (Python Jinja2 syntax for PHP)
-**Default location**: `api/vendor/byjg/gluo-core/templates/codegen/`
+**Default location**: `vendor/byjg/gluo-core/templates/codegen/`
 
-**Overriding**: create a `api/templates/codegen/` directory in your project and the
+**Overriding**: create a `templates/codegen/` directory in your project and the
 generator uses it instead of the package templates. To start customizing, copy
 the package templates:
 
 ```bash
-mkdir -p api/templates
-cp -r api/vendor/byjg/gluo-core/templates/codegen api/templates/codegen
+mkdir -p templates
+cp -r vendor/byjg/gluo-core/templates/codegen templates/codegen
 ```
 
 Delete the directory to go back to the package defaults.
@@ -48,7 +48,7 @@ Delete the directory to go back to the package defaults.
 ## Template Structure
 
 ```
-api/templates/
+templates/
 └── codegen/
     ├── model.php.jinja                  # Model class
     ├── repository.php.jinja             # Repository class
@@ -114,7 +114,7 @@ Common tests, as used by the package templates themselves:
 
 ### Example: Adding Custom Header
 
-Edit `api/templates/codegen/model.php.jinja`:
+Edit `templates/codegen/model.php.jinja`:
 
 ```jinja
 <?php
@@ -132,7 +132,7 @@ namespace {{ namespace }}\Model;
 
 ### Example: Adding Custom Methods
 
-Add custom methods to `api/templates/codegen/model.php.jinja`:
+Add custom methods to `templates/codegen/model.php.jinja`:
 
 ```jinja
 // ... existing getters/setters ...
@@ -163,7 +163,7 @@ Add custom methods to `api/templates/codegen/model.php.jinja`:
 
 ### Example: Customizing REST Endpoints
 
-Edit `api/templates/codegen/controller.php.jinja` to add custom endpoints:
+Edit `templates/codegen/controller.php.jinja` to add custom endpoints:
 
 ```jinja
 // ... existing CRUD methods ...
@@ -198,7 +198,7 @@ Edit `api/templates/codegen/controller.php.jinja` to add custom endpoints:
 
 ### Custom Template Example
 
-Create `api/templates/codegen/dto.php.jinja` for Data Transfer Objects:
+Create `templates/codegen/dto.php.jinja` for Data Transfer Objects:
 
 ```jinja
 <?php
@@ -237,11 +237,11 @@ class {{ className }}DTO
 ### Render Custom Templates
 
 The rendering seams live in `ByJG\Gluo\Builder\BaseScripts` — your project's
-`api/builder/Scripts.php` extends it. Use `renderCodegenTemplate()` (it already
-resolves the local `api/templates/codegen/` override) from a custom entry point:
+`builder/Scripts.php` extends it. Use `renderCodegenTemplate()` (it already
+resolves the local `templates/codegen/` override) from a custom entry point:
 
 ```php
-// api/builder/Scripts.php
+// builder/Scripts.php
 public function generateDto(string $table, array $data): void
 {
     $code = $this->renderCodegenTemplate('dto.php', $data);
@@ -406,8 +406,8 @@ After modifying templates, test generation:
 composer codegen -- --env=dev --table=test_table all --save
 
 # Review generated code
-cat api/src/Model/TestTable.php
-cat api/src/Controller/TestTableController.php
+cat src/Model/TestTable.php
+cat src/Controller/TestTableController.php
 
 # Run tests
 composer test

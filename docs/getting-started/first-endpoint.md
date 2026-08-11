@@ -224,7 +224,7 @@ public function putExampleCrudStatus(HttpResponse $response, HttpRequest $reques
 
 Create a functional test to ensure your endpoint works correctly and continues to function as expected.
 
-Create or update the test file `api/tests/Controller/ExampleCrudTest.php`:
+Create or update the test file `tests/Controller/ExampleCrudTest.php`:
 
 ```php
 <?php
@@ -297,3 +297,10 @@ APP_ENV=test composer run test
 ```
 
 All tests should pass successfully!
+
+:::caution Regeneration is not optional
+Routing is read from `public/docs/openapi.json`, not from your PHP. Change a controller
+attribute without running `composer run openapi` and the endpoint returns **404 with no
+error message**. `composer test` runs `composer openapi:check` first, which warns when the
+spec is older than your controllers or models — you can also run it on its own.
+:::

@@ -62,7 +62,7 @@ You can specify the environment in two ways:
 
 ## Examples
 
-The commands below run from the repository root — the root `composer` proxies `codegen` into the `api/` project. (Running them from inside `api/` works too.) Generated files land under `api/`.
+The commands below run from the repository root, which is also the PHP application root. Generated files land under `src/` (model, repository, service, controller), `tests/` (the functional test) and `config/` (the DI bindings, with `--save`).
 
 ### Repository Pattern (Default)
 
@@ -77,12 +77,12 @@ composer codegen -- --env=dev --table=project all --save
 ```
 
 This creates:
-- `api/src/Model/Project.php`
-- `api/src/Repository/ProjectRepository.php`
-- `api/src/Service/ProjectService.php`
-- `api/src/Controller/ProjectController.php`
-- `api/tests/Controller/ProjectTest.php`
-- Automatically adds DI bindings to `api/config/dev/04-repositories.php` and `api/config/dev/05-services.php`
+- `src/Model/Project.php`
+- `src/Repository/ProjectRepository.php`
+- `src/Service/ProjectService.php`
+- `src/Controller/ProjectController.php`
+- `tests/Controller/ProjectTest.php`
+- Automatically adds DI bindings to `config/dev/04-repositories.php` and `config/dev/05-services.php`
 
 Generate only specific components:
 
@@ -103,9 +103,9 @@ composer codegen -- --env=test --table=note all --activerecord --save
 ```
 
 This creates:
-- `api/src/Model/Note.php` (with ActiveRecord trait)
-- `api/src/Controller/NoteController.php`
-- `api/tests/Controller/NoteTest.php`
+- `src/Model/Note.php` (with ActiveRecord trait)
+- `src/Controller/NoteController.php`
+- `tests/Controller/NoteTest.php`
 
 Generate only the model:
 
@@ -126,8 +126,8 @@ composer codegen -- --env=dev --table=note all --activerecord
 
 :::tip Automatic DI Bindings (Repository Pattern Only)
 When using `--save` with the **Repository pattern**, repository and service bindings are automatically added to the configuration files:
-- Repositories → `api/config/dev/04-repositories.php`
-- Services → `api/config/dev/05-services.php`
+- Repositories → `config/dev/04-repositories.php`
+- Services → `config/dev/05-services.php`
 
 No manual configuration needed!
 
@@ -156,11 +156,11 @@ After generating REST controllers, remember to:
 
 ## Customizing Templates
 
-You can modify existing templates or create your own. The default templates ship inside **byjg/gluo-core** (`api/vendor/byjg/gluo-core/templates/codegen/`) and use the [Jinja template engine for PHP](https://github.com/byjg/jinja_php). To customize, copy them into your project — a local `api/templates/codegen/` directory takes precedence over the package templates:
+You can modify existing templates or create your own. The default templates ship inside **byjg/gluo-core** (`vendor/byjg/gluo-core/templates/codegen/`) and use the [Jinja template engine for PHP](https://github.com/byjg/jinja_php). To customize, copy them into your project — a local `templates/codegen/` directory takes precedence over the package templates:
 
 ```bash
-mkdir -p api/templates/codegen
-cp -r api/vendor/byjg/gluo-core/templates/codegen/* api/templates/codegen/
+mkdir -p templates/codegen
+cp -r vendor/byjg/gluo-core/templates/codegen/* templates/codegen/
 ```
 
 **Available templates:**

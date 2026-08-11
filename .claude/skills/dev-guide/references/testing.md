@@ -204,7 +204,7 @@ php vendor/bin/phpunit --filter testCreate tests/Controller/ProductTest.php
 
 | File | What it tests |
 |------|--------------|
-| `api/tests/Controller/ProjectTest.php` | Repository pattern, int PK (auth, CRUD, list) |
-| `api/tests/Controller/NoteTest.php` | ActiveRecord pattern |
-| `api/tests/Controller/TaskTest.php` | Repository pattern, UUID PK |
+| `tests/Controller/ProjectTest.php` | Repository pattern, int PK (auth, CRUD, list) |
+| `tests/Controller/NoteTest.php` | ActiveRecord pattern |
+| `tests/Controller/TaskTest.php` | Repository pattern, UUID PK |
 | `tests/Controller/LoginTest.php` | Login, refresh token, password reset |

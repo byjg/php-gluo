@@ -34,7 +34,7 @@ JwtMiddleware          ← byjg/restserver middleware, parses/validates JWT,
     │                    stores decoded claims as request param "jwt.data"
     ▼
 OpenApiRouteList       ← matches URL+method to controller class::method
-    │                    (generated from api/public/docs/openapi.json)
+    │                    (generated from public/docs/openapi.json)
     ▼
 PHP Attribute Chain    ← run BEFORE the controller method:
   #[RequireAuthenticated]  → verifies JWT present; calls JwtContext::setRequest()
@@ -73,25 +73,26 @@ MySQL
 
 ---
 
-> **Monorepo note.** All PHP lives under `api/`. The root `composer.json` proxies the common
-> commands (`test`, `migrate`, `codegen`, `openapi`, `psalm`, `terminal`) into `api/`, so you can
-> run them from the repo root. For a raw `php vendor/bin/*` call, either `cd api` first or use the
-> proxy (`composer psalm` / `composer test`). The optional Vite frontend lives in `html/`.
+> **Monorepo note.** The repository root *is* the PHP application root: one `composer.json`,
+> one `vendor/`, with `src/`, `config/`, `db/`, `public/`, `templates/` and `tests/` as its
+> siblings. Every command (`test`, `migrate`, `codegen`, `openapi`, `psalm`, `terminal`) and
+> every raw `php vendor/bin/*` call runs from the repo root. The optional Vite frontend is a
+> sibling package in `frontend/`, with its own `package.json` and container.
 
 ### First-time clone / full reset
 ```bash
 git fetch && git pull && git merge origin/master
-composer --working-dir=api update     # PHP deps live in api/vendor
+composer update     # PHP deps live in vendor
 docker compose up -d
-composer migrate -- --env=dev reset   # creates schema from scratch (proxied into api/)
-composer psalm                        # proxy → api/; or: cd api && php85 vendor/bin/psalm
-composer test                         # proxy → api/ phpunit
+composer migrate -- --env=dev reset   # creates schema from scratch
+composer psalm                        # or: php85 vendor/bin/psalm
+composer test                         # or: vendor/bin/phpunit
 ```
 
 ### Every subsequent development cycle
 ```bash
 git fetch && git pull && git merge origin/master
-composer --working-dir=api update
+composer update
 docker compose up -d
 composer migrate -- --env=dev update  # applies only pending migrations
 composer psalm
@@ -104,18 +105,17 @@ When done: `docker compose down`
 
 ## Project Structure
 
-The project is a full-stack monorepo. **All PHP lives under `api/`**; an optional Vite + React
-frontend lives under `html/`. Compose files and `docker/` sit at the repo root.
+The project is a full-stack monorepo. **The repo root is the PHP application root**; an
+optional Vite + React frontend is a sibling package under `frontend/`.
 
 ```
-<repo root>/
-├── composer.json          # bootstrap: proxies test/migrate/codegen/openapi/psalm/terminal → api/
+<repo root>/               # the PHP REST API — everything below is relative to the root
+├── composer.json          # the single manifest (require, autoload, scripts)
 ├── docker-compose.yml     # API :8080, frontend :7080, MySQL :3306
 ├── docker/                # Dockerfile (API) + Dockerfile-html (frontend)
-├── html/                  # optional React 19 + Vite 6 + Tailwind SPA (see Frontend note below)
-└── api/                   # the PHP REST API — everything below is relative to api/
+├── frontend/              # optional React 19 + Vite 6 + Tailwind SPA (see Frontend note below)
 
-api/src/
+src/
 ├── Controller/           # HTTP controllers — attribute-based routing
 ├── Service/        # Business logic — wraps repositories (Repository pattern only)
 ├── Repository/     # Data access — queries and persistence
@@ -127,7 +127,7 @@ api/src/
 # classes and utilities live in the byjg/gluo-core package (ByJG\Gluo\*).
 # The PHP namespace is still RestReferenceArchitecture\* (renamed on create-project).
 
-api/config/{env}/
+config/{env}/
 ├── 01-infrastructure.php  # DB, cache, logging, ORM init
 ├── 02-security.php        # JWT, password policy, auth user stack
 ├── 03-api.php             # HTTP handler, middleware, routing
@@ -135,7 +135,7 @@ api/config/{env}/
 ├── 05-services.php        # Service DI bindings
 └── 06-external.php        # External services (mail, etc.)
 
-api/db/
+db/
 ├── base.sql               # Base schema + seed users + users_property
 └── migrations/
     ├── up/                # Forward SQL files (00001.sql, 00002.sql, ...)
@@ -148,7 +148,7 @@ api/db/
 The example CRUD entities are `Project` (Repository, int PK, table `project`),
 `Task` (Repository, UUID PK, table `task`), and `Note` (ActiveRecord, table `note`).
 
-> **Frontend (optional, `html/`).** A React 19 + Vite 6 + Tailwind SPA with login,
+> **Frontend (optional, `frontend/`).** A React 19 + Vite 6 + Tailwind SPA with login,
 > password-reset, dashboard, and profile screens wired to the API over JWT. Built by
 > `docker/Dockerfile-html` and served by byjg/static-httpserver on **:7080** (API on :8080).
 > Kept or removed by the *Install Frontend* toggle at create-project time. See
@@ -164,13 +164,13 @@ The example CRUD entities are `Project` (Repository, int PK, table `project`),
 `Controller → Service → Repository → Model`
 - Use when: complex business logic, validation, multiple repos, team projects
 - Files: Model + Repository + Service + Controller (4 files + DI registrations + tests)
-- Reference: `api/src/Controller/ProjectController.php`, `api/src/Repository/ProjectRepository.php` (int PK) or `api/src/Controller/TaskController.php` (UUID PK)
+- Reference: `src/Controller/ProjectController.php`, `src/Repository/ProjectRepository.php` (int PK) or `src/Controller/TaskController.php` (UUID PK)
 
 ### ActiveRecord Pattern (fewer layers, simpler)
 `Controller → Model (handles its own persistence)`
 - Use when: simple CRUD, prototyping, admin panels
 - Files: Model + Controller (2 files + no DI registrations needed + tests)
-- Reference: `api/src/Controller/NoteController.php`, `api/src/Model/Note.php`
+- Reference: `src/Controller/NoteController.php`, `src/Model/Note.php`
 
 ---
 
@@ -196,7 +196,7 @@ Codegen produces: model, repository, service, controller, and tests. Edit to add
 
 #### 1. Migration
 
-`api/db/migrations/up/XXXX.sql` (increment from last file):
+`db/migrations/up/XXXX.sql` (increment from last file):
 ```sql
 CREATE TABLE product (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -208,7 +208,7 @@ CREATE TABLE product (
 ) ENGINE=InnoDB;
 ```
 
-`api/db/migrations/down/XXXX.sql`: `DROP TABLE product;`
+`db/migrations/down/XXXX.sql`: `DROP TABLE product;`
 
 Apply: `composer migrate -- --env=dev update`
 
@@ -239,7 +239,7 @@ class Product
 **Available traits:** `use OaCreatedAt;` / `use OaUpdatedAt;` / `use OaDeletedAt;`
 
 **UUID primary key:** use `#[TableMySqlUuidPKAttribute("product")]` and `#[FieldUuidAttribute(primaryKey: true)]`
-(see `api/src/Model/Task.php` for the complete UUID model pattern)
+(see `src/Model/Task.php` for the complete UUID model pattern)
 
 #### 3. Repository
 
@@ -285,7 +285,7 @@ class ProductService extends BaseService
 
 #### 5. Register in DI Container
 
-`api/config/dev/04-repositories.php`:
+`config/dev/04-repositories.php`:
 ```php
 use ByJG\Config\DependencyInjection as DI;
 
@@ -294,14 +294,14 @@ ProductRepository::class => DI::bind(ProductRepository::class)
     ->toSingleton(),
 ```
 
-`api/config/dev/05-services.php`:
+`config/dev/05-services.php`:
 ```php
 ProductService::class => DI::bind(ProductService::class)
     ->withInjectedConstructor()
     ->toSingleton(),
 ```
 
-Repeat for `api/config/test/` (required for tests to work).
+Repeat for `config/test/` (required for tests to work).
 
 #### 6. REST Controller
 
@@ -353,8 +353,10 @@ class ProductController
 composer run openapi
 ```
 
-Always run this after adding or changing controller attributes. It updates `api/public/docs/openapi.json`
-which drives both routing and contract testing.
+Always run this after adding or changing controller attributes. It updates `public/docs/openapi.json`
+which drives both routing and contract testing. Forgetting it makes the endpoint 404 with no error —
+`composer openapi:check` (run automatically by `composer test`) warns when the spec is older than
+anything in `src/Controller/` or `src/Model/`.
 
 `openapi.json` is the single source of truth: `OpenApiRouteList` reads it to build the route
 table (URL+method → Controller::method), and `#[ValidateRequest]` reads it to validate request
@@ -405,7 +407,7 @@ class ProductTest extends BaseApiTestCase
 }
 ```
 
-Look at `api/tests/Controller/ProjectTest.php` for a complete reference implementation.
+Look at `tests/Controller/ProjectTest.php` for a complete reference implementation.
 
 ---
 
@@ -453,7 +455,7 @@ $name   = JwtContext::getName();     // JWT "name" claim
 
 **Role constants:** `User::ROLE_ADMIN`, `User::ROLE_USER`
 
-**Login flow** (implemented in `api/src/Controller/LoginController.php`):
+**Login flow** (implemented in `src/Controller/LoginController.php`):
 1. `POST /login` with `{username, password}` → `JwtContext::createUserMetadata()` validates via `UsersService`
 2. Returns `{token, data: {userid, name, role}}`
 3. Client sends `Authorization: Bearer <token>` on subsequent requests
@@ -491,8 +493,8 @@ Throw to return the right HTTP status:
 2. Make changes at the appropriate layer
 3. Write a new migration if DB schema changes
 4. `composer run openapi` after any controller attribute changes
-5. `composer psalm` — fix type errors (proxied into api/; or `cd api && php85 vendor/bin/psalm`)
-6. `composer test` — all tests must pass (proxied into api/)
+5. `composer psalm` — fix type errors (or `php85 vendor/bin/psalm`)
+6. `composer test` — all tests must pass
 7. Update tests to reflect new behavior
 
 ---
@@ -503,11 +505,12 @@ Throw to return the right HTTP status:
 |---------|---------|
 | `docker compose up -d` | Start MySQL + PHP (+ frontend) containers |
 | `docker compose down` | Stop containers |
-| `composer --working-dir=api update` | Update PHP dependencies (live in api/vendor) |
-| `composer psalm` | Run static analysis (proxy → api/) |
-| `cd api && php85 vendor/bin/psalm` | Psalm fallback (if default is buggy) |
-| `composer test` | Run test suite (proxy → api/ phpunit) |
+| `composer update` | Update PHP dependencies (live in vendor) |
+| `composer psalm` | Run static analysis |
+| `php85 vendor/bin/psalm` | Psalm fallback (if default is buggy) |
+| `composer test` | Run test suite (phpunit) |
 | `composer run openapi` | Regenerate OpenAPI spec from attributes |
+| `composer openapi:check` | Warn if the spec is stale (auto-run by `composer test`) |
 | `composer migrate -- --env=dev update` | Apply pending migrations (normal dev) |
 | `composer migrate -- --env=dev reset` | Wipe and recreate DB (first install / CI) |
 | `composer codegen -- --env=dev --table=X all --save` | Scaffold full CRUD for table X |

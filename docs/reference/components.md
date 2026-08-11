@@ -8,7 +8,7 @@ sidebar_position: 440
 
 Gluo is split into two packages:
 
-- **byjg/gluo** — the project starter. This is what you type in `composer create-project byjg/gluo my-api`. It scaffolds a full-stack monorepo: the PHP REST API lives in `api/` (`api/src/`, `api/config/`, `api/db/`, `api/tests/`) and an optional Vite + React frontend lives in `html/`, with `docker-compose.yml` and `docker/` at the root. After creation the project is yours: the namespace is renamed, and every file belongs to you.
+- **byjg/gluo** — the project starter. This is what you type in `composer create-project byjg/gluo my-api`. It scaffolds a full-stack monorepo: the PHP REST API lives at the repository root (`src/`, `config/`, `db/`, `tests/`) and an optional Vite + React frontend lives in `frontend/`, with `docker-compose.yml` and `docker/` alongside them. After creation the project is yours: the namespace is renamed, and every file belongs to you.
 - **byjg/gluo-core** — the framework core, installed in `vendor/`. It provides the base classes (`BaseLoginController`, `BaseRepository`, `BaseService`, `BaseUser`), the attributes (`RequireAuthenticated`, `RequireRole`, `ValidateRequest`), utilities (`JwtContext`, `OpenApiContext`, `FakeApiRequester`), the builder (migration, OpenAPI generation, code generator) and the test harness. Improvements arrive with a plain `composer update`.
 
 `byjg/gluo-core` is the glue ("gluo" is Esperanto for glue) that binds the byjg components into a REST architecture.

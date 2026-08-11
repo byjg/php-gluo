@@ -1,0 +1,1581 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API Title",
+        "description": "Information about the API",
+        "termsOfService": "http://localhost:8080/terms/",
+        "contact": {
+            "email": "someone@example.com"
+        },
+        "license": {
+            "name": "Proprietary"
+        },
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/login": {
+            "post": {
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Do login",
+                "operationId": "POST::/login::RestReferenceArchitecture\\Controller\\LoginController::post",
+                "requestBody": {
+                    "description": "The Login Data",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "username",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "username": {
+                                        "description": "The Username",
+                                        "type": "string",
+                                        "format": "string"
+                                    },
+                                    "password": {
+                                        "description": "The Password",
+                                        "type": "string",
+                                        "format": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The object to be created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "token"
+                                    ],
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "userid": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "role": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/refreshtoken": {
+            "post": {
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Refresh Token",
+                "operationId": "POST::/refreshtoken::RestReferenceArchitecture\\Controller\\LoginController::refreshToken",
+                "responses": {
+                    "200": {
+                        "description": "The object rto be created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "token"
+                                    ],
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "role": {
+                                                    "type": "string"
+                                                },
+                                                "userid": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/login/resetrequest": {
+            "post": {
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Initialize the Password Request",
+                "operationId": "POST::/login/resetrequest::RestReferenceArchitecture\\Controller\\LoginController::postResetRequest",
+                "requestBody": {
+                    "description": "The email to have the password reset",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The token for reset",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "token"
+                                    ],
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/login/confirmcode": {
+            "post": {
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Initialize the Password Request",
+                "operationId": "POST::/login/confirmcode::RestReferenceArchitecture\\Controller\\LoginController::postConfirmCode",
+                "requestBody": {
+                    "description": "The email and code to confirm the password reset",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "token",
+                                    "code"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "token": {
+                                        "type": "string"
+                                    },
+                                    "code": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The token for reset",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "token"
+                                    ],
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/login/resetpassword": {
+            "post": {
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Initialize the Password Request",
+                "operationId": "POST::/login/resetpassword::RestReferenceArchitecture\\Controller\\LoginController::postResetPassword",
+                "requestBody": {
+                    "description": "The email and the new password",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "token",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "token": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The token for reset",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "token"
+                                    ],
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/note/{id}": {
+            "get": {
+                "tags": [
+                    "Note"
+                ],
+                "summary": "Get the Note by id",
+                "operationId": "GET::/note/{id}::RestReferenceArchitecture\\Controller\\NoteController::getNote",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The object Note",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Note"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Note"
+                ],
+                "summary": "Soft-delete a Note. Because the model uses the OaDeletedAt trait, delete()\nsets deleted_at instead of removing the row, and the record then disappears\nfrom get()/all() while remaining in the table.",
+                "operationId": "DELETE::/note/{id}::RestReferenceArchitecture\\Controller\\NoteController::deleteNote",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nothing to return"
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/note": {
+            "get": {
+                "tags": [
+                    "Note"
+                ],
+                "summary": "List Note",
+                "operationId": "GET::/note::RestReferenceArchitecture\\Controller\\NoteController::listNote",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "orderBy",
+                        "in": "query",
+                        "description": "Order by",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "description": "Filter",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The object Note",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Note"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Note"
+                ],
+                "summary": "Update an existing Note",
+                "operationId": "PUT::/note::RestReferenceArchitecture\\Controller\\NoteController::putNote",
+                "requestBody": {
+                    "description": "The object Note to be updated",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Note"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Nothing to return"
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Note"
+                ],
+                "summary": "Create a new Note",
+                "operationId": "POST::/note::RestReferenceArchitecture\\Controller\\NoteController::postNote",
+                "requestBody": {
+                    "description": "The object Note to be created",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "taskId",
+                                    "body"
+                                ],
+                                "properties": {
+                                    "taskId": {
+                                        "type": "string",
+                                        "format": "string"
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "format": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The object to be created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "id"
+                                    ],
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "format": "int32"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/project/{projectId}/note": {
+            "get": {
+                "tags": [
+                    "Note"
+                ],
+                "summary": "List every note across a whole project (note -> task -> project). A note only\ncarries a task_id, so this spans two relationships; Note::getByProjectId() uses\njoinWith(Task::class, Project::class), naming the through-entity so its mapper\nregisters on demand and both JOINs resolve.",
+                "operationId": "GET::/project/{projectId}/note::RestReferenceArchitecture\\Controller\\NoteController::listNotesByProject",
+                "parameters": [
+                    {
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The notes belonging to the project",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Note"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/profile": {
+            "get": {
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Return the profile of the logged-in user (from the JWT).",
+                "operationId": "GET::/profile::RestReferenceArchitecture\\Controller\\ProfileController::getProfile",
+                "responses": {
+                    "200": {
+                        "description": "The profile of the authenticated user",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "userid",
+                                        "name",
+                                        "email"
+                                    ],
+                                    "properties": {
+                                        "userid": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string"
+                                        },
+                                        "username": {
+                                            "type": "string"
+                                        },
+                                        "language": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "enum": [
+                                                "en",
+                                                "fr",
+                                                "pt"
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Update the name/email of the logged-in user.",
+                "operationId": "PUT::/profile::RestReferenceArchitecture\\Controller\\ProfileController::putProfile",
+                "requestBody": {
+                    "description": "The profile fields to update",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "language": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": [
+                                            "en",
+                                            "fr",
+                                            "pt"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profile updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "userid",
+                                        "name",
+                                        "email"
+                                    ],
+                                    "properties": {
+                                        "userid": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string"
+                                        },
+                                        "language": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "enum": [
+                                                "en",
+                                                "fr",
+                                                "pt"
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/project/{id}": {
+            "get": {
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Get the Project by id",
+                "operationId": "GET::/project/{id}::RestReferenceArchitecture\\Controller\\ProjectController::getProject",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The object Project",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/project": {
+            "get": {
+                "tags": [
+                    "Project"
+                ],
+                "summary": "List Project",
+                "operationId": "GET::/project::RestReferenceArchitecture\\Controller\\ProjectController::listProject",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "orderBy",
+                        "in": "query",
+                        "description": "Order by",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "description": "Filter",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The object Project",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Project"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Update an existing Project",
+                "operationId": "PUT::/project::RestReferenceArchitecture\\Controller\\ProjectController::putProject",
+                "requestBody": {
+                    "description": "The object Project to be updated",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Project"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Nothing to return"
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Create a new Project",
+                "operationId": "POST::/project::RestReferenceArchitecture\\Controller\\ProjectController::postProject",
+                "requestBody": {
+                    "description": "The object Project to be created",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "format": "string"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "format": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The object rto be created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "id"
+                                    ],
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "format": "int32"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/sample/ping": {
+            "get": {
+                "tags": [
+                    "zz_sample"
+                ],
+                "summary": "Simple ping",
+                "operationId": "GET::/sample/ping::RestReferenceArchitecture\\Controller\\SampleController::getPing",
+                "responses": {
+                    "200": {
+                        "description": "The object",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "result"
+                                    ],
+                                    "properties": {
+                                        "result": {
+                                            "type": "string",
+                                            "format": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sampleprotected/ping": {
+            "get": {
+                "tags": [
+                    "zz_sampleprotected"
+                ],
+                "summary": "Sample Ping Only Authenticated",
+                "operationId": "GET::/sampleprotected/ping::RestReferenceArchitecture\\Controller\\SampleProtectedController::getPing",
+                "responses": {
+                    "200": {
+                        "description": "The object",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "result"
+                                    ],
+                                    "properties": {
+                                        "result": {
+                                            "type": "string",
+                                            "format": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/sampleprotected/pingadm": {
+            "get": {
+                "tags": [
+                    "zz_sampleprotected"
+                ],
+                "summary": "Sample Ping Only Admin",
+                "operationId": "GET::/sampleprotected/pingadm::RestReferenceArchitecture\\Controller\\SampleProtectedController::getPingAdm",
+                "responses": {
+                    "200": {
+                        "description": "The object",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "result"
+                                    ],
+                                    "properties": {
+                                        "result": {
+                                            "type": "string",
+                                            "format": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/task/{id}": {
+            "get": {
+                "tags": [
+                    "Task"
+                ],
+                "summary": "Get the Task by id",
+                "operationId": "GET::/task/{id}::RestReferenceArchitecture\\Controller\\TaskController::getTask",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The object Task",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Task"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        },
+        "/task": {
+            "get": {
+                "tags": [
+                    "Task"
+                ],
+                "summary": "List Task",
+                "operationId": "GET::/task::RestReferenceArchitecture\\Controller\\TaskController::listTask",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "orderBy",
+                        "in": "query",
+                        "description": "Order by",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "description": "Filter",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The object Task",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Task"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Task"
+                ],
+                "summary": "Update an existing Task",
+                "operationId": "PUT::/task::RestReferenceArchitecture\\Controller\\TaskController::putTask",
+                "requestBody": {
+                    "description": "The object Task to be updated",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Task"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Nothing to return"
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Task"
+                ],
+                "summary": "Create a new Task",
+                "operationId": "POST::/task::RestReferenceArchitecture\\Controller\\TaskController::postTask",
+                "requestBody": {
+                    "description": "The object Task to be created",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "projectId",
+                                    "title",
+                                    "status"
+                                ],
+                                "properties": {
+                                    "projectId": {
+                                        "type": "integer",
+                                        "format": "int32"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "format": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "format": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The object rto be created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "required": [
+                                        "id"
+                                    ],
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwt-token": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Note": {
+                "description": "Class Note",
+                "required": [
+                    "id",
+                    "taskId",
+                    "body"
+                ],
+                "properties": {
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "deletedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "id": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "taskId": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "body": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "bodyLength": {
+                        "description": "Read-only DB VIRTUAL GENERATED column: the database computes char_length(body)\non every read. Mapped with syncWithDb:false so the app never tries to write it.\nThis is the canonical \"computed in the database\" example.",
+                        "type": "integer",
+                        "format": "int32",
+                        "nullable": true
+                    },
+                    "days": {
+                        "description": "Read-only computed field: whole days elapsed since the note was created.\nUnlike bodyLength, this canNOT be a DB generated column (it depends on NOW(),\nwhich MySQL rejects in a generated expression), so getDays() derives it in PHP\nfrom `created_at`. The FieldAttribute(syncWithDb:false) only keeps it out of\nwrites; the value itself is produced by the getter, not hydrated from a column.",
+                        "type": "integer",
+                        "format": "int32",
+                        "nullable": true
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Note"
+                }
+            },
+            "Project": {
+                "description": "Class Project",
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "name": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "description": {
+                        "type": "string",
+                        "format": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Project"
+                }
+            },
+            "Task": {
+                "description": "Class Task",
+                "required": [
+                    "id",
+                    "projectId",
+                    "title",
+                    "status"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "projectId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "title": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "format": "string"
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Task"
+                }
+            },
+            "User": {
+                "required": [
+                    "email"
+                ],
+                "properties": {
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "deletedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "userid": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "username": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "string"
+                    },
+                    "role": {
+                        "type": "string",
+                        "format": "string"
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "User"
+                }
+            },
+            "error": {
+                "properties": {
+                    "error": {
+                        "properties": {
+                            "type": {
+                                "description": "A class de Exceção",
+                                "type": "string"
+                            },
+                            "message": {
+                                "description": "A mensagem de erro",
+                                "type": "string"
+                            },
+                            "file": {
+                                "description": "O arquivo que gerou o erro",
+                                "type": "string"
+                            },
+                            "line": {
+                                "description": "A linha do erro",
+                                "type": "integer"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object",
+                "externalDocs": {
+                    "description": "Find out more about Swagger",
+                    "url": "http://localhost:8080/docs"
+                }
+            }
+        },
+        "securitySchemes": {
+            "jwt-token": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Login",
+            "description": "Login"
+        },
+        {
+            "name": "Note",
+            "description": "Note"
+        },
+        {
+            "name": "Profile",
+            "description": "Profile"
+        },
+        {
+            "name": "Project",
+            "description": "Project"
+        },
+        {
+            "name": "zz_sample",
+            "description": "zz_sample"
+        },
+        {
+            "name": "zz_sampleprotected",
+            "description": "zz_sampleprotected"
+        },
+        {
+            "name": "Task",
+            "description": "Task"
+        }
+    ]
+}

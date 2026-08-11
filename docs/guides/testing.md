@@ -23,15 +23,15 @@ The reference architecture provides a complete testing framework that allows you
 | Component          | Purpose                  | Location                         |
 |--------------------|--------------------------|----------------------------------|
 | `FakeApiRequester` | In-process API testing   | `ByJG\Gluo\Util\FakeApiRequester` (byjg/gluo-core)  |
-| `BaseApiTestCase`  | Base class for API tests | `api/tests/Controller/BaseApiTestCase.php` |
-| `Credentials`      | Test user credentials    | `api/tests/Controller/Credentials.php`     |
+| `BaseApiTestCase`  | Base class for API tests | `tests/Controller/BaseApiTestCase.php` |
+| `Credentials`      | Test user credentials    | `tests/Controller/Credentials.php`     |
 
 ## Test Structure
 
 ### Directory Layout
 
 ```
-api/tests/
+tests/
 └── Controller/
     ├── BaseApiTestCase.php     # Base test case with schema + DB reset
     ├── Credentials.php         # Helper for authenticating test users
@@ -43,7 +43,7 @@ api/tests/
 ```
 
 :::info Want unit tests?
-Add additional directories (e.g., `api/tests/Service`) as needed—PHPUnit's configuration already looks at the whole `api/tests/` tree.
+Add additional directories (e.g., `tests/Service`) as needed—PHPUnit's configuration already looks at the whole `tests/` tree.
 :::
 
 ### Running Tests
@@ -52,21 +52,21 @@ Add additional directories (e.g., `api/tests/Service`) as needed—PHPUnit's con
 # Create or reset the testing database
 APP_ENV=test composer migrate -- reset --yes
 
-# Run all tests using the composer script (proxies to api/)
+# Run all tests using the composer script
 APP_ENV=test composer run test
 
-# Run a specific test file (from the api/ directory)
-cd api && APP_ENV=test vendor/bin/phpunit tests/Controller/ProjectTest.php
+# Run a specific test file
+APP_ENV=test vendor/bin/phpunit tests/Controller/ProjectTest.php
 
 # Run a single test method
-cd api && APP_ENV=test vendor/bin/phpunit --filter testFullCrud tests/Controller/ProjectTest.php
+APP_ENV=test vendor/bin/phpunit --filter testFullCrud tests/Controller/ProjectTest.php
 
 # Generate coverage (optional)
-cd api && APP_ENV=test vendor/bin/phpunit --coverage-html coverage/
+APP_ENV=test vendor/bin/phpunit --coverage-html coverage/
 ```
 
 :::info Database resets automatically
-`api/tests/Controller/BaseApiTestCase.php` already calls `Migration::reset()` the first time a test runs, but pre-resetting with the command above avoids surprises if you run the suite outside PHPUnit (e.g., invoking migrations manually).
+`tests/Controller/BaseApiTestCase.php` already calls `Migration::reset()` the first time a test runs, but pre-resetting with the command above avoids surprises if you run the suite outside PHPUnit (e.g., invoking migrations manually).
 :::
 
 ## FakeApiRequester
@@ -75,7 +75,7 @@ The `FakeApiRequester` class enables in-process API testing without a web server
 
 **Location**: `ByJG\Gluo\Util\FakeApiRequester` (byjg/gluo-core)
 
-`BaseApiTestCase` extends `PHPUnit\Framework\TestCase` and mixes in the `OpenApiValidation` trait, so every call to `sendRequest()` validates the result against `api/public/docs/openapi.json`. All routing happens in-memory via `FakeApiRequester`, so you don't need a running web server—only a configured database.
+`BaseApiTestCase` extends `PHPUnit\Framework\TestCase` and mixes in the `OpenApiValidation` trait, so every call to `sendRequest()` validates the result against `public/docs/openapi.json`. All routing happens in-memory via `FakeApiRequester`, so you don't need a running web server—only a configured database.
 
 ### How It Works
 
@@ -194,9 +194,9 @@ lifting (schema loading, OpenAPI validation, database reset, PSR-7 request
 factory) lives in `ByJG\Gluo\Testing\BaseApiTestCase` (byjg/gluo-core);
 your local class only points it at your project:
 
-**Location**: `api/tests/Controller/BaseApiTestCase.php`
+**Location**: `tests/Controller/BaseApiTestCase.php`
 
-```php title="api/tests/Controller/BaseApiTestCase.php"
+```php title="tests/Controller/BaseApiTestCase.php"
 namespace Test\Controller;
 
 use ByJG\Gluo\Testing\BaseApiTestCase as GluoBaseApiTestCase;
@@ -259,7 +259,7 @@ class SampleTest extends BaseApiTestCase
 
 ### Test User Credentials
 
-**Location**: `api/tests/Controller/Credentials.php`
+**Location**: `tests/Controller/Credentials.php`
 
 ```php
 use Test\Controller\Credentials;
@@ -379,7 +379,7 @@ public function testInsufficientPrivileges()
 
 ### Complete CRUD Test
 
-**Location**: `api/tests/Controller/ProjectTest.php`
+**Location**: `tests/Controller/ProjectTest.php`
 
 Reads (`GET`) require `#[RequireAuthenticated]`, while writes (`POST`/`PUT`) require
 `#[RequireRole(User::ROLE_ADMIN)]`, so the create/update steps below log in as the admin user.
@@ -558,7 +558,8 @@ class ProductTest extends BaseApiTestCase
             return $sample;
         }
 
-        ObjectCopy::copy($sample, $model = new Product());
+        $model = new Product();
+        ObjectCopy::copy($sample, $model);
         return $model;
     }
 }

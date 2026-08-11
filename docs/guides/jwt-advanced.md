@@ -34,7 +34,7 @@ The reference architecture uses JWT tokens for stateless authentication. Tokens 
 | Component              | Purpose                    | Location                         |
 |------------------------|----------------------------|----------------------------------|
 | `JwtContext`           | Token creation and parsing | `ByJG\Gluo\Util\JwtContext` (byjg/gluo-core)        |
-| `LoginController`      | Login and token endpoints  | `api/src/Controller/LoginController.php` (contract) extending `ByJG\Gluo\Controller\BaseLoginController` (logic) |
+| `LoginController`      | Login and token endpoints  | `src/Controller/LoginController.php` (contract) extending `ByJG\Gluo\Controller\BaseLoginController` (logic) |
 | `RequireAuthenticated` | Endpoint authentication    | `ByJG\Gluo\Attribute\RequireAuthenticated` (byjg/gluo-core) |
 | `RequireRole`          | Role-based authorization   | `ByJG\Gluo\Attribute\RequireRole` (byjg/gluo-core) |
 
@@ -80,7 +80,7 @@ protected static function defaultRole(): string       // role when unset, defaul
 
 ### Login Endpoint
 
-**Location**: `api/src/Controller/LoginController.php` (contract) + `ByJG\Gluo\Controller\BaseLoginController` (logic)
+**Location**: `src/Controller/LoginController.php` (contract) + `ByJG\Gluo\Controller\BaseLoginController` (logic)
 
 Your controller only declares the OpenAPI contract and delegates to the framework:
 
@@ -233,7 +233,7 @@ Use `UserField` enum values for built-in columns (userid, name, email, etc.) and
 ### Wire It into the Login Flow
 
 `BaseLoginController` asks for the JwtContext class through a hook. Override it
-in your `api/src/Controller/LoginController.php`:
+in your `src/Controller/LoginController.php`:
 
 ```php
 use ByJG\Gluo\Util\JwtContext;
@@ -283,7 +283,7 @@ public function getMyData(HttpResponse $response, HttpRequest $request): void
 
 ### Refresh Token Endpoint
 
-**Location**: `api/src/Controller/LoginController.php` (contract) + `ByJG\Gluo\Controller\BaseLoginController` (logic)
+**Location**: `src/Controller/LoginController.php` (contract) + `ByJG\Gluo\Controller\BaseLoginController` (logic)
 
 Like `/login`, your controller declares the contract and delegates:
 
@@ -573,7 +573,7 @@ php> \ByJG\JwtWrapper\JwtWrapper::generateSecret(64)
 # => 'OFbOmC2VxlgQHNrBLa/wyj7/fFkgPnLpckbXMVuIU7Sqb3RTztNx3xzEYaoeA31JUpvBjkD7FRKBFGQ0+fnTig=='
 ```
 
-Copy the output into the appropriate `api/config/<env>/credentials.env`:
+Copy the output into the appropriate `config/<env>/credentials.env`:
 
 ```ini
 JWT_SECRET=OFbOmC2VxlgQHNrBLa/wyj7/fFkgPnLpckbXMVuIU7Sqb3RTztNx3xzEYaoeA31JUpvBjkD7FRKBFGQ0+fnTig==

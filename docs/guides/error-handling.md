@@ -514,7 +514,7 @@ class ProductService extends BaseService
 
 ### Custom Error Handler
 
-Configure in `api/config/<env>/03-api.php`:
+Configure in `config/<env>/03-api.php`:
 
 ```php
 use ByJG\RestServer\ErrorHandler\ErrorHandler;

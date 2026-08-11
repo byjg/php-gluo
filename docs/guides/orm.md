@@ -35,7 +35,7 @@ class Project
 }
 ```
 
-Need UUID support? Use `#[TableMySqlUuidPKAttribute]` + `#[FieldUuidAttribute]` as shown in `api/src/Model/Task.php` and `api/src/Model/User.php`. They automatically read/write binary UUIDs via `HexUuidLiteral`.
+Need UUID support? Use `#[TableMySqlUuidPKAttribute]` + `#[FieldUuidAttribute]` as shown in `src/Model/Task.php` and `src/Model/User.php`. They automatically read/write binary UUIDs via `HexUuidLiteral`.
 
 ## 2. Repository Definition
 
@@ -114,15 +114,15 @@ Binary UUID columns are transparent when you rely on the attribute helpers:
 
 ## 5. Services and REST Controllers
 
-Repositories are registered in `api/config/<env>/04-repositories.php` and injected into services (see `api/src/Service/ProjectService.php`). Services orchestrate repositories, and REST controllers resolve services via the PSR-11 container. For deeper patterns (DTOs, filters, transactions), read [Repository Patterns](repository-advanced.md) and [Service Layer](services.md).
+Repositories are registered in `config/<env>/04-repositories.php` and injected into services (see `src/Service/ProjectService.php`). Services orchestrate repositories, and REST controllers resolve services via the PSR-11 container. For deeper patterns (DTOs, filters, transactions), read [Repository Patterns](repository-advanced.md) and [Service Layer](services.md).
 
 ## 6. ActiveRecord REST Endpoints
 
-When using the ActiveRecord pattern, the controller calls model methods directly — no separate service class is required. The reference implementation is `api/src/Controller/NoteController.php`.
+When using the ActiveRecord pattern, the controller calls model methods directly — no separate service class is required. The reference implementation is `src/Controller/NoteController.php`.
 
 ### GET — Fetch by ID
 
-```php title="api/src/Controller/NoteController.php (GET by id)"
+```php title="src/Controller/NoteController.php (GET by id)"
 #[RequireAuthenticated]
 public function getNote(HttpResponse $response, HttpRequest $request): void
 {
@@ -138,7 +138,7 @@ public function getNote(HttpResponse $response, HttpRequest $request): void
 
 ### GET — List with Pagination
 
-```php title="api/src/Controller/NoteController.php (list)"
+```php title="src/Controller/NoteController.php (list)"
 #[RequireAuthenticated]
 public function listNote(HttpResponse $response, HttpRequest $request): void
 {
@@ -151,7 +151,7 @@ public function listNote(HttpResponse $response, HttpRequest $request): void
 
 Use `Note::new($payload)` to hydrate a new instance from an array, then call `save()`:
 
-```php title="api/src/Controller/NoteController.php (create)"
+```php title="src/Controller/NoteController.php (create)"
 #[RequireRole(User::ROLE_ADMIN)]
 #[ValidateRequest]
 public function postNote(HttpResponse $response, HttpRequest $request): void
@@ -169,7 +169,7 @@ public function postNote(HttpResponse $response, HttpRequest $request): void
 
 Use `->fill($payload)` to apply changes to an existing instance, then call `save()`:
 
-```php title="api/src/Controller/NoteController.php (update)"
+```php title="src/Controller/NoteController.php (update)"
 #[RequireRole(User::ROLE_ADMIN)]
 #[ValidateRequest]
 public function putNote(HttpResponse $response, HttpRequest $request): void
@@ -197,7 +197,7 @@ public function putNote(HttpResponse $response, HttpRequest $request): void
 
 ## 7. Read-only and computed fields (the Note example)
 
-`api/src/Model/Note.php` demonstrates three field patterns beyond a plain column. All
+`src/Model/Note.php` demonstrates three field patterns beyond a plain column. All
 three rely on `syncWithDb: false`, which keeps a property in the mapper (so it is selected
 and hydrated) but excludes it from writes.
 
@@ -206,7 +206,7 @@ and hydrated) but excludes it from writes.
 `task_id` is a real `binary(16)` foreign key to `task(id)`, mapped with the same helper as
 a UUID primary key:
 
-```php title="api/src/Model/Note.php"
+```php title="src/Model/Note.php"
 #[OA\Property(type: "string", format: "string")]
 #[FieldUuidAttribute(fieldName: "task_id")]
 protected string|LiteralInterface|null $taskId = null;
@@ -220,11 +220,11 @@ pass and receive human-readable UUIDs (`Note::getByTaskId('…')`).
 The database computes this on every read; the app never writes it. The migration declares a
 MySQL **generated** column, and the model maps it read-only:
 
-```sql title="api/db/migrations/up/00001-create-table-examples.sql"
+```sql title="db/migrations/up/00001-create-table-examples.sql"
 body_length int generated always as (char_length(body)) virtual
 ```
 
-```php title="api/src/Model/Note.php"
+```php title="src/Model/Note.php"
 #[OA\Property(type: "integer", format: "int32", nullable: true)]
 #[FieldAttribute(fieldName: "body_length", syncWithDb: false)]
 protected int|null $bodyLength = null;
@@ -240,7 +240,7 @@ MySQL rejects in a generated-column expression. So it is derived in PHP from `cr
 The `FieldAttribute(syncWithDb: false)` only keeps it out of writes; the value comes from
 the getter, not from a column:
 
-```php title="api/src/Model/Note.php"
+```php title="src/Model/Note.php"
 #[OA\Property(type: "integer", format: "int32", nullable: true)]
 #[FieldAttribute(fieldName: "created_at", syncWithDb: false)]
 protected int|null $days = null;
@@ -265,11 +265,11 @@ Note also uses `OaDeletedAt`, so `DELETE /note/{id}` calls `$model->delete()`, w
 
 Each foreign key declares its parent table, so the ORM knows the relationship graph:
 
-```php title="api/src/Model/Task.php"
+```php title="src/Model/Task.php"
 #[FieldAttribute(fieldName: "project_id", parentTable: "project")]
 protected int|null $projectId = null;
 ```
-```php title="api/src/Model/Note.php"
+```php title="src/Model/Note.php"
 #[FieldUuidAttribute(fieldName: "task_id", parentTable: "task")]
 protected string|LiteralInterface|null $taskId = null;
 ```
@@ -284,7 +284,7 @@ its `parentTable` relationships are known even on a request that only touched `N
 `Task` is named as the through-entity (the same way Eloquent's `hasManyThrough` names its
 through-model), so its `task → project` edge is registered and the middle join resolves:
 
-```php title="api/src/Model/Note.php"
+```php title="src/Model/Note.php"
 public static function getByProjectId($projectId): array
 {
     $query = self::joinWith(Task::class, Project::class)  // FROM note JOIN task JOIN project

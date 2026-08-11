@@ -140,7 +140,7 @@ SETUP_JSON=/etc/ci-configs/rest-setup.json composer create-project byjg/gluo pro
 | `db_name_dev`      | string  | `localdev`                                        | Development database/schema name                |
 | `db_name_test`     | string  | `localtest`                                       | Test database/schema name                       |
 | `timezone`         | string  | "UTC"                                             | Server timezone                                 |
-| `install_frontend` | boolean | true | Include the `html/` Vite app (login, reset, dashboard, profile) |
+| `install_frontend` | boolean | true | Include the `frontend/` Vite app (login, reset, dashboard, profile) |
 | `install_examples` | boolean | true | Include example code (Project/Task/Note + Sample; frontend example screens) |
 
 > **Legacy compatibility:** The older `mysql_connection` field is still accepted. When present, it will be parsed and used to populate the new database fields automatically, but it is recommended to migrate to the explicit settings above for clarity and to support other drivers.

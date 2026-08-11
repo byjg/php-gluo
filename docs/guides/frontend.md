@@ -5,19 +5,19 @@ title: Frontend (Vite)
 
 # Frontend (Vite + React)
 
-A Gluo project can ship an optional single-page frontend in the `html/` folder. It is a
+A Gluo project can ship an optional single-page frontend in the `frontend/` folder. It is a
 **React 19 + Vite 6 + Tailwind** app that talks to the API over JWT, with login,
 password-reset, dashboard and profile screens already wired.
 
 The frontend is installed when you answer **yes** to *Install Frontend* during
 `composer create-project` (or set `"install_frontend": true` in `setup.json`). Answer no
-and the `html/` folder, its Docker image and the `html` compose service are all removed —
+and the `frontend/` folder, its Docker image and the `frontend` compose service are all removed —
 leaving a pure API project.
 
 ## Layout
 
 ```
-html/
+frontend/
 ├── package.json  vite.config.js  tailwind.config.js
 ├── .env.example                     # VITE_API_BASE_URL (build-time)
 ├── public/config.js                 # runtime API_BASE_URL (replaced in-container)
@@ -37,13 +37,13 @@ html/
 ## Local development
 
 ```bash
-cd html
+cd frontend
 cp .env.example .env      # point VITE_API_BASE_URL at your API (default http://localhost:8080)
 npm install
 npm run dev               # Vite dev server on http://localhost:3000
 ```
 
-The API's dev CORS allowlist (`CORS_SERVERS` in `api/config/dev/credentials.env`) already
+The API's dev CORS allowlist (`CORS_SERVERS` in `config/dev/credentials.env`) already
 permits the Vite origin. In **production**, set `CORS_SERVERS` to the exact origin the SPA
 is served from.
 
@@ -53,7 +53,7 @@ There are two ways to tell the SPA where the API lives, for two different moment
 
 | | Where | When | Used by |
 |---|---|---|---|
-| `VITE_API_BASE_URL` | `html/.env` | **build** (baked into the bundle) | `npm run dev`, `npm run build` |
+| `VITE_API_BASE_URL` | `frontend/.env` | **build** (baked into the bundle) | `npm run dev`, `npm run build` |
 | `API_BASE_URL` | container env | **container start** (written to `/config.js`) | the Docker image |
 
 The Docker image (`docker/Dockerfile-html`) is built **once** and configured **per
@@ -64,10 +64,10 @@ prefers it over the build-time value. So the same image can point at any API hos
 rebuilding:
 
 ```bash
-docker run -e API_BASE_URL=https://api.example.com -p 7080:8080 gluo-html:dev
+docker run -e API_BASE_URL=https://api.example.com -p 7080:8080 gluo-frontend:dev
 ```
 
-In `docker-compose.yml` the `html` service sets `API_BASE_URL: http://localhost:8080` (the
+In `docker-compose.yml` the `frontend` service sets `API_BASE_URL: http://localhost:8080` (the
 host-reachable API). Leave `API_BASE_URL` empty to serve the API from the **same origin**
 as the SPA (e.g. behind one reverse proxy). Resolution order in `src/lib/api.js`:
 runtime `/config.js` → build-time `VITE_API_BASE_URL` → `http://localhost:8080`.

@@ -22,17 +22,17 @@ Advanced configuration topics including environment inheritance, config loading,
 Configuration is powered by [byjg/config](https://github.com/byjg/config):
 
 - **Environment Inheritance**: test and staging inherit from dev; prod inherits from staging
-- **Flat, numbered files**: `api/config/{env}/01-infrastructure.php` … `06-external.php`, loaded in filename order
-- **`.env` params**: each environment has a `credentials.env`; `api/config/.env` provides local machine overrides
+- **Flat, numbered files**: `config/{env}/01-infrastructure.php` … `06-external.php`, loaded in filename order
+- **`.env` params**: each environment has a `credentials.env`; `config/.env` provides local machine overrides
 - **Caching**: staging and prod cache the resolved container between requests
 
-**Location**: `api/config/`
+**Location**: `config/`
 
 ## Environment Hierarchy
 
 The environments and their inheritance are defined in
 `ByJG\Gluo\Config\BaseConfigBootstrap` (byjg/gluo-core). Your project's
-`api/config/ConfigBootstrap.php` just extends it:
+`config/ConfigBootstrap.php` just extends it:
 
 ```
 Development (dev)
@@ -59,12 +59,12 @@ $prod = Environment::create('prod')
 ```
 
 An environment only needs to define what differs from its parent: a key defined in
-`api/config/prod/` overrides the same key inherited from `staging`/`dev`.
+`config/prod/` overrides the same key inherited from `staging`/`dev`.
 
 ### Inheritance Example
 
 ```
-api/config/
+config/
 ├── dev/
 │   └── credentials.env      # DBDRIVER_CONNECTION=mysql://...@mysql-container/localdev
 ├── staging/
@@ -85,7 +85,7 @@ Each environment directory contains flat, numbered PHP files — the numbering c
 load order, and later definitions win:
 
 ```
-api/config/
+config/
 ├── ConfigBootstrap.php       # Bootstrap (extends gluo-core BaseConfigBootstrap)
 ├── .env                      # Local machine overrides (gitignored; see .env.sample)
 └── {environment}/
@@ -99,7 +99,7 @@ api/config/
 ```
 
 byjg/config loads, for the active environment (and its parents): every `*.php` file
-(DI bindings and params), every `*.env` file (plain params), and finally `api/config/.env`
+(DI bindings and params), every `*.env` file (plain params), and finally `config/.env`
 for local overrides.
 
 ## Environment-Specific Configs
@@ -107,13 +107,13 @@ for local overrides.
 Values that vary per environment live in each environment's `credentials.env` and are
 consumed in the PHP config files via `Param::get()`:
 
-```ini title="api/config/dev/credentials.env"
+```ini title="config/dev/credentials.env"
 DBDRIVER_CONNECTION=mysql://root:mysqlp455w0rd@mysql-container/localdev
 JWT_SECRET=ZGV2LS1qd3Qtc2VjcmV0...
 CORS_SERVERS=.*
 ```
 
-```php title="api/config/dev/01-infrastructure.php (excerpt)"
+```php title="config/dev/01-infrastructure.php (excerpt)"
 use ByJG\AnyDataset\Db\Factory;
 use ByJG\Config\DependencyInjection as DI;
 use ByJG\Config\Param;
@@ -127,7 +127,7 @@ return [
 
 To change the database in another environment, override only the key:
 
-```ini title="api/config/prod/credentials.env"
+```ini title="config/prod/credentials.env"
 DBDRIVER_CONNECTION=mysql://produser:secret@db.internal/myapp
 ```
 
@@ -144,14 +144,14 @@ bootstrap already exposes `TAG_VERSION` and `TAG_COMMIT`.
 Each environment ships a `credentials.env` with its connection strings and `JWT_SECRET`.
 `composer create-project` regenerates a **unique JWT secret for every environment**.
 
-### Local overrides: `api/config/.env`
+### Local overrides: `config/.env`
 
-**File**: `api/config/.env` (not committed — it is in `.gitignore`; a documented example
-lives in `api/config/.env.sample`)
+**File**: `config/.env` (not committed — it is in `.gitignore`; a documented example
+lives in `config/.env.sample`)
 
 Use it for developer-machine specifics you don't want in version control:
 
-```ini title="api/config/.env"
+```ini title="config/.env"
 # Override database connection for local development
 DBDRIVER_CONNECTION=mysql://root:secret@127.0.0.1/localdev
 
@@ -166,7 +166,7 @@ or in a secrets manager — not committed to `credentials.env`.
 
 ## Configuration Bootstrap
 
-**File**: `api/config/ConfigBootstrap.php`
+**File**: `config/ConfigBootstrap.php`
 
 The project bootstrap is intentionally tiny — the environment set, inheritance, and
 caching live in gluo-core, and improvements arrive with `composer update`:
@@ -235,12 +235,12 @@ return [
 
 ```
 # Good - layered by concern, loaded in order
-api/config/dev/01-infrastructure.php
-api/config/dev/02-security.php
-api/config/dev/03-api.php
+config/dev/01-infrastructure.php
+config/dev/02-security.php
+config/dev/03-api.php
 
 # Bad - everything in one file
-api/config/dev/app.php
+config/dev/app.php
 ```
 
 Later files can reference bindings from earlier ones — repositories (04) build on the

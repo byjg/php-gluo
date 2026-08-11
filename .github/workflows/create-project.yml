@@ -96,27 +96,27 @@ jobs:
 
       - name: Assert structure (${{ matrix.combo }})
         run: |
-          test -f /tmp/my-api/api/composer.json
-          test ! -f /tmp/my-api/api/builder/PostCreateScript.php
+          test -f /tmp/my-api/composer.json
+          test ! -f /tmp/my-api/builder/PostCreateScript.php
           if [ "${{ matrix.install_frontend }}" = "true" ]; then
-            test -d /tmp/my-api/html
-            grep -q "html:" /tmp/my-api/docker-compose.yml
+            test -d /tmp/my-api/frontend
+            grep -q "frontend:" /tmp/my-api/docker-compose.yml
           else
-            test ! -d /tmp/my-api/html
-            ! grep -q "gluo-html" /tmp/my-api/docker-compose.yml
+            test ! -d /tmp/my-api/frontend
+            ! grep -q "gluo-frontend" /tmp/my-api/docker-compose.yml
           fi
 
       - name: Psalm on the generated project
-        working-directory: /tmp/my-api/api
+        working-directory: /tmp/my-api
         run: ./vendor/bin/psalm
 
       - name: PHPUnit on the generated project
-        working-directory: /tmp/my-api/api
+        working-directory: /tmp/my-api
         run: ./vendor/bin/phpunit
 
       - name: Build the generated frontend
         if: matrix.install_frontend == true
-        working-directory: /tmp/my-api/html
+        working-directory: /tmp/my-api/frontend
         run: |
           apk add --no-cache nodejs npm
           npm install

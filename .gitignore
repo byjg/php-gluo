@@ -2,17 +2,16 @@
 !.idea/runConfigurations
 /Dockerfile
 
-# API (PHP) — everything lives under api/
-api/composer.lock
-api/vendor
-api/src/*.db
-api/.phpunit.result.cache
-api/config/.env
+# API (PHP) — the app root is the repository root
+/composer.lock
+/vendor
+src/*.db
+config/.env
 
 # Frontend (Vite)
-html/node_modules
-html/dist
-html/.env
+frontend/node_modules
+frontend/dist
+frontend/.env
 
 node_modules
 .mysql

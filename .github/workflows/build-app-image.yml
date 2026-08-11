@@ -113,9 +113,9 @@ jobs:
               --rm -d \
               --network ${{ job.container.network }} \
               $tag tail -f /dev/null
-            docker cp api/tests/ tester:/srv
-            docker cp api/phpunit.xml* tester:/srv
-            docker cp api/db tester:/srv
+            docker cp tests/ tester:/srv
+            docker cp phpunit.xml* tester:/srv
+            docker cp db tester:/srv
 
             docker exec tester composer run migrate -- reset --yes
             docker exec tester composer install --dev --no-interaction --no-progress
