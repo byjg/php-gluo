@@ -2,7 +2,6 @@
 
 namespace RestReferenceArchitecture\Controller;
 
-use ByJG\Config\Config;
 use ByJG\Config\Exception\ConfigException;
 use ByJG\Config\Exception\ConfigNotFoundException;
 use ByJG\Config\Exception\DependencyInjectionException;
@@ -27,6 +26,10 @@ use RestReferenceArchitecture\Service\ProjectService;
 
 class ProjectController
 {
+    public function __construct(protected ProjectService $projectService)
+    {
+    }
+
     /**
      * Get the Project by id
      *
@@ -68,8 +71,7 @@ class ProjectController
     #[RequireAuthenticated]
     public function getProject(HttpResponse $response, HttpRequest $request): void
     {
-        $projectService = Config::get(ProjectService::class);
-        $result = $projectService->getOrFail($request->attribute('id'));
+        $result = $this->projectService->getOrFail($request->attribute('id'));
         $response->write($result);
     }
 
@@ -146,8 +148,7 @@ class ProjectController
     #[RequireAuthenticated]
     public function listProject(HttpResponse $response, HttpRequest $request): void
     {
-        $projectService = Config::get(ProjectService::class);
-        $result = $projectService->list((int)($request->queryString('page') ?? 0), (int)($request->queryString('size') ?? 50));
+        $result = $this->projectService->list((int)($request->queryString('page') ?? 0), (int)($request->queryString('size') ?? 50));
         $response->write($result);
     }
 
@@ -212,8 +213,7 @@ class ProjectController
     #[ValidateRequest]
     public function postProject(HttpResponse $response, HttpRequest $request): void
     {
-        $projectService = Config::get(ProjectService::class);
-        $model = $projectService->create(ValidateRequest::getPayload());
+        $model = $this->projectService->create(ValidateRequest::getPayload());
         $response->write(["id" => $model->getId()]);
     }
 
@@ -265,8 +265,7 @@ class ProjectController
     #[ValidateRequest]
     public function putProject(HttpResponse $response, HttpRequest $request): void
     {
-        $projectService = Config::get(ProjectService::class);
-        $projectService->update(ValidateRequest::getPayload());
+        $this->projectService->update(ValidateRequest::getPayload());
     }
 
 }

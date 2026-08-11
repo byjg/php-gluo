@@ -119,8 +119,7 @@ use ByJG\Gluo\Attribute\ValidateRequest;
 public function postProject(HttpResponse $response, HttpRequest $request): void
 {
     $payload = ValidateRequest::getPayload();
-    $service = Config::get(ProjectService::class);
-    $model = $service->create($payload);
+    $model = $this->projectService->create($payload);
     $response->write($model);
 }
 ```
@@ -135,27 +134,49 @@ use ByJG\Gluo\Attribute\RequireAuthenticated;
 #[RequireAuthenticated]
 public function getProject(HttpResponse $response, HttpRequest $request): void
 {
-    $service = Config::get(ProjectService::class);
-    $result = $service->getOrFail($request->attribute('id'));
+    $result = $this->projectService->getOrFail($request->attribute('id'));
     $response->write($result);
 }
 ```
 
-## Getting Services via `Config::get()`
+## Getting Services via Constructor Injection
 
-Retrieve a DI-registered service inside a controller method:
+The Server resolves controllers from the PSR-11 container, so declare what the controller
+needs in its constructor and use it from any method:
 
 ```php
-use ByJG\Config\Config;
 use RestReferenceArchitecture\Service\ProjectService;
 
-public function getProject(HttpResponse $response, HttpRequest $request): void
+class ProjectController
 {
-    $service = Config::get(ProjectService::class);
-    $result = $service->getOrFail($request->attribute('id'));
-    $response->write($result);
+    public function __construct(protected ProjectService $projectService)
+    {
+    }
+
+    public function getProject(HttpResponse $response, HttpRequest $request): void
+    {
+        $result = $this->projectService->getOrFail($request->attribute('id'));
+        $response->write($result);
+    }
 }
 ```
+
+No registration is needed. `config/dev/07-controllers.php` carries one pattern rule that
+covers the whole controller namespace:
+
+```php
+'RestReferenceArchitecture\Controller\*' => Autowire::rule()
+    ->withInjectedConstructor()   // resolve constructor args from type hints
+    ->toInstance(),               // per-request, not shared
+```
+
+A controller with no constructor (an ActiveRecord one, for instance) degrades to
+`withConstructorNoArgs()` automatically. If a controller needs something the rule cannot
+express — a scalar constructor argument, say — add an explicit binding in the same file
+and it wins over the pattern.
+
+A controller placed outside that namespace is not covered, and the route fails with
+**501** naming the class rather than being built without its dependencies.
 
 ## Working with `HttpRequest` and `HttpResponse`
 

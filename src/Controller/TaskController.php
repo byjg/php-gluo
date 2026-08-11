@@ -2,7 +2,6 @@
 
 namespace RestReferenceArchitecture\Controller;
 
-use ByJG\Config\Config;
 use ByJG\Config\Exception\ConfigException;
 use ByJG\Config\Exception\ConfigNotFoundException;
 use ByJG\Config\Exception\DependencyInjectionException;
@@ -27,6 +26,10 @@ use RestReferenceArchitecture\Service\TaskService;
 
 class TaskController
 {
+    public function __construct(protected TaskService $taskService)
+    {
+    }
+
     /**
      * Get the Task by id
      *
@@ -68,8 +71,7 @@ class TaskController
     #[RequireAuthenticated]
     public function getTask(HttpResponse $response, HttpRequest $request): void
     {
-        $taskService = Config::get(TaskService::class);
-        $result = $taskService->getOrFail($request->attribute('id'));
+        $result = $this->taskService->getOrFail($request->attribute('id'));
         $response->write($result);
     }
 
@@ -146,8 +148,7 @@ class TaskController
     #[RequireAuthenticated]
     public function listTask(HttpResponse $response, HttpRequest $request): void
     {
-        $taskService = Config::get(TaskService::class);
-        $result = $taskService->list((int)($request->queryString('page') ?? 0), (int)($request->queryString('size') ?? 50));
+        $result = $this->taskService->list((int)($request->queryString('page') ?? 0), (int)($request->queryString('size') ?? 50));
         $response->write($result);
     }
 
@@ -213,8 +214,7 @@ class TaskController
     #[ValidateRequest]
     public function postTask(HttpResponse $response, HttpRequest $request): void
     {
-        $taskService = Config::get(TaskService::class);
-        $model = $taskService->create(ValidateRequest::getPayload());
+        $model = $this->taskService->create(ValidateRequest::getPayload());
         $response->write(["id" => $model->getId()]);
     }
 
@@ -266,8 +266,7 @@ class TaskController
     #[ValidateRequest]
     public function putTask(HttpResponse $response, HttpRequest $request): void
     {
-        $taskService = Config::get(TaskService::class);
-        $taskService->update(ValidateRequest::getPayload());
+        $this->taskService->update(ValidateRequest::getPayload());
     }
 
 }

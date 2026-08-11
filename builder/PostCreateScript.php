@@ -304,19 +304,16 @@ ENV;
                 $this->stripFrontendExampleMarkers($workdir);
             }
 
-            // Clean up config files
-            $configFile = "$workdir/config/dev/04-repositories.php";
-            if (file_exists($configFile)) {
-                $contents = "<?php\n\nuse ByJG\Config\DependencyInjection as DI;\n\nreturn [\n\n    // Repository Bindings\n\n];\n";
-                file_put_contents($configFile, $contents);
-                echo "  Cleaned: config/dev/04-repositories.php\n";
-            }
-
-            $configFile = "$workdir/config/dev/05-services.php";
-            if (file_exists($configFile)) {
-                $contents = "<?php\n\nuse ByJG\Config\DependencyInjection as DI;\n\nreturn [\n\n    // Service Bindings\n\n];\n";
-                file_put_contents($configFile, $contents);
-                echo "  Cleaned: config/dev/05-services.php\n";
+            // Clean up config files. Each marks its example bindings, so cut those out
+            // and leave whatever else the file holds exactly as the project ships it.
+            // This matters beyond tidiness: DI::bind() calls class_exists() and throws on
+            // a class we just deleted, which would break the container at startup.
+            //
+            // 07-controllers.php is absent on purpose: it holds an Autowire pattern rule
+            // rather than per-class bindings, so it names no example class and needs no
+            // cleaning.
+            foreach (['04-repositories', '05-services'] as $config) {
+                $this->stripPhpExampleMarkers("$workdir/config/dev/$config.php");
             }
 
             // Clean up index.html - remove example sections marked with <!-- Start Example --> and <!-- End Example -->
@@ -443,6 +440,37 @@ ENV;
             'frontend/src/pages/examples/TaskNotes.jsx',
             'frontend/src/lib/examplesApi.js',
         ];
+    }
+
+    /**
+     * Remove every `// Start Example` … `// End Example` block from a PHP file.
+     *
+     * Editing the real file in place beats rewriting it from a string literal here: there
+     * is one source of truth, so a binding added to the config cannot silently go missing
+     * from generated example-free projects.
+     */
+    protected function stripPhpExampleMarkers(string $file): void
+    {
+        if (!file_exists($file)) {
+            return;
+        }
+
+        $contents = file_get_contents($file);
+        $stripped = preg_replace(
+            '/^[ \t]*\/\/\s*Start Example\b.*?^[ \t]*\/\/\s*End Example\b[^\n]*\n/ms',
+            '',
+            $contents
+        );
+
+        if ($stripped === null || $stripped === $contents) {
+            return;
+        }
+
+        // Cutting a block out from between two others leaves their blank lines adjacent.
+        $stripped = preg_replace('/\n{3,}/', "\n\n", $stripped);
+
+        file_put_contents($file, $stripped);
+        echo "  Cleaned: " . basename($file) . " - removed example bindings\n";
     }
 
     /**

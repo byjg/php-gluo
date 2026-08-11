@@ -67,6 +67,8 @@ MySQL
 3. `03-api.php` — OpenApiRouteList, JwtMiddleware, CorsMiddleware, HttpRequestHandler
 4. `04-repositories.php` — your feature repositories
 5. `05-services.php` — your feature services
+6. `06-external.php` — external services (mail, etc.)
+7. `07-controllers.php` — Autowire rule covering the controller namespace
 
 > ActiveRecord models rely on `"ORMInitialization"` (a `toEagerSingleton()` in `01-infrastructure.php`)
 > which calls `ORM::defaultDbDriver()` at startup. This happens automatically — you don't call it yourself.
@@ -133,7 +135,8 @@ config/{env}/
 ├── 03-api.php             # HTTP handler, middleware, routing
 ├── 04-repositories.php    # Repository DI bindings
 ├── 05-services.php        # Service DI bindings
-└── 06-external.php        # External services (mail, etc.)
+├── 06-external.php        # External services (mail, etc.)
+└── 07-controllers.php     # Controller autowire rule
 
 db/
 ├── base.sql               # Base schema + seed users + users_property
@@ -301,6 +304,11 @@ ProductService::class => DI::bind(ProductService::class)
     ->toSingleton(),
 ```
 
+No controller entry is needed: `config/dev/07-controllers.php` autowires the whole
+controller namespace with one `Autowire::rule()`. Keep the controller in that namespace
+and its constructor is injected. Add an explicit binding there only if a controller needs
+something the rule cannot express (a scalar constructor argument, say) — explicit wins.
+
 Repeat for `config/test/` (required for tests to work).
 
 #### 6. REST Controller
@@ -308,6 +316,10 @@ Repeat for `config/test/` (required for tests to work).
 ```php
 class ProductController
 {
+    public function __construct(protected ProductService $productService)
+    {
+    }
+
     #[OA\Get(path: "/product/{id}", security: [["jwt-token" => []]], tags: ["product"])]
     #[OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(response: 200, description: "Success",
@@ -317,8 +329,7 @@ class ProductController
     #[RequireAuthenticated]
     public function getProduct(HttpResponse $response, HttpRequest $request): void
     {
-        $service = Config::get(ProductService::class);
-        $result = $service->getOrFail($request->attribute('id'));
+        $result = $this->productService->getOrFail($request->attribute('id'));
         $response->write($result);
     }
 
@@ -330,8 +341,7 @@ class ProductController
     #[ValidateRequest]
     public function postProduct(HttpResponse $response, HttpRequest $request): void
     {
-        $service = Config::get(ProductService::class);
-        $model = $service->create(ValidateRequest::getPayload());
+        $model = $this->productService->create(ValidateRequest::getPayload());
         $response->write($model);
     }
 }

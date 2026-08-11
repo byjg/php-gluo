@@ -273,11 +273,29 @@ class PostCreateScriptTest extends TestCase
         // the rollback lives under down/, not up/ (regression guard for the old path bug)
         $this->assertFileDoesNotExist($this->workdir . '/db/migrations/down/00000-rollback-table-examples.sql');
 
-        $repos = file_get_contents($this->workdir . '/config/dev/04-repositories.php');
+        $repos = (string)file_get_contents($this->workdir . '/config/dev/04-repositories.php');
         $this->assertStringNotContainsString('ProjectRepository', $repos);
+        $this->assertStringNotContainsString('TaskRepository', $repos);
 
-        $services = file_get_contents($this->workdir . '/config/dev/05-services.php');
+        $services = (string)file_get_contents($this->workdir . '/config/dev/05-services.php');
         $this->assertStringNotContainsString('ProjectService', $services);
+        $this->assertStringNotContainsString('TaskService', $services);
+
+        // Controllers are autowired by pattern, so this file names no class at all and
+        // survives example removal untouched -- there is nothing pointing at a deleted
+        // class for DI::bind()/class_exists() to trip over.
+        $controllers = (string)file_get_contents($this->workdir . '/config/dev/07-controllers.php');
+        $this->assertStringContainsString("'AcmeShop\\Controller\\*' => Autowire::rule()", $controllers);
+        foreach (['ProjectController', 'TaskController', 'NoteController', 'SampleController'] as $removed) {
+            $this->assertStringNotContainsString($removed, $controllers);
+        }
+
+        // The blocks are cut by marker, so a bad match could leave a dangling fragment
+        // that the string assertions above would not notice. token_get_all() with
+        // TOKEN_PARSE throws ParseError on invalid PHP.
+        foreach ([$repos, $services, $controllers] as $config) {
+            token_get_all($config, TOKEN_PARSE);
+        }
 
         $index = file_get_contents($this->workdir . '/public/index.html');
         $this->assertStringNotContainsString('Start Example', $index);

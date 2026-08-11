@@ -3,7 +3,6 @@
 namespace RestReferenceArchitecture\Controller;
 
 use ByJG\Authenticate\Service\UsersService;
-use ByJG\Config\Config;
 use ByJG\Config\Exception\ConfigException;
 use ByJG\Config\Exception\ConfigNotFoundException;
 use ByJG\Config\Exception\DependencyInjectionException;
@@ -23,6 +22,10 @@ use OpenApi\Attributes as OA;
  */
 class ProfileController
 {
+    public function __construct(protected UsersService $usersService)
+    {
+    }
+
     /** Languages allowed for the `language` user property. */
     private const LANGUAGES = ['en', 'fr', 'pt'];
 
@@ -137,8 +140,7 @@ class ProfileController
             $user->set('language', $payload['language']);
         }
 
-        $usersService = Config::get(UsersService::class);
-        $usersService->save($user);
+        $this->usersService->save($user);
 
         $language = $user->get('language');
         $response->write([

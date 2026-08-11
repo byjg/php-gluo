@@ -187,11 +187,14 @@ public function getProject(HttpResponse $response, HttpRequest $request): void
 
 use ByJG\Gluo\Attribute\RequireAuthenticated;
 
+public function __construct(protected ProjectService $projectService)
+{
+}
+
 #[RequireAuthenticated]
 public function getProject(HttpResponse $response, HttpRequest $request): void
 {
-    $service = Config::get(ProjectService::class);
-    $result = $service->getOrFail($request->attribute('id'));
+    $result = $this->projectService->getOrFail($request->attribute('id'));
     $response->write($result);
 }
 ```
@@ -368,20 +371,26 @@ The service will automatically:
 **Rule**: REST controllers should ALWAYS call the Service layer, never the Repository directly.
 
 ```php
-// ✓ CORRECT - Controller calls Service
+// ✓ CORRECT - Controller depends on the Service
+public function __construct(protected TaskService $taskService)
+{
+}
+
 #[ValidateRequest]
 public function putTask(HttpResponse $response, HttpRequest $request): void
 {
-    $taskService = Config::get(TaskService::class);
-    $model = $taskService->update(ValidateRequest::getPayload());
+    $model = $this->taskService->update(ValidateRequest::getPayload());
     $response->write($model);
 }
 
-// ✗ WRONG - Controller calls Repository directly
+// ✗ WRONG - Controller depends on the Repository directly
+public function __construct(protected TaskRepository $taskRepository)
+{
+}
+
 public function putTask(HttpResponse $response, HttpRequest $request): void
 {
-    $repository = Config::get(TaskRepository::class);
-    $model = $repository->get($id);  // Don't do this!
+    $model = $this->taskRepository->get($id);  // Don't do this!
     // ...
 }
 ```

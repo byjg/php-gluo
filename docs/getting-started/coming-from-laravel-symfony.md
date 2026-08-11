@@ -50,20 +50,37 @@ It warns (never blocks) when the spec is older than anything in `src/Controller/
 > the "cache rebuild" is explicit and you own it. **Drupal:** it plays the role of
 > `mymodule.routing.yml`, except you never edit it by hand.
 
-### 2. Dependencies are pulled, not injected
+### 2. Every binding is explicit — there is no autowire-by-convention
 
-Controllers are plain classes with no constructor. You fetch collaborators from the
-container inside the method:
+Constructor injection works the way you expect. Controllers declare what they need and
+the container provides it:
 
 ```php
-public function getProject(HttpResponse $response, HttpRequest $request): void
+class ProjectController
 {
-    $projectService = Config::get(ProjectService::class);
-    $response->write($projectService->getOrFail($request->attribute('id')));
+    public function __construct(protected ProjectService $projectService)
+    {
+    }
+
+    public function getProject(HttpResponse $response, HttpRequest $request): void
+    {
+        $response->write($this->projectService->getOrFail($request->attribute('id')));
+    }
 }
 ```
 
-Bindings are declared explicitly — there is no autowire-by-convention:
+Controllers need no registration — one pattern rule covers the namespace:
+
+```php
+// config/dev/07-controllers.php
+'App\Controller\*' => Autowire::rule()
+    ->withInjectedConstructor()   // resolve constructor args from their type hints
+    ->toInstance(),               // per-request, not shared
+```
+
+Services and repositories *are* declared one by one, because those bindings carry
+decisions a pattern cannot make — which implementation, singleton or not, scalar
+constructor arguments:
 
 ```php
 // config/dev/05-services.php
@@ -72,11 +89,17 @@ ProjectService::class => DI::bind(ProjectService::class)
     ->toSingleton(),
 ```
 
-`config/test/` inherits `config/dev/`, so you register a service once for both.
+So there is no `services.yaml`-style autowiring for the layers where a choice exists, and
+no per-class boilerplate for the layer where none does. `composer codegen` writes the
+service and repository entries for what it generates.
 
-> **Drupal:** this is `\Drupal::service()` — you will feel at home. **Symfony/Laravel:**
-> this is the adjustment. Expect a service locator where you are used to autowiring or
-> auto-resolved type hints.
+`config/test/` inherits `config/dev/`, so you register once for both.
+
+> **Symfony:** the controller rule is your `App\Controller\: resource:` line; the
+> difference is that services get no equivalent — declare each one. **Laravel:** think
+> explicit `$this->app->bind()` for services, with controllers resolved for you.
+> **Drupal:** like `mymodule.services.yml`, except constructor arguments resolve from type
+> hints and controllers need no entry.
 
 ### 3. Controllers write to a response, they do not return one
 
@@ -124,7 +147,7 @@ db/migrations/down/00001-rollback-products.sql
 | `database/migrations` | `migrations/` | `hook_update_N` | `db/migrations/{up,down}` |
 | `config/*.php` | `config/services.yaml` | `*.services.yml` | `config/{env}/*.php` |
 | `.env` | `.env` | `settings.php` | `config/{env}/credentials.env` |
-| `app()->make()` | autowiring | `\Drupal::service()` | `Config::get()` |
+| `app()->make()` | autowiring | `\Drupal::service()` | constructor injection (bindings declared explicitly) |
 | Gate / Policy | `#[IsGranted]` | `_permission` route key | `#[RequireRole]` |
 | FormRequest | Validator + DTO | Form API | `#[ValidateRequest]` + OpenAPI schema |
 | `php artisan tinker` | — | `drush php` | `composer terminal` |

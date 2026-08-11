@@ -191,8 +191,8 @@ public function putNote(HttpResponse $response, HttpRequest $request): void
 
 | Service pattern | ActiveRecord pattern |
 |---|---|
-| `Config::get(ProjectService::class)->create($payload)` | `Note::new($payload)->save()` |
-| `Config::get(ProjectService::class)->getOrFail($id)` | `Note::get($id)` |
+| `$this->projectService->create($payload)` (injected) | `Note::new($payload)->save()` |
+| `$this->projectService->getOrFail($id)` (injected) | `Note::get($id)` |
 | `$service->update($payload)` | `$model->fill($payload); $model->save()` |
 
 ## 7. Read-only and computed fields (the Note example)

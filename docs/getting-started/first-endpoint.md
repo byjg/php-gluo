@@ -176,10 +176,14 @@ After validating the payload, use the service layer to update the record:
 ```php
 <?php
 
-use ByJG\Config\Config;
 use RestReferenceArchitecture\Service\ExampleCrudService;
 use ByJG\Gluo\Attribute\RequireAuthenticated;
 use ByJG\Gluo\Attribute\ValidateRequest;
+
+// Declare the dependency once, in the constructor
+public function __construct(protected ExampleCrudService $exampleCrudService)
+{
+}
 
 /**
  * Update the status of an Example CRUD record
@@ -191,14 +195,19 @@ public function putExampleCrudStatus(HttpResponse $response, HttpRequest $reques
     $payload = ValidateRequest::getPayload();
 
     // Use the service layer for business logic
-    $service = Config::get(ExampleCrudService::class);
-    $model = $service->getOrFail($payload['id']);
+    $model = $this->exampleCrudService->getOrFail($payload['id']);
     $model->setStatus($payload['status']);
-    $service->save($model);
+    $this->exampleCrudService->save($model);
 
     $response->write(['result' => 'ok']);
 }
 ```
+
+:::tip No registration needed
+`config/dev/07-controllers.php` autowires the whole controller namespace with a single
+`Autowire::rule()`, so a new controller is resolved without an entry of its own. Keep it
+in that namespace and the constructor is injected for you.
+:::
 
 :::tip Service Layer
 Always use the Service Layer instead of directly accessing repositories. Services handle business logic and make your code more maintainable.

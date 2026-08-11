@@ -19,6 +19,7 @@ The configuration is organized by environment in the `config/{environment}/` fol
   - `04-repositories.php` - Repository bindings
   - `05-services.php` - Service bindings
   - `06-external.php` - External services (Email, etc.)
+  - `07-controllers.php` - Controller bindings
 
 You must set the `APP_ENV` environment variable to specify which environment to use.
 
@@ -230,6 +231,40 @@ MyService::class => DI::bind(MyService::class)->toSingleton(),
 MyService::class => DI::bind(MyService::class),
 ```
 
+### Controllers
+
+The `Server` is bound with `withContainer(Param::container())` in `03-api.php`, so it
+resolves route controllers from the container rather than instantiating them directly.
+That is what lets a controller declare its dependencies in the constructor.
+
+Controllers are not listed one by one. They are *terminal* classes — nothing depends on
+them — so a per-class binding would encode no decision: one implementation named directly
+by the router, always per-request, and every constructor argument a type-hinted service
+that is itself explicitly bound. A single `Autowire` rule covers the namespace:
+
+```php
+// config/dev/07-controllers.php
+'RestReferenceArchitecture\Controller\*' => Autowire::rule()
+    ->withInjectedConstructor()
+    ->toInstance(),
+```
+
+Three things to know:
+
+- **A controller that declares no constructor** (an ActiveRecord one, say) degrades to
+  `withConstructorNoArgs()` automatically — no special case needed.
+- **An explicit binding wins**, so a controller needing a scalar argument can still be
+  declared by hand in the same file.
+- **A controller outside the namespace is not covered** and fails with **501** naming the
+  class, rather than being built without its dependencies.
+
+Services and repositories stay explicit: their bindings *do* carry decisions, so a pattern
+there would be convention standing in for a real choice.
+
+`Param::container()` resolves to the container itself. Do not reach for
+`Config::getContainer()` inside a config file — the facade is not populated until the
+container finishes building.
+
 ## Configuration Organization
 
 Dependencies are organized by layer in numbered files:
@@ -240,6 +275,7 @@ Dependencies are organized by layer in numbered files:
 - `04-repositories.php` - Data access layer
 - `05-services.php` - Business logic layer
 - `06-external.php` - Email, SMS, external APIs
+- `07-controllers.php` - REST controllers
 
 This organization makes it easy to find and modify related configurations.
 
