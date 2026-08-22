@@ -2,12 +2,14 @@
 
 namespace RestReferenceArchitecture\Controller;
 
-use ByJG\Config\Config;
 use ByJG\Config\Exception\ConfigException;
 use ByJG\Config\Exception\ConfigNotFoundException;
 use ByJG\Config\Exception\DependencyInjectionException;
 use ByJG\Config\Exception\InvalidDateException;
 use ByJG\Config\Exception\KeyNotFoundException;
+use ByJG\Gluo\Attribute\RequireAuthenticated;
+use ByJG\Gluo\Attribute\RequireRole;
+use ByJG\Gluo\Attribute\ValidateRequest;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
@@ -19,16 +21,17 @@ use ByJG\RestServer\HttpRequest;
 use ByJG\RestServer\HttpResponse;
 use OpenApi\Attributes as OA;
 use ReflectionException;
-use ByJG\Gluo\Attribute\RequireAuthenticated;
-use ByJG\Gluo\Attribute\RequireRole;
-use ByJG\Gluo\Attribute\ValidateRequest;
 use RestReferenceArchitecture\Model\User;
-use RestReferenceArchitecture\Service\DummyService;
+use RestReferenceArchitecture\Service\ProjectService;
 
-class DummyController
+class ProjectController
 {
+    public function __construct(protected ProjectService $projectService)
+    {
+    }
+
     /**
-     * Get the Dummy by id
+     * Get the Project by id
      *
      * @param HttpResponse $response
      * @param HttpRequest $request
@@ -45,11 +48,11 @@ class DummyController
      * @throws ReflectionException
      */
     #[OA\Get(
-        path: "/dummy/{id}",
+        path: "/project/{id}",
         security: [
             ["jwt-token" => []]
         ],
-        tags: ["Dummy"],
+        tags: ["Project"],
     )]
     #[OA\Parameter(
         name: "id",
@@ -62,19 +65,18 @@ class DummyController
     )]
     #[OA\Response(
         response: 200,
-        description: "The object Dummy",
-        content: new OA\JsonContent(ref: "#/components/schemas/Dummy")
+        description: "The object Project",
+        content: new OA\JsonContent(ref: "#/components/schemas/Project")
     )]
     #[RequireAuthenticated]
-    public function getDummy(HttpResponse $response, HttpRequest $request): void
+    public function getProject(HttpResponse $response, HttpRequest $request): void
     {
-        $dummyService = Config::get(DummyService::class);
-        $result = $dummyService->getOrFail($request->attribute('id'));
+        $result = $this->projectService->getOrFail($request->attribute('id'));
         $response->write($result);
     }
 
     /**
-     * List Dummy
+     * List Project
      *
      * @param HttpResponse $response
      * @param HttpRequest $request
@@ -91,11 +93,11 @@ class DummyController
      * @throws ReflectionException
      */
     #[OA\Get(
-        path: "/dummy",
+        path: "/project",
         security: [
             ["jwt-token" => []]
         ],
-        tags: ["Dummy"]
+        tags: ["Project"]
     )]
     #[OA\Parameter(
         name: "page",
@@ -135,8 +137,8 @@ class DummyController
     )]
     #[OA\Response(
         response: 200,
-        description: "The object Dummy",
-        content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Dummy"))
+        description: "The object Project",
+        content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Project"))
     )]
     #[OA\Response(
         response: 401,
@@ -144,16 +146,15 @@ class DummyController
         content: new OA\JsonContent(ref: "#/components/schemas/error")
     )]
     #[RequireAuthenticated]
-    public function listDummy(HttpResponse $response, HttpRequest $request): void
+    public function listProject(HttpResponse $response, HttpRequest $request): void
     {
-        $dummyService = Config::get(DummyService::class);
-        $result = $dummyService->list($request->query('page'), $request->query('size'));
+        $result = $this->projectService->list((int)($request->queryString('page') ?? 0), (int)($request->queryString('size') ?? 50));
         $response->write($result);
     }
 
 
     /**
-     * Create a new Dummy 
+     * Create a new Project 
      *
      * @param HttpResponse $response
      * @param HttpRequest $request
@@ -174,20 +175,21 @@ class DummyController
      * @throws ReflectionException
      */
     #[OA\Post(
-        path: "/dummy",
+        path: "/project",
         security: [
             ["jwt-token" => []]
         ],
-        tags: ["Dummy"]
+        tags: ["Project"]
     )]
     #[OA\RequestBody(
-        description: "The object Dummy to be created",
+        description: "The object Project to be created",
         required: true,
         content: new OA\JsonContent(
-            required: [ "field" ],
+            required: [ "name" ],
             properties: [
 
-                new OA\Property(property: "field", type: "string", format: "string")
+                new OA\Property(property: "name", type: "string", format: "string"),
+                new OA\Property(property: "description", type: "string", format: "string", nullable: true)
             ]
         )
     )]
@@ -209,16 +211,15 @@ class DummyController
     )]
     #[RequireRole(User::ROLE_ADMIN)]
     #[ValidateRequest]
-    public function postDummy(HttpResponse $response, HttpRequest $request): void
+    public function postProject(HttpResponse $response, HttpRequest $request): void
     {
-        $dummyService = Config::get(DummyService::class);
-        $model = $dummyService->create(ValidateRequest::getPayload());
+        $model = $this->projectService->create(ValidateRequest::getPayload());
         $response->write(["id" => $model->getId()]);
     }
 
 
     /**
-     * Update an existing Dummy 
+     * Update an existing Project 
      *
      * @param HttpResponse $response
      * @param HttpRequest $request
@@ -240,16 +241,16 @@ class DummyController
      * @throws ReflectionException
      */
     #[OA\Put(
-        path: "/dummy",
+        path: "/project",
         security: [
             ["jwt-token" => []]
         ],
-        tags: ["Dummy"]
+        tags: ["Project"]
     )]
     #[OA\RequestBody(
-        description: "The object Dummy to be updated",
+        description: "The object Project to be updated",
         required: true,
-        content: new OA\JsonContent(ref: "#/components/schemas/Dummy")
+        content: new OA\JsonContent(ref: "#/components/schemas/Project")
     )]
     #[OA\Response(
         response: 200,
@@ -262,10 +263,9 @@ class DummyController
     )]
     #[RequireRole(User::ROLE_ADMIN)]
     #[ValidateRequest]
-    public function putDummy(HttpResponse $response, HttpRequest $request): void
+    public function putProject(HttpResponse $response, HttpRequest $request): void
     {
-        $dummyService = Config::get(DummyService::class);
-        $dummyService->update(ValidateRequest::getPayload());
+        $this->projectService->update(ValidateRequest::getPayload());
     }
 
 }

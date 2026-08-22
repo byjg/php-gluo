@@ -2,11 +2,11 @@
 
 namespace RestReferenceArchitecture\Controller;
 
+use ByJG\Gluo\Attribute\RequireAuthenticated;
+use ByJG\Gluo\Attribute\RequireRole;
 use ByJG\RestServer\HttpRequest;
 use ByJG\RestServer\HttpResponse;
 use OpenApi\Attributes as OA;
-use ByJG\Gluo\Attribute\RequireAuthenticated;
-use ByJG\Gluo\Attribute\RequireRole;
 
 class SampleProtectedController
 {

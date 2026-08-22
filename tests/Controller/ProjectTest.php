@@ -2,36 +2,36 @@
 
 namespace Test\Controller;
 
+use ByJG\Gluo\Util\FakeApiRequester;
 use ByJG\RestServer\Exception\Error401Exception;
 use ByJG\RestServer\Exception\Error403Exception;
 use ByJG\Serializer\ObjectCopy;
-use Override;
-use RestReferenceArchitecture\Model\Dummy;
-use ByJG\Gluo\Util\FakeApiRequester;
+use RestReferenceArchitecture\Model\Project;
 
-class DummyTest extends BaseApiTestCase
+class ProjectTest extends BaseApiTestCase
 {
-    #[Override]
     protected function setUp(): void
     {
         parent::setUp();
     }
 
     /**
-     * @return Dummy|array
+     * @return Project|array
      */
     protected function getSampleData($array = false)
     {
         $sample = [
 
-            'field' => 'field',
+            'name' => 'name',
+            'description' => 'description',
         ];
 
         if ($array) {
             return $sample;
         }
 
-        ObjectCopy::copy($sample, $model = new Dummy());
+        $model = new Project();
+        ObjectCopy::copy($sample, $model);
         return $model;
     }
 
@@ -46,7 +46,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('GET')
-            ->withPath("/dummy/1")
+            ->withPath("/project/1")
             ->expectStatus(401)
         ;
         $this->sendRequest($request);
@@ -61,7 +61,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('GET')
-            ->withPath("/dummy/1")
+            ->withPath("/project/1")
             ->expectStatus(401)
         ;
         $this->sendRequest($request);
@@ -76,7 +76,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('POST')
-            ->withPath("/dummy")
+            ->withPath("/project")
             ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(401)
         ;
@@ -92,7 +92,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/dummy")
+            ->withPath("/project")
             ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => 1]))
             ->expectStatus(401)
         ;
@@ -110,7 +110,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('POST')
-            ->withPath("/dummy")
+            ->withPath("/project")
             ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(403)
             ->withRequestHeader([
@@ -131,7 +131,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/dummy")
+            ->withPath("/project")
             ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => 1]))
             ->expectStatus(403)
             ->withRequestHeader([
@@ -149,7 +149,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('POST')
-            ->withPath("/dummy")
+            ->withPath("/project")
             ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(200)
             ->withRequestHeader([
@@ -163,7 +163,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('GET')
-            ->withPath("/dummy/" . $bodyAr['id'])
+            ->withPath("/project/" . $bodyAr['id'])
             ->expectStatus(200)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
@@ -175,7 +175,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/dummy")
+            ->withPath("/project")
             ->withRequestBody($body->getBody()->getContents())
             ->expectStatus(200)
             ->withRequestHeader([
@@ -193,7 +193,7 @@ class DummyTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('GET')
-            ->withPath("/dummy")
+            ->withPath("/project")
             ->expectStatus(200)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']

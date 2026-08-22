@@ -7,6 +7,10 @@ title: Architecture Decisions
 
 Guide to choosing between architectural patterns and understanding when to use each approach.
 
+:::note Monorepo layout
+A Gluo project is a monorepo: the repository root *is* the PHP application root (`src/`, `config/`, `db/`, `public/`, `templates/`, `tests/` and a single `composer.json`), while an optional Vite SPA is a sibling package under `frontend/`. The patterns below all concern the PHP backend. See [Repository layout](repo-layout.md) for the full picture, and the [Frontend guide](../guides/frontend.md) for the SPA that consumes it.
+:::
+
 ## Table of Contents
 
 - [Repository vs ActiveRecord](#repository-vs-activerecord)

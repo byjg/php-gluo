@@ -1,0 +1,20 @@
+# Build the Vite app and serve the static output with byjg/static-httpserver.
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+FROM byjg/static-httpserver
+ENV SPA_MODE=true
+ENV ROOT_DIR=/static
+ENV PORT=8080
+# API_BASE_URL is read at container start (see entrypoint) and written into
+# /static/config.js, so this one image can target any API host. Empty = same origin.
+ENV API_BASE_URL=""
+# --chown so the non-root appuser can overwrite /static/config.js at start.
+COPY --chown=appuser:appuser --from=builder /app/dist /static
+COPY --chmod=0755 docker/static-html-entrypoint.sh /usr/local/bin/gluo-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/gluo-entrypoint.sh"]
+CMD ["./static-httpserver"]

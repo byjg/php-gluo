@@ -2,9 +2,9 @@
 
 namespace Test\Controller;
 
+use ByJG\Gluo\Util\FakeApiRequester;
 use ByJG\RestServer\Exception\Error401Exception;
 use ByJG\RestServer\Exception\Error403Exception;
-use ByJG\Gluo\Util\FakeApiRequester;
 
 /**
  * Create a TestCase inherited from SwaggerTestCase

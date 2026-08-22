@@ -176,10 +176,14 @@ After validating the payload, use the service layer to update the record:
 ```php
 <?php
 
-use ByJG\Config\Config;
 use RestReferenceArchitecture\Service\ExampleCrudService;
 use ByJG\Gluo\Attribute\RequireAuthenticated;
 use ByJG\Gluo\Attribute\ValidateRequest;
+
+// Declare the dependency once, in the constructor
+public function __construct(protected ExampleCrudService $exampleCrudService)
+{
+}
 
 /**
  * Update the status of an Example CRUD record
@@ -191,14 +195,32 @@ public function putExampleCrudStatus(HttpResponse $response, HttpRequest $reques
     $payload = ValidateRequest::getPayload();
 
     // Use the service layer for business logic
-    $service = Config::get(ExampleCrudService::class);
-    $model = $service->getOrFail($payload['id']);
+    $model = $this->exampleCrudService->getOrFail($payload['id']);
     $model->setStatus($payload['status']);
-    $service->save($model);
+    $this->exampleCrudService->save($model);
 
     $response->write(['result' => 'ok']);
 }
 ```
+
+:::tip No registration needed
+`config/dev/07-controllers.php` autowires the whole controller namespace with a single
+`Autowire::rule()`, so a new controller is resolved without an entry of its own.
+
+Three things to keep in mind:
+
+- **No-constructor controllers work too.** A controller that declares no constructor
+  degrades to `withConstructorNoArgs()` automatically — an ActiveRecord-style controller
+  needs no special case.
+- **An explicit binding wins.** If a controller needs something the rule cannot express
+  (a scalar constructor argument, say), add one by hand in the same file and it takes
+  precedence over the pattern.
+- **The namespace matters.** A controller placed outside the pattern's namespace is not
+  covered and the route will fail with **501** rather than being built without its
+  dependencies.
+
+Keep your controllers in the expected namespace and the constructor is injected for you.
+:::
 
 :::tip Service Layer
 Always use the Service Layer instead of directly accessing repositories. Services handle business logic and make your code more maintainable.
@@ -297,3 +319,10 @@ APP_ENV=test composer run test
 ```
 
 All tests should pass successfully!
+
+:::caution Regeneration is not optional
+Routing is read from `public/docs/openapi.json`, not from your PHP. Change a controller
+attribute without running `composer run openapi` and the endpoint returns **404 with no
+error message**. `composer test` runs `composer openapi:check` first, which warns when the
+spec is older than your controllers or models — you can also run it on its own.
+:::

@@ -5,11 +5,11 @@ namespace Test\Controller;
 use ByJG\Authenticate\Enum\UserField;
 use ByJG\Authenticate\Service\UsersService;
 use ByJG\Config\Config;
+use ByJG\Gluo\Util\FakeApiRequester;
 use ByJG\JwtWrapper\JwtWrapper;
 use ByJG\RestServer\Exception\Error401Exception;
 use ByJG\RestServer\Exception\Error422Exception;
 use RestReferenceArchitecture\Model\User;
-use ByJG\Gluo\Util\FakeApiRequester;
 
 /**
  * Create a TestCase inherited from SwaggerTestCase

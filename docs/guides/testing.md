@@ -35,8 +35,9 @@ tests/
 └── Controller/
     ├── BaseApiTestCase.php     # Base test case with schema + DB reset
     ├── Credentials.php         # Helper for authenticating test users
-    ├── DummyTest.php           # Repository pattern example CRUD tests
-    ├── DummyHexTest.php        # Hex/UUID example
+    ├── ProjectTest.php         # Repository pattern example CRUD tests (int PK)
+    ├── TaskTest.php            # Repository pattern UUID example
+    ├── NoteTest.php            # ActiveRecord pattern example
     ├── LoginTest.php           # Authentication flow
     └── ... (add your own files here)
 ```
@@ -55,13 +56,13 @@ APP_ENV=test composer migrate -- reset --yes
 APP_ENV=test composer run test
 
 # Run a specific test file
-APP_ENV=test ./vendor/bin/phpunit tests/Controller/DummyTest.php
+APP_ENV=test vendor/bin/phpunit tests/Controller/ProjectTest.php
 
 # Run a single test method
-APP_ENV=test ./vendor/bin/phpunit --filter testFullCrud tests/Controller/DummyTest.php
+APP_ENV=test vendor/bin/phpunit --filter testFullCrud tests/Controller/ProjectTest.php
 
 # Generate coverage (optional)
-APP_ENV=test ./vendor/bin/phpunit --coverage-html coverage/
+APP_ENV=test vendor/bin/phpunit --coverage-html coverage/
 ```
 
 :::info Database resets automatically
@@ -92,7 +93,7 @@ use ByJG\Gluo\Util\FakeApiRequester;
 $request = (new FakeApiRequester())
     ->withPsr7Request($this->getPsr7Request())
     ->withMethod('GET')
-    ->withPath('/dummy/1')
+    ->withPath('/project/1')
     ->withRequestHeader(['Authorization' => 'Bearer ' . $token])
     ->expectStatus(200);
 
@@ -299,7 +300,7 @@ public function testGetUnauthorized()
     $request
         ->withPsr7Request($this->getPsr7Request())
         ->withMethod('GET')
-        ->withPath('/dummy/1')
+        ->withPath('/project/1')
         ->expectStatus(401);
 
     $this->sendRequest($request);
@@ -378,12 +379,15 @@ public function testInsufficientPrivileges()
 
 ### Complete CRUD Test
 
-**Location**: `tests/Controller/DummyTest.php:142`
+**Location**: `tests/Controller/ProjectTest.php`
+
+Reads (`GET`) require `#[RequireAuthenticated]`, while writes (`POST`/`PUT`) require
+`#[RequireRole(User::ROLE_ADMIN)]`, so the create/update steps below log in as the admin user.
 
 ```php
 public function testFullCrud()
 {
-    // Login
+    // Login as admin (writes require the admin role)
     $loginResponse = $this->sendRequest(
         Credentials::requestLogin(Credentials::getAdminUser())
     );
@@ -395,8 +399,8 @@ public function testFullCrud()
     $createRequest
         ->withPsr7Request($this->getPsr7Request())
         ->withMethod('POST')
-        ->withPath('/dummy')
-        ->withRequestBody(json_encode(['field' => 'test value']))
+        ->withPath('/project')
+        ->withRequestBody(json_encode(['name' => 'name', 'description' => 'description']))
         ->withRequestHeader(['Authorization' => "Bearer {$token}"])
         ->expectStatus(200);
 
@@ -409,7 +413,7 @@ public function testFullCrud()
     $getRequest
         ->withPsr7Request($this->getPsr7Request())
         ->withMethod('GET')
-        ->withPath("/dummy/{$id}")
+        ->withPath("/project/{$id}")
         ->withRequestHeader(['Authorization' => "Bearer {$token}"])
         ->expectStatus(200);
 
@@ -417,16 +421,16 @@ public function testFullCrud()
     $retrieved = json_decode($getResponse->getBody()->getContents(), true);
 
     $this->assertEquals($id, $retrieved['id']);
-    $this->assertEquals('test value', $retrieved['field']);
+    $this->assertEquals('name', $retrieved['name']);
 
     // UPDATE
-    $retrieved['field'] = 'updated value';
+    $retrieved['description'] = 'updated value';
 
     $updateRequest = new FakeApiRequester();
     $updateRequest
         ->withPsr7Request($this->getPsr7Request())
         ->withMethod('PUT')
-        ->withPath('/dummy')
+        ->withPath('/project')
         ->withRequestBody(json_encode($retrieved))
         ->withRequestHeader(['Authorization' => "Bearer {$token}"])
         ->expectStatus(200);
@@ -438,14 +442,14 @@ public function testFullCrud()
     $verifyRequest
         ->withPsr7Request($this->getPsr7Request())
         ->withMethod('GET')
-        ->withPath("/dummy/{$id}")
+        ->withPath("/project/{$id}")
         ->withRequestHeader(['Authorization' => "Bearer {$token}"])
         ->expectStatus(200);
 
     $verifyResponse = $this->sendRequest($verifyRequest);
     $verified = json_decode($verifyResponse->getBody()->getContents(), true);
 
-    $this->assertEquals('updated value', $verified['field']);
+    $this->assertEquals('updated value', $verified['description']);
 }
 ```
 
@@ -463,7 +467,7 @@ public function testList()
     $request
         ->withPsr7Request($this->getPsr7Request())
         ->withMethod('GET')
-        ->withPath('/dummy?page=0&size=20')
+        ->withPath('/project?page=0&size=20')
         ->withRequestHeader(['Authorization' => "Bearer {$data['token']}"])
         ->expectStatus(200);
 
@@ -554,7 +558,8 @@ class ProductTest extends BaseApiTestCase
             return $sample;
         }
 
-        ObjectCopy::copy($sample, $model = new Product());
+        $model = new Product();
+        ObjectCopy::copy($sample, $model);
         return $model;
     }
 }

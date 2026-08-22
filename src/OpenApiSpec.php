@@ -39,5 +39,5 @@ use OpenApi\Attributes as OA;
 )]
 class OpenApiSpec
 {
-
+    // Do not delete this class. Necessary for OpenAPI.
 }

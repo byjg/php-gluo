@@ -29,7 +29,7 @@ graph TD
 
 ## BaseService
 
-Every service extends `ByJG\Gluo\Service\BaseService`, so you automatically inherit the same safeguards used by the sample `DummyService`/`DummyHexService` classes.
+Every service extends `ByJG\Gluo\Service\BaseService`, so you automatically inherit the same safeguards used by the sample `ProjectService`/`TaskService` classes.
 
 ```php title="ByJG\\Gluo\\Service\\BaseService (byjg/gluo-core, excerpt)"
 abstract class BaseService
@@ -164,14 +164,14 @@ Services dramatically simplify REST controllers:
 ```php
 <?php
 
-public function getDummy(HttpResponse $response, HttpRequest $request): void
+public function getProject(HttpResponse $response, HttpRequest $request): void
 {
     // Lots of business logic in the controller
-    $repository = Config::get(DummyRepository::class);
+    $repository = Config::get(ProjectRepository::class);
     $model = $repository->get($request->attribute('id'));
 
     if (is_null($model)) {
-        throw new Error404Exception("Dummy not found");
+        throw new Error404Exception("Project not found");
     }
 
     // Additional validation, processing...
@@ -187,11 +187,14 @@ public function getDummy(HttpResponse $response, HttpRequest $request): void
 
 use ByJG\Gluo\Attribute\RequireAuthenticated;
 
-#[RequireAuthenticated]
-public function getDummy(HttpResponse $response, HttpRequest $request): void
+public function __construct(protected ProjectService $projectService)
 {
-    $service = Config::get(DummyService::class);
-    $result = $service->getOrFail($request->attribute('id'));
+}
+
+#[RequireAuthenticated]
+public function getProject(HttpResponse $response, HttpRequest $request): void
+{
+    $result = $this->projectService->getOrFail($request->attribute('id'));
     $response->write($result);
 }
 ```
@@ -368,20 +371,26 @@ The service will automatically:
 **Rule**: REST controllers should ALWAYS call the Service layer, never the Repository directly.
 
 ```php
-// ✓ CORRECT - Controller calls Service
-#[ValidateRequest]
-public function putDummyHex(HttpResponse $response, HttpRequest $request): void
+// ✓ CORRECT - Controller depends on the Service
+public function __construct(protected TaskService $taskService)
 {
-    $dummyHexService = Config::get(DummyHexService::class);
-    $model = $dummyHexService->update(ValidateRequest::getPayload());
+}
+
+#[ValidateRequest]
+public function putTask(HttpResponse $response, HttpRequest $request): void
+{
+    $model = $this->taskService->update(ValidateRequest::getPayload());
     $response->write($model);
 }
 
-// ✗ WRONG - Controller calls Repository directly
-public function putDummyHex(HttpResponse $response, HttpRequest $request): void
+// ✗ WRONG - Controller depends on the Repository directly
+public function __construct(protected TaskRepository $taskRepository)
 {
-    $repository = Config::get(DummyHexRepository::class);
-    $model = $repository->get($id);  // Don't do this!
+}
+
+public function putTask(HttpResponse $response, HttpRequest $request): void
+{
+    $model = $this->taskRepository->get($id);  // Don't do this!
     // ...
 }
 ```
@@ -398,7 +407,7 @@ public function putDummyHex(HttpResponse $response, HttpRequest $request): void
 For complex queries or operations not covered by BaseService:
 
 ```php
-class DummyService extends BaseService
+class ProjectService extends BaseService
 {
     public function findActiveByCategory(string $category): array
     {

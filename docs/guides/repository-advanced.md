@@ -39,7 +39,7 @@ All repositories extending `BaseRepository` have these methods:
 
 ```php
 // Get single entity by ID
-$dummy = $repository->get($id);
+$project = $repository->get($id);
 
 // Get the underlying ByJG Repository
 $ormRepository = $repository->getRepository();
@@ -66,13 +66,13 @@ namespace RestReferenceArchitecture\Repository;
 
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Repository;
-use RestReferenceArchitecture\Model\Dummy;
+use RestReferenceArchitecture\Model\Project;
 
-class DummyRepository extends BaseRepository
+class ProjectRepository extends BaseRepository
 {
     public function __construct(DatabaseExecutor $executor)
     {
-        $this->repository = new Repository($executor, Dummy::class);
+        $this->repository = new Repository($executor, Project::class);
     }
 }
 ```
@@ -108,19 +108,19 @@ $repository->list(page: 0, size: 20, filter: $filter);
 
 ### Passing query params from a REST controller
 
-`DummyController` exposes `orderBy` and `filter` as optional query string parameters and passes them directly to the service (which forwards them to the repository):
+`ProjectController` exposes `orderBy` and `filter` as optional query string parameters and passes them directly to the service (which forwards them to the repository):
 
 ```php
 #[OA\Parameter(name: "orderBy", in: "query", required: false, schema: new OA\Schema(type: "string"))]
 #[OA\Parameter(name: "filter",  in: "query", required: false, schema: new OA\Schema(type: "string"))]
-public function listDummy(HttpResponse $response, HttpRequest $request): void
+public function listProject(HttpResponse $response, HttpRequest $request): void
 {
-    $service = Config::get(DummyService::class);
+    $service = Config::get(ProjectService::class);
     $result = $service->list(
-        page:    (int) ($request->query('page')    ?? 0),
-        size:    (int) ($request->query('size')    ?? 20),
-        orderBy: $request->query('orderBy'),
-        filter:  $request->query('filter'),
+        page:    (int) ($request->queryString('page')    ?? 0),
+        size:    (int) ($request->queryString('size')    ?? 20),
+        orderBy: $request->queryString('orderBy'),
+        filter:  $request->queryString('filter'),
     );
     $response->write($result);
 }
@@ -268,7 +268,7 @@ use ByJG\MicroOrm\Query;
 
 // Complex query with joins
 $query = Query::getInstance()
-    ->table('dummy', 'd')
+    ->table('project', 'd')
     ->join('user', 'u', 'd.user_id = u.id')
     ->fields(['d.*', 'u.name as user_name'])
     ->where('d.status = :status', ['status' => 'active'])
@@ -345,8 +345,8 @@ use ByJG\MicroOrm\Attributes\TableMySqlUuidPKAttribute;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\MicroOrm\Literal\Literal;
 
-#[TableMySqlUuidPKAttribute("dummy_hex")]
-class DummyHex
+#[TableMySqlUuidPKAttribute("task")]
+class Task
 {
     #[FieldUuidAttribute(primaryKey: true)]
     protected string|HexUuidLiteral|null $id = null;
@@ -373,11 +373,11 @@ The repository stays simple:
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Repository;
 
-class DummyHexRepository extends BaseRepository
+class TaskRepository extends BaseRepository
 {
     public function __construct(DatabaseExecutor $executor)
     {
-        $this->repository = new Repository($executor, DummyHex::class);
+        $this->repository = new Repository($executor, Task::class);
     }
 }
 ```
@@ -399,7 +399,7 @@ Add domain-specific query methods to your repositories or models.
 ### In Repository Pattern
 
 ```php
-class DummyRepository extends BaseRepository
+class ProjectRepository extends BaseRepository
 {
     public function findByStatus(string $status): array
     {
@@ -450,54 +450,53 @@ class DummyRepository extends BaseRepository
 
 Add static query methods directly to your model:
 
-**Location**: `src/Model/DummyActiveRecord.php:117`
+**Location**: `src/Model/Note.php`
 
 ```php
-class DummyActiveRecord
+class Note
 {
     use ActiveRecord;
 
     /**
-     * Find records by name
+     * Find records by task id (the binary(16) foreign key to task)
      *
-     * @param mixed $name
-     * @return null|DummyActiveRecord[]
+     * @param mixed $taskId
+     * @return null|Note[]
      */
-    public static function getByName($name): ?array
+    public static function getByTaskId($taskId): ?array
     {
         $query = Query::getInstance()
             ->table(self::$repository->getMapper()->getTable(), 'alias')
-            ->where('alias.name = :value', ['value' => $name]);
+            ->where('alias.task_id = :value', ['value' => $taskId]);
 
         return self::query($query);
     }
 
     /**
-     * Find active records
+     * Find recent notes
      *
-     * @return null|DummyActiveRecord[]
+     * @return null|Note[]
      */
-    public static function findActive(): ?array
+    public static function findRecent(): ?array
     {
         $query = Query::getInstance()
             ->table(self::$repository->getMapper()->getTable())
-            ->where('status = :status', ['status' => 'active'])
             ->orderBy(['created_at DESC']);
 
         return self::query($query);
     }
 
     /**
-     * Get single record by unique field
+     * Get single record by body
      *
-     * @param string $email
-     * @return DummyActiveRecord|null
+     * @param string $body
+     * @return Note|null
      */
-    public static function getByEmail(string $email): ?DummyActiveRecord
+    public static function getByBody(string $body): ?Note
     {
         $query = Query::getInstance()
             ->table(self::$repository->getMapper()->getTable())
-            ->where('email = :email', ['email' => $email]);
+            ->where('body = :body', ['body' => $body]);
 
         $results = self::query($query);
         return $results[0] ?? null;
@@ -509,9 +508,9 @@ class DummyActiveRecord
 
 ```php
 // Call static methods directly on the model
-$users = DummyActiveRecord::getByName('John');
-$active = DummyActiveRecord::findActive();
-$user = DummyActiveRecord::getByEmail('john@example.com');
+$notes = Note::getByTaskId('550e8400-e29b-41d4-a716-446655440000');
+$recent = Note::findRecent();
+$note = Note::getByBody('Remember to follow up');
 ```
 
 ## Transaction Management
@@ -541,21 +540,21 @@ try {
 ```php
 use ByJG\Config\Config;
 
-$dummyRepo = Config::get(DummyRepository::class);
+$projectRepo = Config::get(ProjectRepository::class);
 $userRepo = Config::get(UserRepository::class);
 
 // Ensure both use the same executor
-$executor = $dummyRepo->getExecutorWrite();
+$executor = $projectRepo->getExecutorWrite();
 
 try {
     $executor->beginTransaction();
 
     $user = $userRepo->save($userData);
-    $dummy = $dummyRepo->save($dummyData);
+    $project = $projectRepo->save($projectData);
 
     // Link them
-    $dummy->setUserId($user->getId());
-    $dummyRepo->save($dummy);
+    $project->setUserId($user->getId());
+    $projectRepo->save($project);
 
     $executor->commitTransaction();
 } catch (\Exception $e) {
@@ -588,16 +587,16 @@ trait TransactionHelper
 }
 
 // Usage in repository
-class DummyRepository extends BaseRepository
+class ProjectRepository extends BaseRepository
 {
     use TransactionHelper;
 
-    public function createWithRelated($dummyData, $relatedData)
+    public function createWithRelated($projectData, $relatedData)
     {
-        return $this->transaction(function($executor) use ($dummyData, $relatedData) {
-            $dummy = $this->save($dummyData);
+        return $this->transaction(function($executor) use ($projectData, $relatedData) {
+            $project = $this->save($projectData);
             // Save related data
-            return $dummy;
+            return $project;
         });
     }
 }
@@ -660,22 +659,22 @@ public function bulkInsert(array $models): void
 ```php
 use Psr\SimpleCache\CacheInterface;
 
-class DummyRepository extends BaseRepository
+class ProjectRepository extends BaseRepository
 {
     protected CacheInterface $cache;
 
     public function findByIdCached($id)
     {
-        $key = "dummy:{$id}";
+        $key = "project:{$id}";
 
         if ($this->cache->has($key)) {
             return $this->cache->get($key);
         }
 
-        $dummy = $this->get($id);
-        $this->cache->set($key, $dummy, 3600); // 1 hour
+        $project = $this->get($id);
+        $this->cache->set($key, $project, 3600); // 1 hour
 
-        return $dummy;
+        return $project;
     }
 
     public function save($model, $updateConstraint = null): mixed
@@ -683,7 +682,7 @@ class DummyRepository extends BaseRepository
         $result = parent::save($model, $updateConstraint);
 
         // Invalidate cache
-        $key = "dummy:{$result->getId()}";
+        $key = "project:{$result->getId()}";
         $this->cache->delete($key);
 
         return $result;
@@ -698,26 +697,26 @@ The ActiveRecord pattern provides an alternative to the Repository pattern where
 ### Basic ActiveRecord Usage
 
 ```php
-use RestReferenceArchitecture\Model\DummyActiveRecord;
+use RestReferenceArchitecture\Model\Note;
 
 // Create
-$dummy = new DummyActiveRecord();
-$dummy->setName('John');
-$dummy->setValue('Test');
-$dummy->save();
+$note = new Note();
+$note->setTaskUuid('550e8400-e29b-41d4-a716-446655440000');
+$note->setBody('Test');
+$note->save();
 
 // Read
-$dummy = DummyActiveRecord::get(1);
+$note = Note::get(1);
 
 // Update
-$dummy->setValue('Updated');
-$dummy->save();
+$note->setBody('Updated');
+$note->save();
 
 // Delete
-$dummy->delete();
+$note->delete();
 
 // Query
-$results = DummyActiveRecord::getByName('John');
+$results = Note::getByTaskId('550e8400-e29b-41d4-a716-446655440000');
 ```
 
 ### Adding Custom Methods

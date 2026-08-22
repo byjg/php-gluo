@@ -1,18 +1,22 @@
 <?php
 
 use ByJG\Config\DependencyInjection as DI;
-use RestReferenceArchitecture\Service\DummyHexService;
-use RestReferenceArchitecture\Service\DummyService;
+// Start Example
+use RestReferenceArchitecture\Service\ProjectService;
+use RestReferenceArchitecture\Service\TaskService;
+// End Example
 
 return [
 
     // Service Bindings
-    DummyService::class => DI::bind(DummyService::class)
+    // Start Example
+    ProjectService::class => DI::bind(ProjectService::class)
         ->withInjectedConstructor()
         ->toSingleton(),
 
-    DummyHexService::class => DI::bind(DummyHexService::class)
+    TaskService::class => DI::bind(TaskService::class)
         ->withInjectedConstructor()
         ->toSingleton(),
+    // End Example
 
 ];

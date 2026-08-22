@@ -86,11 +86,11 @@ APP_ENV=dev composer run codegen -- --table example_crud --save all
 ```
 
 This creates:
-- `./src/Model/ExampleCrud.php` - Model class
-- `./src/Repository/ExampleCrudRepository.php` - Repository class
-- `./src/Service/ExampleCrudService.php` - Service class
-- `./src/Controller/ExampleCrudController.php` - REST controller
-- `./tests/Controller/ExampleCrudTest.php` - Functional tests
+- `src/Model/ExampleCrud.php` - Model class
+- `src/Repository/ExampleCrudRepository.php` - Repository class
+- `src/Service/ExampleCrudService.php` - Service class
+- `src/Controller/ExampleCrudController.php` - REST controller
+- `tests/Controller/ExampleCrudTest.php` - Functional tests
 
 :::tip Automatic Configuration
 The repository and service are automatically registered in:

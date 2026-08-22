@@ -104,9 +104,32 @@ Database password [mysqlp455w0rd]:
 Dev database name [localdev]:
 Test database name [localtest]:
 Timezone [UTC]:
+Install Frontend (Vite app) [Yes]: Yes
 Install Examples [Yes]: Yes
 Press <ENTER> to continue
 ```
+
+#### Project layout
+
+A Gluo project is a small monorepo:
+
+```
+my-api/
+├── composer.json     # the single manifest — the repo root is the PHP app root
+├── src/              # Model, Repository, Service, Controller
+├── config/           # dev / test / staging / prod
+├── db/               # migrations + base.sql
+├── public/           # the docroot (app.php, OpenAPI docs)
+├── templates/
+├── tests/
+├── frontend/         # the Vite frontend (only when Install Frontend = Yes)
+├── docker/           # Dockerfiles
+├── docs/
+└── docker-compose.yml
+```
+
+Run PHP tooling from the repo root (`composer test`, `composer migrate`,
+`composer openapi`) — there is one manifest and one `vendor/`.
 
 #### Configuration Options
 
@@ -119,13 +142,16 @@ Press <ENTER> to continue
 - **Database password**: Password that will be injected in your `.env` files
 - **Dev/Test database name**: Logical databases used for the dev and test environments (for SQLite, this is the file path)
 - **Timezone**: Server timezone (e.g., `UTC`, `America/New_York`, `Europe/London`)
-- **Install Examples**: Whether to include example code (Dummy, Sample classes)
-  - **Yes** (default): Includes example implementations to help you learn
-    - `DummyActiveRecord` - ActiveRecord pattern example
-    - `Dummy` - Repository pattern example
-    - `DummyHex` - Hexadecimal ID example
-    - `Sample` and `SampleProtected` - Basic REST endpoints
-  - **No**: Clean project with only the base `users` table and authentication
+- **Install Frontend**: Whether to include the `frontend/` Vite app (login, reset, dashboard, profile). See the [Frontend guide](../guides/frontend.md).
+- **Install Examples**: Whether to include example code (Project/Task/Note demonstrating the three patterns, plus Sample endpoints — and, if the frontend is installed, its example screens)
+
+The two options combine into three shapes:
+
+| Frontend | Examples | You get |
+|---|---|---|
+| Yes | Yes | **Full-stack demo** — API + Project/Task/Note + the Vite app with example screens |
+| Yes | No | **Auth app shell** — API + the Vite app (login/reset/dashboard/profile only) |
+| No | No | **Pure API** — just the REST API and authentication |
 
 **Tip**: To access the MySQL container locally, add this to your `/etc/hosts` file:
 ```
@@ -187,7 +213,7 @@ APP_ENV=test composer run test
 # OR: docker exec -it $CONTAINER_NAME composer run test
 ```
 
-**Note**: If you chose not to install examples, the project will only include authentication tests. Example tests (Dummy, Sample) will not be present.
+**Note**: If you chose not to install examples, the project will only include authentication tests. Example tests (Project/Task/Note, Sample) will not be present.
 
 ## Documentation
 

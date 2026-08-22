@@ -65,14 +65,14 @@ class LoginController
 Declare path parameters directly in the path string and use `#[OA\Parameter]` to describe them:
 
 ```php
-#[OA\Get(path: "/dummy/{id}", tags: ["Dummy"])]
+#[OA\Get(path: "/project/{id}", tags: ["Project"])]
 #[OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))]
 #[OA\Parameter(name: "page", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
-#[OA\Response(response: 200, description: "The dummy object")]
-public function getDummy(HttpResponse $response, HttpRequest $request): void
+#[OA\Response(response: 200, description: "The project object")]
+public function getProject(HttpResponse $response, HttpRequest $request): void
 {
     $id = $request->attribute('id');
-    $page = $request->query('page');
+    $page = $request->queryString('page');
     // ...
 }
 ```
@@ -82,13 +82,13 @@ public function getDummy(HttpResponse $response, HttpRequest $request): void
 Use `#[OA\RequestBody]` with `#[OA\JsonContent]` to define the expected payload shape:
 
 ```php
-#[OA\Post(path: "/dummy", tags: ["Dummy"])]
+#[OA\Post(path: "/project", tags: ["Project"])]
 #[OA\RequestBody(
     required: true,
-    content: new OA\JsonContent(ref: "#/components/schemas/DummyBody")
+    content: new OA\JsonContent(ref: "#/components/schemas/Project")
 )]
-#[OA\Response(response: 200, description: "Created dummy")]
-public function postDummy(HttpResponse $response, HttpRequest $request): void
+#[OA\Response(response: 200, description: "Created project")]
+public function postProject(HttpResponse $response, HttpRequest $request): void
 {
     // ...
 }
@@ -102,7 +102,7 @@ Document every response status code so the OpenAPI spec (and test validation) st
 #[OA\Response(
     response: 200,
     description: "Success",
-    content: new OA\JsonContent(ref: "#/components/schemas/Dummy")
+    content: new OA\JsonContent(ref: "#/components/schemas/Project")
 )]
 #[OA\Response(response: 404, description: "Not found")]
 #[OA\Response(response: 422, description: "Validation error")]
@@ -116,11 +116,10 @@ Add `#[ValidateRequest]` to a controller method to automatically validate the in
 use ByJG\Gluo\Attribute\ValidateRequest;
 
 #[ValidateRequest]
-public function postDummy(HttpResponse $response, HttpRequest $request): void
+public function postProject(HttpResponse $response, HttpRequest $request): void
 {
     $payload = ValidateRequest::getPayload();
-    $service = Config::get(DummyService::class);
-    $model = $service->create($payload);
+    $model = $this->projectService->create($payload);
     $response->write($model);
 }
 ```
@@ -133,38 +132,60 @@ Add `#[RequireAuthenticated]` to protect an endpoint. Requests without a valid J
 use ByJG\Gluo\Attribute\RequireAuthenticated;
 
 #[RequireAuthenticated]
-public function getDummy(HttpResponse $response, HttpRequest $request): void
+public function getProject(HttpResponse $response, HttpRequest $request): void
 {
-    $service = Config::get(DummyService::class);
-    $result = $service->getOrFail($request->attribute('id'));
+    $result = $this->projectService->getOrFail($request->attribute('id'));
     $response->write($result);
 }
 ```
 
-## Getting Services via `Config::get()`
+## Getting Services via Constructor Injection
 
-Retrieve a DI-registered service inside a controller method:
+The Server resolves controllers from the PSR-11 container, so declare what the controller
+needs in its constructor and use it from any method:
 
 ```php
-use ByJG\Config\Config;
-use RestReferenceArchitecture\Service\DummyService;
+use RestReferenceArchitecture\Service\ProjectService;
 
-public function getDummy(HttpResponse $response, HttpRequest $request): void
+class ProjectController
 {
-    $service = Config::get(DummyService::class);
-    $result = $service->getOrFail($request->attribute('id'));
-    $response->write($result);
+    public function __construct(protected ProjectService $projectService)
+    {
+    }
+
+    public function getProject(HttpResponse $response, HttpRequest $request): void
+    {
+        $result = $this->projectService->getOrFail($request->attribute('id'));
+        $response->write($result);
+    }
 }
 ```
+
+No registration is needed. `config/dev/07-controllers.php` carries one pattern rule that
+covers the whole controller namespace:
+
+```php
+'RestReferenceArchitecture\Controller\*' => Autowire::rule()
+    ->withInjectedConstructor()   // resolve constructor args from type hints
+    ->toInstance(),               // per-request, not shared
+```
+
+A controller with no constructor (an ActiveRecord one, for instance) degrades to
+`withConstructorNoArgs()` automatically. If a controller needs something the rule cannot
+express — a scalar constructor argument, say — add an explicit binding in the same file
+and it wins over the pattern.
+
+A controller placed outside that namespace is not covered, and the route fails with
+**501** naming the class rather than being built without its dependencies.
 
 ## Working with `HttpRequest` and `HttpResponse`
 
 ```php
-// Path parameter (from the URL pattern, e.g. /dummy/{id})
+// Path parameter (from the URL pattern, e.g. /project/{id})
 $id = $request->attribute('id');
 
 // Query string parameter (from ?page=2)
-$page = $request->query('page');
+$page = $request->queryString('page');
 
 // Request body as string
 $rawBody = $request->payload();

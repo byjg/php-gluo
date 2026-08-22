@@ -313,8 +313,9 @@ Models using UUID PK have type `string|LiteralInterface|null` for the id field.
 
 ```php
 // Create (ORM generates the UUID automatically via TableMySqlUuidPKAttribute):
-$model = new DummyHex();
-$model->setField('value');
+$model = new Task();
+$model->setProjectId(1);
+$model->setTitle('Draft the proposal');
 $repo->save($model);
 // $model->getId() now contains the hex UUID
 
@@ -330,8 +331,8 @@ The ActiveRecord trait offers several querying styles. Choose the simplest one t
 
 ### Basic retrieval
 ```php
-$model = DummyActiveRecord::get($id);           // by PK → model or null
-$all   = DummyActiveRecord::all($page, $size);  // paginated, returns model[]
+$model = Note::get($id);                        // by PK → model or null
+$all   = Note::all($page, $size);               // paginated, returns model[]
 ```
 
 ### where() — fluent, modern (preferred for simple conditions)
@@ -341,30 +342,30 @@ Chain conditions, then call a terminal method:
 
 ```php
 // Single result
-$model = DummyActiveRecord::where('name = :n', ['n' => 'foo'])->first();        // or null
-$model = DummyActiveRecord::where('name = :n', ['n' => 'foo'])->firstOrFail();  // throws NotFoundException
+$model = Note::where('body = :b', ['b' => 'first note'])->first();        // or null
+$model = Note::where('body = :b', ['b' => 'first note'])->firstOrFail();  // throws NotFoundException
 
 // Multiple results
-$models = DummyActiveRecord::where('value IS NOT NULL')
-    ->orderBy(['name'])
+$models = Note::where('body IS NOT NULL')
+    ->orderBy(['created_at DESC'])
     ->limit(0, 20)
     ->toArray();          // returns model[]
 
 // Existence check
-$exists = DummyActiveRecord::where('name = :n', ['n' => 'foo'])->exists(); // bool
+$exists = Note::where('body = :b', ['b' => 'first note'])->exists(); // bool
 ```
 
 Chain multiple conditions with additional `->where()` calls (each is ANDed):
 ```php
-$models = DummyActiveRecord::where('deleted_at IS NULL')
-    ->where('value = :v', ['v' => 'active'])
+$models = Note::where('task_uuid = :t', ['t' => $taskUuid])
+    ->where('body LIKE :b', ['b' => '%urgent%'])
     ->toArray();
 ```
 
 ### newQuery() — build step by step
 ```php
-$query = DummyActiveRecord::newQuery()
-    ->where('name LIKE :n', ['n' => '%foo%'])
+$query = Note::newQuery()
+    ->where('body LIKE :b', ['b' => '%foo%'])
     ->orderBy(['id DESC'])
     ->limit(0, 10);
 
@@ -376,8 +377,8 @@ $models = $query->toArray();
 use ByJG\AnyDataset\Core\IteratorFilter;
 use ByJG\AnyDataset\Core\Enum\Relation;
 
-$filter = (new IteratorFilter())->and('name', Relation::EQUAL, 'foo');
-$models = DummyActiveRecord::filter($filter, page: 0, limit: 50);
+$filter = (new IteratorFilter())->and('body', Relation::EQUAL, 'foo');
+$models = Note::filter($filter, page: 0, limit: 50);
 ```
 
 `filter()` is still valid but `where()` is simpler for most cases.
@@ -391,10 +392,10 @@ When you need things `where()` can't express (custom fields, aliased tables), bu
 use ByJG\MicroOrm\Query;
 
 $query = Query::getInstance()
-    ->table(DummyActiveRecord::tableName(), 'dar')
-    ->where('dar.name = :name', ['name' => 'foo']);
+    ->table(Note::tableName(), 'n')
+    ->where('n.body = :body', ['body' => 'foo']);
 
-$models = DummyActiveRecord::query($query);
+$models = Note::query($query);
 ```
 
 ### joinWith() — join across tables using registered relationships

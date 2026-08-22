@@ -37,7 +37,7 @@ You can specify the environment in two ways:
 
 | Option              | Description                                           |
 |---------------------|-------------------------------------------------------|
-| `-u, --version <n>` | Target version for migration                          |
+| `-u=N, --version=N` | Target version for migration                          |
 | `--force`           | Force migration even if database is in partial state  |
 | `--no-transaction`  | Disable transaction support                           |
 | `-v, -vv, -vvv`     | Increase verbosity (shows more details)               |

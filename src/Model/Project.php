@@ -4,29 +4,17 @@ namespace RestReferenceArchitecture\Model;
 
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
-use ByJG\MicroOrm\Query;
-use ByJG\MicroOrm\Trait\ActiveRecord;
 use OpenApi\Attributes as OA;
-use ByJG\Gluo\Trait\OaCreatedAt;
-use ByJG\Gluo\Trait\OaUpdatedAt;
-use RuntimeException;
 
 
 /**
- * Class DummyActiveRecord
+ * Class Project
  * @package RestReferenceArchitecture\Model
  */
-#[OA\Schema(required: ["id", "name"], type: "object", xml: new OA\Xml(name: "DummyActiveRecord"))]
-#[TableAttribute("dummy_active_record")]
-class DummyActiveRecord
+#[OA\Schema(required: ["id", "name"], type: "object", xml: new OA\Xml(name: "Project"))]
+#[TableAttribute("project")]
+class Project
 {
-    // Add the ActiveRecord trait to enable Active Record pattern
-    use ActiveRecord;
-
-    // Add timestamp traits for automatic timestamp handling
-    use OaCreatedAt;
-    use OaUpdatedAt;
-
 
     /**
      * @var int|null
@@ -46,8 +34,8 @@ class DummyActiveRecord
      * @var string|null
      */
     #[OA\Property(type: "string", format: "string", nullable: true)]
-    #[FieldAttribute(fieldName: "value")]
-    protected string|null $value = null;
+    #[FieldAttribute(fieldName: "description")]
+    protected string|null $description = null;
 
 
 
@@ -92,37 +80,21 @@ class DummyActiveRecord
     /**
      * @return string|null
      */
-    public function getValue(): string|null
+    public function getDescription(): string|null
     {
-        return $this->value;
+        return $this->description;
     }
 
     /**
-     * @param string|null $value
+     * @param string|null $description
      * @return $this
      */
-    public function setValue(string|null $value): static
+    public function setDescription(string|null $description): static
     {
         
-        $this->value = $value;
+        $this->description = $description;
         return $this;
     }
 
-
-
-    /**
-     * @param mixed $name
-     * @return null|DummyActiveRecord[]
-     */
-    public static function getByName($name): ?array
-    {
-        if (self::$repository === null) {
-            throw new RuntimeException("Repository not initialized");
-        }
-        $query = Query::getInstance()
-            ->table(self::$repository->getMapper()->getTable(), 'alias')
-            ->where('alias.name = :value', ['value' => $name]);
-        return self::query($query);
-    }
 
 }

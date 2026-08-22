@@ -19,6 +19,7 @@ The configuration is organized by environment in the `config/{environment}/` fol
   - `04-repositories.php` - Repository bindings
   - `05-services.php` - Service bindings
   - `06-external.php` - External services (Email, etc.)
+  - `07-controllers.php` - Controller bindings
 
 You must set the `APP_ENV` environment variable to specify which environment to use.
 
@@ -67,7 +68,7 @@ Config::get('WEB_SERVER');
 
 ## Environment Hierarchy
 
-The available environments are defined in the `config/ConfigBootstrap.php` file.
+The environments and their inheritance are defined in `ByJG\Gluo\Config\BaseConfigBootstrap` (byjg/gluo-core); the project's `config/ConfigBootstrap.php` just extends it.
 
 The project has four environments with the following inheritance hierarchy:
 
@@ -98,33 +99,29 @@ Child environments override parent configurations. For example:
 - `config/prod/credentials.env` overrides with production database connection
 - `config/prod/01-infrastructure.php` overrides to use FileSystemCache instead of NoCache
 
-You can modify the environment hierarchy in `config/ConfigBootstrap.php`:
+The project bootstrap in `config/ConfigBootstrap.php` is intentionally tiny — the
+environment set, inheritance and caching live in gluo-core, so improvements arrive with
+`composer update`:
 
 ```php
 <?php
 
-use ByJG\Cache\Psr16\FileSystemCacheEngine;
-use ByJG\Config\ConfigInitializeInterface;
-use ByJG\Config\Definition;
-use ByJG\Config\Environment;
+use ByJG\Gluo\Config\BaseConfigBootstrap;
 
-return new class implements ConfigInitializeInterface {
-    public function loadDefinition(?string $env = null): Definition
+return new class extends BaseConfigBootstrap {
+};
+```
+
+To register more OS environment variables, add config directories, or define extra
+environments, override `configureDefinition()`:
+
+```php
+return new class extends BaseConfigBootstrap {
+    #[\Override]
+    protected function configureDefinition(Definition $definition): void
     {
-        $dev = Environment::create('dev');
-        $test = Environment::create('test')->inheritFrom($dev);
-        $staging = Environment::create('staging')->inheritFrom($dev)->withCache(new FileSystemCacheEngine());
-        $prod = Environment::create('prod')->inheritFrom($staging, $dev)->withCache(new FileSystemCacheEngine());
-
-        return (new Definition())
-            ->addEnvironment($dev)
-            ->addEnvironment($test)
-            ->addEnvironment($staging)
-            ->addEnvironment($prod)
-            ->withOSEnvironment([
-                'TAG_VERSION',
-                'TAG_COMMIT',
-            ]);
+        parent::configureDefinition($definition); // keeps TAG_VERSION / TAG_COMMIT
+        $definition->withOSEnvironment(['DATABASE_URL', 'REDIS_HOST']);
     }
 };
 ```
@@ -192,7 +189,7 @@ The application automatically returns the correct implementation based on the `A
 ### Constructor Injection (`withInjectedConstructor`)
 
 ```php
-DummyService::class => DI::bind(DummyService::class)
+ProjectService::class => DI::bind(ProjectService::class)
     ->withInjectedConstructor()
     ->toSingleton(),
 ```
@@ -234,6 +231,40 @@ MyService::class => DI::bind(MyService::class)->toSingleton(),
 MyService::class => DI::bind(MyService::class),
 ```
 
+### Controllers
+
+The `Server` is bound with `withContainer(Param::container())` in `03-api.php`, so it
+resolves route controllers from the container rather than instantiating them directly.
+That is what lets a controller declare its dependencies in the constructor.
+
+Controllers are not listed one by one. They are *terminal* classes — nothing depends on
+them — so a per-class binding would encode no decision: one implementation named directly
+by the router, always per-request, and every constructor argument a type-hinted service
+that is itself explicitly bound. A single `Autowire` rule covers the namespace:
+
+```php
+// config/dev/07-controllers.php
+'RestReferenceArchitecture\Controller\*' => Autowire::rule()
+    ->withInjectedConstructor()
+    ->toInstance(),
+```
+
+Three things to know:
+
+- **A controller that declares no constructor** (an ActiveRecord one, say) degrades to
+  `withConstructorNoArgs()` automatically — no special case needed.
+- **An explicit binding wins**, so a controller needing a scalar argument can still be
+  declared by hand in the same file.
+- **A controller outside the namespace is not covered** and fails with **501** naming the
+  class, rather than being built without its dependencies.
+
+Services and repositories stay explicit: their bindings *do* carry decisions, so a pattern
+there would be convention standing in for a real choice.
+
+`Param::container()` resolves to the container itself. Do not reach for
+`Config::getContainer()` inside a config file — the facade is not populated until the
+container finishes building.
+
 ## Configuration Organization
 
 Dependencies are organized by layer in numbered files:
@@ -244,6 +275,7 @@ Dependencies are organized by layer in numbered files:
 - `04-repositories.php` - Data access layer
 - `05-services.php` - Business logic layer
 - `06-external.php` - Email, SMS, external APIs
+- `07-controllers.php` - REST controllers
 
 This organization makes it easy to find and modify related configurations.
 

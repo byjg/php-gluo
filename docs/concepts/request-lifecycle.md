@@ -9,7 +9,7 @@ This page traces the path of a single HTTP request from the moment it arrives at
 
 ## Overview
 
-Every request is handled in-process without a separate HTTP dispatcher process. The entry point is `public/app.php`, and the entire stack runs inside PHP.
+Every request is handled in-process without a separate HTTP dispatcher process. The entry point is `public/app.php`, and the entire stack runs inside PHP. This lifecycle covers the API half of the monorepo (the repository root); the optional Vite SPA in `frontend/` (served by byjg/static-httpserver on port 7080) is just another client that calls these same endpoints over JWT — see the [Frontend guide](../guides/frontend.md).
 
 ```mermaid
 sequenceDiagram
@@ -92,3 +92,4 @@ The HTTP status code defaults to `200`. Unhandled exceptions are caught by the f
 - [REST Controllers](../guides/rest-controllers.md) - Defining routes and attributes
 - [Dependency Injection](dependency-injection.md) - How the DI container is bootstrapped
 - [Authentication](../guides/authentication.md) - JWT flow details
+- [Frontend (Vite)](../guides/frontend.md) - The optional SPA that consumes these endpoints

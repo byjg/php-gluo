@@ -359,7 +359,7 @@ CREATE TABLE products (
 The code generator automatically adds timestamp fields:
 
 ```bash
-composer run gen create products name:string price:decimal
+composer codegen -- --env=dev --table=products model --save
 ```
 
 Generates:

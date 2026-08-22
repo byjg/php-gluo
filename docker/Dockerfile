@@ -20,7 +20,7 @@ COPY ./docker/nginx/conf.d /etc/nginx/http.d/
 USER root
 RUN apk add --no-cache --update tzdata
 
-# Copy project files
+# Copy project files (the PHP application root is the repository root)
 COPY --chown=app:app builder /srv/builder
 COPY --chown=app:app config /srv/config
 COPY --chown=app:app src /srv/src
@@ -28,7 +28,7 @@ COPY --chown=app:app public /srv/public
 COPY --chown=app:app templates /srv/templates
 
 # This is necessary for the migration script
-COPY --chown=app:app composer.* /srv
+COPY --chown=app:app composer.* /srv/
 
 # Optional: Override app user UID/GID to match host user for volume permissions
 # This is useful when mounting host directories as volumes to avoid permission issues.

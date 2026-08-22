@@ -11,12 +11,12 @@ use OpenApi\Attributes as OA;
 
 
 /**
- * Class DummyHex
+ * Class Task
  * @package RestReferenceArchitecture\Model
  */
-#[OA\Schema(required: ["id", "field"], type: "object", xml: new OA\Xml(name: "DummyHex"))]
-#[TableMySqlUuidPKAttribute("dummy_hex")]
-class DummyHex
+#[OA\Schema(required: ["id", "projectId", "title", "status"], type: "object", xml: new OA\Xml(name: "Task"))]
+#[TableMySqlUuidPKAttribute("task")]
+class Task
 {
 
     /**
@@ -27,18 +27,25 @@ class DummyHex
     protected string|LiteralInterface|null $id = null;
 
     /**
-     * @var string|null
+     * @var int|null
      */
-    #[OA\Property(type: "string", format: "string", nullable: true)]
-    #[FieldAttribute(fieldName: "uuid", syncWithDb: false)]
-    protected string|null $uuid = null;
+    #[OA\Property(type: "integer", format: "int32")]
+    #[FieldAttribute(fieldName: "project_id", parentTable: "project")]
+    protected int|null $projectId = null;
 
     /**
      * @var string|null
      */
     #[OA\Property(type: "string", format: "string")]
-    #[FieldAttribute(fieldName: "field")]
-    protected string|null $field = null;
+    #[FieldAttribute(fieldName: "title")]
+    protected string|null $title = null;
+
+    /**
+     * @var string|null
+     */
+    #[OA\Property(type: "string", format: "string")]
+    #[FieldAttribute(fieldName: "status")]
+    protected string|null $status = null;
 
 
 
@@ -64,40 +71,59 @@ class DummyHex
     }
 
     /**
-     * @return string|null
+     * @return int|null
      */
-    public function getUuid(): string|null
+    public function getProjectId(): int|null
     {
-        return $this->uuid;
+        return $this->projectId;
     }
 
     /**
-     * @param string|null $uuid
+     * @param int|null $projectId
      * @return $this
      */
-    public function setUuid(string|null $uuid): static
+    public function setProjectId(int|null $projectId): static
     {
         
-        $this->uuid = $uuid;
+        $this->projectId = $projectId;
         return $this;
     }
 
     /**
      * @return string|null
      */
-    public function getField(): string|null
+    public function getTitle(): string|null
     {
-        return $this->field;
+        return $this->title;
     }
 
     /**
-     * @param string|null $field
+     * @param string|null $title
      * @return $this
      */
-    public function setField(string|null $field): static
+    public function setTitle(string|null $title): static
     {
         
-        $this->field = $field;
+        $this->title = $title;
+        return $this;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getStatus(): string|null
+    {
+        return $this->status;
+    }
+
+    /**
+     * @param string|null $status
+     * @return $this
+     */
+    public function setStatus(string|null $status): static
+    {
+        
+        $this->status = $status;
         return $this;
     }
 
