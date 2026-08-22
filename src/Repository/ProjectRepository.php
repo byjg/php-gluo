@@ -6,14 +6,15 @@ use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\Gluo\Repository\BaseRepository;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
+use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\Repository;
 use ReflectionException;
-use RestReferenceArchitecture\Model\DummyHex;
+use RestReferenceArchitecture\Model\Project;
 
-class DummyHexRepository extends BaseRepository
+class ProjectRepository extends BaseRepository
 {
     /**
-     * DummyHexRepository constructor.
+     * ProjectRepository constructor.
      *
      * @param DatabaseExecutor $executor
      * @throws OrmModelInvalidException
@@ -22,8 +23,20 @@ class DummyHexRepository extends BaseRepository
      */
     public function __construct(DatabaseExecutor $executor)
     {
-        $this->repository = new Repository($executor, DummyHex::class);
+        $this->repository = new Repository($executor, Project::class);
     }
 
+
+    /**
+     * @param mixed $name
+     * @return null|Project[]
+     */
+    public function getByName($name)
+    {
+        $query = Query::getInstance()
+            ->table('project')
+            ->where('project.name = :value', ['value' => $name]);
+        return $this->repository->getByQuery($query);
+    }
 
 }

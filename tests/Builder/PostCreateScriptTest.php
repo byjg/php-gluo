@@ -9,31 +9,23 @@ use RecursiveIteratorIterator;
 
 /**
  * Tests the create-project file transformation (applyTemplate) against a
- * copy of the real project tree. The side-effect part (composer update,
- * git init) is in finalize() and is exercised by the create-project CI job.
+ * copy of the real project tree (repo root, spanning the API + frontend/). The
+ * side-effect part (composer update, npm install, git init) is in finalize()
+ * and is exercised end-to-end by the create-project CI job.
  */
 class PostCreateScriptTest extends TestCase
 {
     protected string $workdir;
 
-    protected const COPY_ITEMS = [
-        'composer.json',
-        'docker-compose.yml',
-        'docker',
-        'config',
-        'public',
-        'src',
-        'builder',
-        'db',
-        'templates',
-        'tests',
-        '.github',
-    ];
+    /** Directories not copied into the sandbox (deps / build output / VCS). */
+    protected const SKIP_DIRS = ['vendor', 'node_modules', 'dist', '.git', '.idea'];
 
     protected function setUp(): void
     {
+        // repo root is two levels up from tests/Builder/
         $projectRoot = realpath(__DIR__ . '/../..');
-        foreach (self::COPY_ITEMS as $item) {
+        // Sentinels that must exist for the full-tree tests to be meaningful.
+        foreach (['docker-compose.yml', 'docker', '.github', 'composer.json'] as $item) {
             if (!file_exists("$projectRoot/$item")) {
                 // The app image (build-app-image workflow) ships only the runtime subset
                 // of the repo; these tests need the full checkout and run in phpunit.yml
@@ -43,10 +35,7 @@ class PostCreateScriptTest extends TestCase
         }
 
         $this->workdir = sys_get_temp_dir() . '/create-project-' . uniqid();
-        mkdir($this->workdir, 0755, true);
-        foreach (self::COPY_ITEMS as $item) {
-            $this->copyRecursive("$projectRoot/$item", "$this->workdir/$item");
-        }
+        $this->copyRepo($projectRoot, $this->workdir);
     }
 
     protected function tearDown(): void
@@ -57,32 +46,30 @@ class PostCreateScriptTest extends TestCase
         shell_exec('rm -rf ' . escapeshellarg($this->workdir));
     }
 
-    protected function copyRecursive(string $source, string $dest): void
+    protected function copyRepo(string $source, string $dest): void
     {
-        if (is_file($source)) {
-            @mkdir(dirname($dest), 0755, true);
-            copy($source, $dest);
-            return;
-        }
-        if (!is_dir($source)) {
-            return;
-        }
         mkdir($dest, 0755, true);
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($source, RecursiveDirectoryIterator::SKIP_DOTS),
             RecursiveIteratorIterator::SELF_FIRST
         );
         foreach ($iterator as $item) {
-            $target = $dest . '/' . $iterator->getSubPathname();
+            $sub = $iterator->getSubPathname();
+            $segments = explode(DIRECTORY_SEPARATOR, $sub);
+            if (array_intersect($segments, self::SKIP_DIRS)) {
+                continue;
+            }
+            $target = "$dest/$sub";
             if ($item->isDir()) {
-                mkdir($target, 0755, true);
+                @mkdir($target, 0755, true);
             } else {
+                @mkdir(dirname($target), 0755, true);
                 copy($item->getPathname(), $target);
             }
         }
     }
 
-    protected function applyTemplate(bool $installExamples): void
+    protected function applyTemplate(bool $installExamples, bool $installFrontend = true): void
     {
         $script = new PostCreateScript();
         ob_start();
@@ -101,7 +88,8 @@ class PostCreateScriptTest extends TestCase
                     'test_database' => 'shoptest',
                 ],
                 'America/Sao_Paulo',
-                $installExamples
+                $installExamples,
+                $installFrontend
             );
         } finally {
             ob_end_clean();
@@ -142,10 +130,11 @@ class PostCreateScriptTest extends TestCase
     {
         $this->applyTemplate(true);
 
-        $composer = file_get_contents($this->workdir . '/composer.json');
-        $this->assertStringContainsString('"name": "acme/shop"', $composer);
-        $this->assertStringNotContainsString('"byjg/gluo"', $composer);
-        $this->assertStringContainsString('"byjg/gluo-core"', $composer);
+        $root = file_get_contents($this->workdir . '/composer.json');
+        $this->assertStringContainsString('"name": "acme/shop"', $root);
+        $this->assertStringNotContainsString('"byjg/gluo"', $root);
+        // the framework dependency must survive the rename
+        $this->assertStringContainsString('"byjg/gluo-core"', $root);
     }
 
     public function testDockerfileVersionAndTimezone(): void
@@ -224,15 +213,52 @@ class PostCreateScriptTest extends TestCase
         $this->assertNotNull(json_decode($composer), 'composer.json must remain valid JSON');
     }
 
+    /**
+     * Regression: the hook is stripped by deleting its whole line, which also removes
+     * that line's own trailing comma. That is correct everywhere except as the LAST
+     * entry of a block, where it leaves the previous entry's comma dangling before the
+     * closing brace and produces invalid JSON. Guard the manifest against a reorder.
+     */
+    public function testHookRemovalLeavesValidJsonWhenHookIsLastScriptEntry(): void
+    {
+        $file = $this->workdir . '/composer.json';
+        $manifest = json_decode((string)file_get_contents($file), true);
+        $this->assertArrayHasKey('post-create-project-cmd', $manifest['scripts']);
+
+        // Re-emit the manifest with the hook as the final entry of "scripts".
+        $hook = $manifest['scripts']['post-create-project-cmd'];
+        unset($manifest['scripts']['post-create-project-cmd']);
+        $manifest['scripts']['post-create-project-cmd'] = $hook;
+        file_put_contents(
+            $file,
+            json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
+        );
+
+        $this->applyTemplate(true);
+
+        $composer = (string)file_get_contents($file);
+        $this->assertNotNull(
+            json_decode($composer),
+            'composer.json must stay valid JSON when the hook is the last script entry'
+        );
+        $this->assertStringNotContainsString('post-create-project-cmd', $composer);
+        // The surrounding scripts must survive intact.
+        $decoded = json_decode($composer, true);
+        $this->assertArrayHasKey('openapi', $decoded['scripts']);
+        $this->assertArrayHasKey('test', $decoded['scripts']);
+    }
+
     public function testExamplesKeptWhenRequested(): void
     {
         $this->applyTemplate(true);
 
-        $this->assertFileExists($this->workdir . '/src/Model/Dummy.php');
+        $this->assertFileExists($this->workdir . '/src/Model/Project.php');
+        $this->assertFileExists($this->workdir . '/src/Model/Task.php');
+        $this->assertFileExists($this->workdir . '/src/Model/Note.php');
         $this->assertFileExists($this->workdir . '/src/Controller/SampleController.php');
         $this->assertStringContainsString(
             'namespace AcmeShop\Repository;',
-            (string)file_get_contents($this->workdir . '/src/Repository/DummyRepository.php')
+            (string)file_get_contents($this->workdir . '/src/Repository/ProjectRepository.php')
         );
     }
 
@@ -240,18 +266,85 @@ class PostCreateScriptTest extends TestCase
     {
         $this->applyTemplate(false);
 
-        $this->assertFileDoesNotExist($this->workdir . '/src/Model/Dummy.php');
-        $this->assertFileDoesNotExist($this->workdir . '/src/Model/DummyHex.php');
-        $this->assertFileDoesNotExist($this->workdir . '/src/Model/DummyActiveRecord.php');
+        $this->assertFileDoesNotExist($this->workdir . '/src/Model/Project.php');
+        $this->assertFileDoesNotExist($this->workdir . '/src/Model/Task.php');
+        $this->assertFileDoesNotExist($this->workdir . '/src/Model/Note.php');
         $this->assertFileDoesNotExist($this->workdir . '/src/Controller/SampleController.php');
+        // the rollback lives under down/, not up/ (regression guard for the old path bug)
+        $this->assertFileDoesNotExist($this->workdir . '/db/migrations/down/00000-rollback-table-examples.sql');
 
-        $repos = file_get_contents($this->workdir . '/config/dev/04-repositories.php');
-        $this->assertStringNotContainsString('DummyRepository', $repos);
+        $repos = (string)file_get_contents($this->workdir . '/config/dev/04-repositories.php');
+        $this->assertStringNotContainsString('ProjectRepository', $repos);
+        $this->assertStringNotContainsString('TaskRepository', $repos);
 
-        $services = file_get_contents($this->workdir . '/config/dev/05-services.php');
-        $this->assertStringNotContainsString('DummyService', $services);
+        $services = (string)file_get_contents($this->workdir . '/config/dev/05-services.php');
+        $this->assertStringNotContainsString('ProjectService', $services);
+        $this->assertStringNotContainsString('TaskService', $services);
+
+        // Controllers are autowired by pattern, so this file names no class at all and
+        // survives example removal untouched -- there is nothing pointing at a deleted
+        // class for DI::bind()/class_exists() to trip over.
+        $controllers = (string)file_get_contents($this->workdir . '/config/dev/07-controllers.php');
+        $this->assertStringContainsString("'AcmeShop\\Controller\\*' => Autowire::rule()", $controllers);
+        foreach (['ProjectController', 'TaskController', 'NoteController', 'SampleController'] as $removed) {
+            $this->assertStringNotContainsString($removed, $controllers);
+        }
+
+        // The blocks are cut by marker, so a bad match could leave a dangling fragment
+        // that the string assertions above would not notice. token_get_all() with
+        // TOKEN_PARSE throws ParseError on invalid PHP.
+        foreach ([$repos, $services, $controllers] as $config) {
+            token_get_all($config, TOKEN_PARSE);
+        }
 
         $index = file_get_contents($this->workdir . '/public/index.html');
         $this->assertStringNotContainsString('Start Example', $index);
+
+        // Frontend example screens + their router/nav/dashboard markers are stripped,
+        // without commenting out the following statement (regression guard).
+        if (is_dir($this->workdir . '/frontend')) {
+            $this->assertFileDoesNotExist($this->workdir . '/frontend/src/pages/examples/ProjectsList.jsx');
+
+            $app = file_get_contents($this->workdir . '/frontend/src/App.jsx');
+            $this->assertStringNotContainsString('ProjectsList', $app);
+            $this->assertStringContainsString('function ProtectedLayout', $app);
+            $this->assertStringNotContainsString('// function ProtectedLayout', $app);
+
+            $dashboard = file_get_contents($this->workdir . '/frontend/src/pages/dashboard/Dashboard.jsx');
+            $this->assertStringNotContainsString('/projects', $dashboard);
+        }
+    }
+
+    public function testFrontendKeptWhenRequested(): void
+    {
+        if (!is_dir($this->workdir . '/frontend')) {
+            $this->markTestSkipped('Frontend (frontend/) not present in this checkout.');
+        }
+        $this->applyTemplate(true, installFrontend: true);
+
+        $this->assertDirectoryExists($this->workdir . '/frontend');
+        $this->assertFileExists($this->workdir . '/docker/Dockerfile-html');
+        $this->assertFileExists($this->workdir . '/docker/static-html-entrypoint.sh');
+        $this->assertFileExists($this->workdir . '/frontend/public/config.js');
+        $compose = file_get_contents($this->workdir . '/docker-compose.yml');
+        $this->assertStringContainsString('gluo-frontend', $compose);
+    }
+
+    public function testFrontendRemovedWhenNotRequested(): void
+    {
+        if (!is_dir($this->workdir . '/frontend')) {
+            $this->markTestSkipped('Frontend (frontend/) not present in this checkout.');
+        }
+        $this->applyTemplate(true, installFrontend: false);
+
+        $this->assertDirectoryDoesNotExist($this->workdir . '/frontend');
+        $this->assertFileDoesNotExist($this->workdir . '/docker/Dockerfile-html');
+        $this->assertFileDoesNotExist($this->workdir . '/docker/static-html-entrypoint.sh');
+        $compose = file_get_contents($this->workdir . '/docker-compose.yml');
+        $this->assertStringNotContainsString('gluo-frontend', $compose);
+        $this->assertStringNotContainsString('Dockerfile-html', $compose);
+        // the rest + db services must survive
+        $this->assertStringContainsString('rest:', $compose);
+        $this->assertStringContainsString('image: mysql:', $compose);
     }
 }

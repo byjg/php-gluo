@@ -1,0 +1,8 @@
+# The build context is the repository root (the PHP app root). Keep dependency
+# trees and build output out of it — both images install/build their own.
+.git
+.idea
+.vscode
+vendor
+node_modules
+dist

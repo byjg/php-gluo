@@ -3,11 +3,11 @@
 namespace Test\Util;
 
 use ByJG\ApiTools\Base\Schema;
+use ByJG\Gluo\Util\OpenApiContext;
 use ByJG\RestServer\Exception\Error400Exception;
 use ByJG\RestServer\HttpRequest;
 use ByJG\XmlUtil\XmlDocument;
 use PHPUnit\Framework\TestCase;
-use ByJG\Gluo\Util\OpenApiContext;
 
 class OpenApiContextTest extends TestCase
 {
@@ -20,7 +20,7 @@ class OpenApiContextTest extends TestCase
 
     private function schema(string $fixture): Schema
     {
-        return Schema::getInstance(file_get_contents(__DIR__ . '/' . $fixture));
+        return Schema::fromFile(__DIR__ . '/' . $fixture);
     }
 
     private function setupRequest(

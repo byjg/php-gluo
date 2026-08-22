@@ -11,6 +11,9 @@ services:
     ports:
       - "8080:80"
     volumes:
+      # The PHP app root is the repository root, so the whole repo is mounted.
+      # Only src/, config/, public/, db/, templates/ and builder/ are read by
+      # the app; frontend/ and docs/ ride along harmlessly in dev.
       - .:/srv/
     environment:
       - APP_ENV=dev
@@ -18,6 +21,23 @@ services:
       - VERBOSE=true
     networks:
       - net
+
+  # >>> frontend-service
+  frontend:
+    image: gluo-frontend:dev
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-html
+    # Injected into /config.js at container start so the SPA targets the API
+    # without a rebuild. Must be reachable from the browser (host), not the
+    # internal service name — the API is published on the host at :8080.
+    environment:
+      API_BASE_URL: "http://localhost:8080"
+    ports:
+      - "7080:8080"
+    networks:
+      - net
+  # <<< frontend-service
 
   mysql-container:
     image: mysql:8.0

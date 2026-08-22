@@ -67,22 +67,28 @@ MySQL
 3. `03-api.php` — OpenApiRouteList, JwtMiddleware, CorsMiddleware, HttpRequestHandler
 4. `04-repositories.php` — your feature repositories
 5. `05-services.php` — your feature services
+6. `06-external.php` — external services (mail, etc.)
+7. `07-controllers.php` — Autowire rule covering the controller namespace
 
 > ActiveRecord models rely on `"ORMInitialization"` (a `toEagerSingleton()` in `01-infrastructure.php`)
 > which calls `ORM::defaultDbDriver()` at startup. This happens automatically — you don't call it yourself.
 
 ---
 
-## Environment Setup
+> **Monorepo note.** The repository root *is* the PHP application root: one `composer.json`,
+> one `vendor/`, with `src/`, `config/`, `db/`, `public/`, `templates/` and `tests/` as its
+> siblings. Every command (`test`, `migrate`, `codegen`, `openapi`, `psalm`, `terminal`) and
+> every raw `php vendor/bin/*` call runs from the repo root. The optional Vite frontend is a
+> sibling package in `frontend/`, with its own `package.json` and container.
 
 ### First-time clone / full reset
 ```bash
 git fetch && git pull && git merge origin/master
-composer update
+composer update     # PHP deps live in vendor
 docker compose up -d
 composer migrate -- --env=dev reset   # creates schema from scratch
-php vendor/bin/psalm                  # or: php85 vendor/bin/psalm
-php vendor/bin/phpunit
+composer psalm                        # or: php85 vendor/bin/psalm
+composer test                         # or: vendor/bin/phpunit
 ```
 
 ### Every subsequent development cycle
@@ -91,8 +97,8 @@ git fetch && git pull && git merge origin/master
 composer update
 docker compose up -d
 composer migrate -- --env=dev update  # applies only pending migrations
-php vendor/bin/psalm
-php vendor/bin/phpunit
+composer psalm
+composer test
 ```
 
 When done: `docker compose down`
@@ -101,16 +107,27 @@ When done: `docker compose down`
 
 ## Project Structure
 
+The project is a full-stack monorepo. **The repo root is the PHP application root**; an
+optional Vite + React frontend is a sibling package under `frontend/`.
+
 ```
+<repo root>/               # the PHP REST API — everything below is relative to the root
+├── composer.json          # the single manifest (require, autoload, scripts)
+├── docker-compose.yml     # API :8080, frontend :7080, MySQL :3306
+├── docker/                # Dockerfile (API) + Dockerfile-html (frontend)
+├── frontend/              # optional React 19 + Vite 6 + Tailwind SPA (see Frontend note below)
+
 src/
 ├── Controller/           # HTTP controllers — attribute-based routing
 ├── Service/        # Business logic — wraps repositories (Repository pattern only)
 ├── Repository/     # Data access — queries and persistence
 ├── Model/          # Database models with ORM + OpenAPI attributes
+├── Generator/      # UuidSeedGenerator (UUID PK helper)
 └── OpenApiSpec.php # Root OpenAPI spec definition
 
 # Attributes (RequireAuthenticated, ...), traits (OaCreatedAt, ...), base
 # classes and utilities live in the byjg/gluo-core package (ByJG\Gluo\*).
+# The PHP namespace is still RestReferenceArchitecture\* (renamed on create-project).
 
 config/{env}/
 ├── 01-infrastructure.php  # DB, cache, logging, ORM init
@@ -118,14 +135,27 @@ config/{env}/
 ├── 03-api.php             # HTTP handler, middleware, routing
 ├── 04-repositories.php    # Repository DI bindings
 ├── 05-services.php        # Service DI bindings
-└── 06-external.php        # External services (mail, etc.)
+├── 06-external.php        # External services (mail, etc.)
+└── 07-controllers.php     # Controller autowire rule
 
 db/
-├── base.sql               # Base schema + seed users
+├── base.sql               # Base schema + seed users + users_property
 └── migrations/
     ├── up/                # Forward SQL files (00001.sql, 00002.sql, ...)
     └── down/              # Rollback SQL files
 ```
+
+**Bundled controllers:** `LoginController` (auth flow), `ProfileController`
+(`GET`/`PUT /profile` — name/email plus a `language` property, `en`/`fr`/`pt`, stored in the
+`users_property` table), and `SampleController` / `SampleProtectedController` (ping/demo).
+The example CRUD entities are `Project` (Repository, int PK, table `project`),
+`Task` (Repository, UUID PK, table `task`), and `Note` (ActiveRecord, table `note`).
+
+> **Frontend (optional, `frontend/`).** A React 19 + Vite 6 + Tailwind SPA with login,
+> password-reset, dashboard, and profile screens wired to the API over JWT. Built by
+> `docker/Dockerfile-html` and served by byjg/static-httpserver on **:7080** (API on :8080).
+> Kept or removed by the *Install Frontend* toggle at create-project time. See
+> `docs/guides/frontend.md`. This skill covers the PHP side; the frontend is plain Vite.
 
 ---
 
@@ -137,13 +167,13 @@ db/
 `Controller → Service → Repository → Model`
 - Use when: complex business logic, validation, multiple repos, team projects
 - Files: Model + Repository + Service + Controller (4 files + DI registrations + tests)
-- Reference: `src/Controller/DummyController.php`, `src/Repository/DummyRepository.php`
+- Reference: `src/Controller/ProjectController.php`, `src/Repository/ProjectRepository.php` (int PK) or `src/Controller/TaskController.php` (UUID PK)
 
 ### ActiveRecord Pattern (fewer layers, simpler)
 `Controller → Model (handles its own persistence)`
 - Use when: simple CRUD, prototyping, admin panels
 - Files: Model + Controller (2 files + no DI registrations needed + tests)
-- Reference: `src/Controller/DummyActiveRecordController.php`, `src/Model/DummyActiveRecord.php`
+- Reference: `src/Controller/NoteController.php`, `src/Model/Note.php`
 
 ---
 
@@ -212,7 +242,7 @@ class Product
 **Available traits:** `use OaCreatedAt;` / `use OaUpdatedAt;` / `use OaDeletedAt;`
 
 **UUID primary key:** use `#[TableMySqlUuidPKAttribute("product")]` and `#[FieldUuidAttribute(primaryKey: true)]`
-(see `src/Model/DummyHex.php` for the complete UUID model pattern)
+(see `src/Model/Task.php` for the complete UUID model pattern)
 
 #### 3. Repository
 
@@ -274,6 +304,11 @@ ProductService::class => DI::bind(ProductService::class)
     ->toSingleton(),
 ```
 
+No controller entry is needed: `config/dev/07-controllers.php` autowires the whole
+controller namespace with one `Autowire::rule()`. Keep the controller in that namespace
+and its constructor is injected. Add an explicit binding there only if a controller needs
+something the rule cannot express (a scalar constructor argument, say) — explicit wins.
+
 Repeat for `config/test/` (required for tests to work).
 
 #### 6. REST Controller
@@ -281,6 +316,10 @@ Repeat for `config/test/` (required for tests to work).
 ```php
 class ProductController
 {
+    public function __construct(protected ProductService $productService)
+    {
+    }
+
     #[OA\Get(path: "/product/{id}", security: [["jwt-token" => []]], tags: ["product"])]
     #[OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(response: 200, description: "Success",
@@ -290,8 +329,7 @@ class ProductController
     #[RequireAuthenticated]
     public function getProduct(HttpResponse $response, HttpRequest $request): void
     {
-        $service = Config::get(ProductService::class);
-        $result = $service->getOrFail($request->attribute('id'));
+        $result = $this->productService->getOrFail($request->attribute('id'));
         $response->write($result);
     }
 
@@ -303,8 +341,7 @@ class ProductController
     #[ValidateRequest]
     public function postProduct(HttpResponse $response, HttpRequest $request): void
     {
-        $service = Config::get(ProductService::class);
-        $model = $service->create(ValidateRequest::getPayload());
+        $model = $this->productService->create(ValidateRequest::getPayload());
         $response->write($model);
     }
 }
@@ -327,7 +364,9 @@ composer run openapi
 ```
 
 Always run this after adding or changing controller attributes. It updates `public/docs/openapi.json`
-which drives both routing and contract testing.
+which drives both routing and contract testing. Forgetting it makes the endpoint 404 with no error —
+`composer openapi:check` (run automatically by `composer test`) warns when the spec is older than
+anything in `src/Controller/` or `src/Model/`.
 
 `openapi.json` is the single source of truth: `OpenApiRouteList` reads it to build the route
 table (URL+method → Controller::method), and `#[ValidateRequest]` reads it to validate request
@@ -378,7 +417,7 @@ class ProductTest extends BaseApiTestCase
 }
 ```
 
-Look at `tests/Controller/DummyTest.php` for a complete reference implementation.
+Look at `tests/Controller/ProjectTest.php` for a complete reference implementation.
 
 ---
 
@@ -464,8 +503,8 @@ Throw to return the right HTTP status:
 2. Make changes at the appropriate layer
 3. Write a new migration if DB schema changes
 4. `composer run openapi` after any controller attribute changes
-5. `php vendor/bin/psalm` — fix type errors
-6. `php vendor/bin/phpunit` — all tests must pass
+5. `composer psalm` — fix type errors (or `php85 vendor/bin/psalm`)
+6. `composer test` — all tests must pass
 7. Update tests to reflect new behavior
 
 ---
@@ -474,13 +513,14 @@ Throw to return the right HTTP status:
 
 | Command | Purpose |
 |---------|---------|
-| `docker compose up -d` | Start MySQL + PHP containers |
+| `docker compose up -d` | Start MySQL + PHP (+ frontend) containers |
 | `docker compose down` | Stop containers |
-| `composer update` | Update PHP dependencies |
-| `php vendor/bin/psalm` | Run static analysis |
+| `composer update` | Update PHP dependencies (live in vendor) |
+| `composer psalm` | Run static analysis |
 | `php85 vendor/bin/psalm` | Psalm fallback (if default is buggy) |
-| `php vendor/bin/phpunit` | Run test suite |
+| `composer test` | Run test suite (phpunit) |
 | `composer run openapi` | Regenerate OpenAPI spec from attributes |
+| `composer openapi:check` | Warn if the spec is stale (auto-run by `composer test`) |
 | `composer migrate -- --env=dev update` | Apply pending migrations (normal dev) |
 | `composer migrate -- --env=dev reset` | Wipe and recreate DB (first install / CI) |
 | `composer codegen -- --env=dev --table=X all --save` | Scaffold full CRUD for table X |
@@ -490,8 +530,8 @@ Throw to return the right HTTP status:
 ## After Every Change Checklist
 
 - [ ] `composer run openapi` — if any controller attributes changed
-- [ ] `php vendor/bin/psalm` — static analysis passes
-- [ ] `php vendor/bin/phpunit` — all tests pass
+- [ ] `composer psalm` — static analysis passes
+- [ ] `composer test` — all tests pass
 - [ ] Documentation in `docs/` reflects changes if relevant
 
 ---

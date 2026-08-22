@@ -1,18 +1,22 @@
 <?php
 
 use ByJG\Config\DependencyInjection as DI;
-use RestReferenceArchitecture\Repository\DummyHexRepository;
-use RestReferenceArchitecture\Repository\DummyRepository;
+// Start Example
+use RestReferenceArchitecture\Repository\ProjectRepository;
+use RestReferenceArchitecture\Repository\TaskRepository;
+// End Example
 
 return [
 
     // Repository Bindings
-    DummyRepository::class => DI::bind(DummyRepository::class)
+    // Start Example
+    ProjectRepository::class => DI::bind(ProjectRepository::class)
         ->withInjectedConstructor()
         ->toSingleton(),
 
-    DummyHexRepository::class => DI::bind(DummyHexRepository::class)
+    TaskRepository::class => DI::bind(TaskRepository::class)
         ->withInjectedConstructor()
         ->toSingleton(),
+    // End Example
 
 ];

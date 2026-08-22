@@ -3,9 +3,9 @@
 namespace Test\Controller;
 
 use ByJG\Config\Config;
+use ByJG\Gluo\Util\FakeApiRequester;
 use ByJG\Util\Uri;
 use ByJG\WebRequest\Psr7\Request;
-use ByJG\Gluo\Util\FakeApiRequester;
 
 class Credentials
 {
@@ -27,7 +27,7 @@ class Credentials
 
     public static function requestLogin($cred): FakeApiRequester
     {
-        $uri = Uri::getInstanceFromString()
+        $uri = Uri::getInstance()
             ->withScheme(Config::get("API_SCHEMA"))
             ->withHost(Config::get("API_SERVER"));
 

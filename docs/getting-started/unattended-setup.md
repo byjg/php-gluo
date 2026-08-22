@@ -77,6 +77,7 @@ cat > ~/.gluo/setup.json << 'EOF'
 {
   "git_user_name": "John Doe",
   "git_user_email": "john.doe@example.com",
+  "install_frontend": true,
   "install_examples": false
 }
 EOF
@@ -96,6 +97,7 @@ cat > setup.json << 'EOF'
 {
   "namespace": "MyApp",
   "composer_name": "mycompany/myapp",
+  "install_frontend": true,
   "install_examples": false
 }
 EOF
@@ -113,6 +115,7 @@ cat > /etc/ci-configs/rest-setup.json << 'EOF'
   "git_user_name": "CI Bot",
   "git_user_email": "ci@company.com",
   "namespace": "AutoDeployApp",
+  "install_frontend": true,
   "install_examples": false
 }
 EOF
@@ -137,7 +140,8 @@ SETUP_JSON=/etc/ci-configs/rest-setup.json composer create-project byjg/gluo pro
 | `db_name_dev`      | string  | `localdev`                                        | Development database/schema name                |
 | `db_name_test`     | string  | `localtest`                                       | Test database/schema name                       |
 | `timezone`         | string  | "UTC"                                             | Server timezone                                 |
-| `install_examples` | boolean | true                                              | Include example code (Dummy, Sample classes)    |
+| `install_frontend` | boolean | true | Include the `frontend/` Vite app (login, reset, dashboard, profile) |
+| `install_examples` | boolean | true | Include example code (Project/Task/Note + Sample; frontend example screens) |
 
 > **Legacy compatibility:** The older `mysql_connection` field is still accepted. When present, it will be parsed and used to populate the new database fields automatically, but it is recommended to migrate to the explicit settings above for clarity and to support other drivers.
 
@@ -149,6 +153,7 @@ If a field is not provided in `setup.json`, the default value will be used. You 
 {
   "namespace": "MyCustomApp",
   "composer_name": "company/custom-app",
+  "install_frontend": true,
   "install_examples": false
 }
 ```

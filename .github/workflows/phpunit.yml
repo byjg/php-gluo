@@ -40,8 +40,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-#      - name: Prepare environment
-#        run: echo "mysql://root:mysqlp455w0rd@127.0.0.1/localtest" > config/.env
       - run: composer install
       - run: composer test
 
@@ -74,6 +72,20 @@ jobs:
         if: github.ref == 'refs/heads/master'
         with:
           sarif_file: psalm-results.sarif
+
+  Frontend:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: npm run build
 
   Documentation:
     if: github.ref == 'refs/heads/master'

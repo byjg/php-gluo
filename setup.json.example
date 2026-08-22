@@ -11,5 +11,6 @@
   "db_name_dev": "localdev",
   "db_name_test": "localtest",
   "timezone": "UTC",
+  "install_frontend": true,
   "install_examples": true
 }

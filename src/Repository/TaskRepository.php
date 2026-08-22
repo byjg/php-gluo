@@ -9,12 +9,12 @@ use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\Repository;
 use ReflectionException;
-use RestReferenceArchitecture\Model\Dummy;
+use RestReferenceArchitecture\Model\Task;
 
-class DummyRepository extends BaseRepository
+class TaskRepository extends BaseRepository
 {
     /**
-     * DummyRepository constructor.
+     * TaskRepository constructor.
      *
      * @param DatabaseExecutor $executor
      * @throws OrmModelInvalidException
@@ -23,19 +23,19 @@ class DummyRepository extends BaseRepository
      */
     public function __construct(DatabaseExecutor $executor)
     {
-        $this->repository = new Repository($executor, Dummy::class);
+        $this->repository = new Repository($executor, Task::class);
     }
 
 
     /**
-     * @param mixed $field
-     * @return null|Dummy[]
+     * @param mixed $projectId
+     * @return null|Task[]
      */
-    public function getByField($field)
+    public function getByProjectId($projectId)
     {
         $query = Query::getInstance()
-            ->table('dummy')
-            ->where('dummy.field = :value', ['value' => $field]);
+            ->table('task')
+            ->where('task.project_id = :value', ['value' => $projectId]);
         return $this->repository->getByQuery($query);
     }
 

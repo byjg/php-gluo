@@ -1,9 +1,18 @@
 .idea/*
 !.idea/runConfigurations
 /Dockerfile
-composer.lock
-vendor
-/src/*.db
+
+# API (PHP) — the app root is the repository root
+/composer.lock
+/vendor
+src/*.db
+config/.env
+
+# Frontend (Vite)
+frontend/node_modules
+frontend/dist
+frontend/.env
+
 node_modules
 .mysql
 .phpunit.result.cache

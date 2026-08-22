@@ -67,3 +67,4 @@ A common workflow:
 - [REST Controllers](../guides/rest-controllers.md) - Defining routes with PHP attributes
 - [Testing](../guides/testing.md) - Contract testing with OpenApiValidation
 - [Request Lifecycle](request-lifecycle.md) - How the spec drives runtime routing
+- [Frontend (Vite)](../guides/frontend.md) - The optional `frontend/` SPA that consumes these documented endpoints

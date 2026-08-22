@@ -4,6 +4,7 @@ name: Create Project
 # from the current commit (unattended setup.json mode), which resolves
 # byjg/gluo-core and every other dependency from Packagist — the only test
 # able to catch dependency-resolution problems the local suite can't see.
+# Runs the full option matrix (full-stack and pure-API).
 #
 # This workflow belongs to the reference repository only: PostCreateScript
 # removes it (together with itself) from generated projects.
@@ -24,6 +25,20 @@ jobs:
     container:
       image: 'byjg/php:8.5-cli'
       options: --user root --privileged
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - combo: full-stack
+            install_frontend: true
+            install_examples: true
+          - combo: auth-shell
+            install_frontend: true
+            install_examples: false
+          - combo: pure-api
+            install_frontend: false
+            install_examples: false
 
     services:
       mysql-container:
@@ -51,7 +66,7 @@ jobs:
 
       - name: Write unattended setup.json
         run: |
-          cat > /tmp/setup.json <<'EOF'
+          cat > /tmp/setup.json <<EOF
           {
             "git_user_name": "CI",
             "git_user_email": "ci@example.com",
@@ -59,7 +74,8 @@ jobs:
             "namespace": "AcmeShop",
             "composer_name": "acme/shop",
             "timezone": "UTC",
-            "install_examples": true,
+            "install_frontend": ${{ matrix.install_frontend }},
+            "install_examples": ${{ matrix.install_examples }},
             "db_schema": "mysql",
             "db_host": "mysql-container",
             "db_user": "root",
@@ -78,6 +94,18 @@ jobs:
           --stability=dev
           --no-interaction
 
+      - name: Assert structure (${{ matrix.combo }})
+        run: |
+          test -f /tmp/my-api/composer.json
+          test ! -f /tmp/my-api/builder/PostCreateScript.php
+          if [ "${{ matrix.install_frontend }}" = "true" ]; then
+            test -d /tmp/my-api/frontend
+            grep -q "frontend:" /tmp/my-api/docker-compose.yml
+          else
+            test ! -d /tmp/my-api/frontend
+            ! grep -q "gluo-frontend" /tmp/my-api/docker-compose.yml
+          fi
+
       - name: Psalm on the generated project
         working-directory: /tmp/my-api
         run: ./vendor/bin/psalm
@@ -85,3 +113,11 @@ jobs:
       - name: PHPUnit on the generated project
         working-directory: /tmp/my-api
         run: ./vendor/bin/phpunit
+
+      - name: Build the generated frontend
+        if: matrix.install_frontend == true
+        working-directory: /tmp/my-api/frontend
+        run: |
+          apk add --no-cache nodejs npm
+          npm install
+          npm run build

@@ -2,20 +2,23 @@
 
 namespace Builder;
 
-use ByJG\AnyDataset\Db\Factory;
-use ByJG\JwtWrapper\JwtWrapper;
-use ByJG\Util\Uri;
 use Composer\Script\Event;
 use Exception;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
+/**
+ * Runs from the project ROOT during `composer create-project`, after Composer
+ * has installed the dependencies. It is still written against PHP stdlib only:
+ * it rewrites the namespace the rest of the codebase is autoloaded under, so it
+ * must not depend on classes whose autoload map it is about to invalidate.
+ */
 class PostCreateScript
 {
-    public function execute($workdir, $namespace, $composerName, $phpVersion, array $dbConfig, $timezone, $installExamples, $gitUserName, $gitUserEmail): void
+    public function execute($workdir, $namespace, $composerName, $phpVersion, array $dbConfig, $timezone, $installExamples, $installFrontend, $gitUserName, $gitUserEmail): void
     {
-        $this->applyTemplate($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples);
+        $this->applyTemplate($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $installFrontend);
         $this->finalize($gitUserName, $gitUserEmail);
     }
 
@@ -24,7 +27,7 @@ class PostCreateScript
      * and config files, remove examples. No process side effects, so it can
      * be tested against a copy of the project tree.
      */
-    public function applyTemplate(string $workdir, string $namespace, string $composerName, string $phpVersion, array $dbConfig, string $timezone, bool $installExamples): void
+    public function applyTemplate(string $workdir, string $namespace, string $composerName, string $phpVersion, array $dbConfig, string $timezone, bool $installExamples, bool $installFrontend = true): void
     {
         $devConnection = self::buildConnectionString($dbConfig, $dbConfig['dev_database']);
         $testConnection = self::buildConnectionString($dbConfig, $dbConfig['test_database']);
@@ -32,14 +35,15 @@ class PostCreateScript
         // ------------------------------------------------
         // Defining function to interactively walking through the directories
         $directory = new RecursiveDirectoryIterator($workdir);
-        $filter = new RecursiveCallbackFilterIterator($directory, function ($current/*, $key, $iterator*/) {
+        $filter = new RecursiveCallbackFilterIterator($directory, function ($current) {
+            $skipDirs = ['fw', 'vendor', 'node_modules', 'dist'];
             // Skip hidden files and directories, except .claude/ (needs namespace replacement).
             if ($current->getFilename()[0] === '.') {
                 return $current->isDir() && $current->getFilename() === '.claude';
             }
             if ($current->isDir()) {
-                // Only recurse into intended subdirectories.
-                return $current->getFilename() !== 'fw';
+                // Only recurse into intended subdirectories (skip deps/build output).
+                return !in_array($current->getFilename(), $skipDirs, true);
             }
             // else {
             //     // Only consume files of interest.
@@ -53,11 +57,12 @@ class PostCreateScript
         $phpVersionMSimple = str_replace(".", "", $phpVersion);
 
         // ------------------------------------------------
-        // Replace composer name (quote-exact so the byjg/gluo-core requirement is untouched):
-        $contents = file_get_contents($workdir . '/composer.json');
+        // Replace the composer name in the single root manifest
+        // (quote-exact so the byjg/gluo-core requirement is untouched):
+        $rootComposer = file_get_contents($workdir . '/composer.json');
         file_put_contents(
             $workdir . '/composer.json',
-            str_replace('"byjg/gluo"', '"' . $composerName . '"', $contents)
+            str_replace('"byjg/gluo"', '"' . $composerName . '"', $rootComposer)
         );
 
         // ------------------------------------------------
@@ -75,7 +80,7 @@ class PostCreateScript
         }
 
         // ------------------------------------------------
-        // Adjusting config files
+        // Adjusting config files (the PHP app root is the repository root)
         $files = [
             'config/dev/credentials.env',
             'config/test/credentials.env',
@@ -120,7 +125,7 @@ class PostCreateScript
 
             // JWT_SECRET only for .env files - each gets unique secret
             if (str_ends_with($file, '.env')) {
-                $jwtSecret = JwtWrapper::generateSecret(64);
+                $jwtSecret = self::generateSecret();
                 $contents = preg_replace('/JWT_SECRET=.*/', "JWT_SECRET=$jwtSecret", $contents);
 
                 if (str_contains($file, 'config/dev/')) {
@@ -211,6 +216,7 @@ ENV;
         $templateOnlyFiles = [
             '.github/workflows/phpunit.yml',
             '.github/workflows/create-project.yml',
+            '.github/workflows/frontend.yml',
             'builder/PostCreateScript.php',
             'tests/Builder/PostCreateScriptTest.php',
         ];
@@ -221,9 +227,26 @@ ENV;
             }
         }
 
-        // Drop the create-project hook from composer.json (its class no longer exists)
+        // Drop the create-project hook from composer.json (its class no longer exists).
+        // Removing the whole line takes its own trailing comma with it, which is correct
+        // for every position except the last entry of a block — there the *previous*
+        // line's comma is left dangling before the closing brace. Repair that, so the
+        // result stays valid JSON no matter where the key sits in the manifest.
         $contents = file_get_contents($workdir . '/composer.json');
-        $contents = preg_replace('/^\s*"post-create-project-cmd":.*\n/m', '', $contents);
+        $contents = preg_replace('/^[ \t]*"post-create-project-cmd":.*\n/m', '', $contents);
+
+        if (json_decode($contents) === null) {
+            // Only reachable when the key was the last entry of its block. Applied
+            // conditionally so the common case is never rewritten.
+            $contents = preg_replace('/,(\s*[}\]])/', '$1', $contents);
+        }
+
+        if (json_decode($contents) === null) {
+            throw new Exception(
+                'Removing post-create-project-cmd produced invalid composer.json: ' . json_last_error_msg()
+            );
+        }
+
         file_put_contents($workdir . '/composer.json', $contents);
 
         // ------------------------------------------------
@@ -234,29 +257,31 @@ ENV;
             // Example files to remove
             $exampleFiles = [
                 // Db Files
-                'db/migrations/up/00001-create-table-dummy.sql',
-                'db/migrations/up/00000-rollback-table-dummy.sql',
-                // Dummy files
-                'src/Model/Dummy.php',
-                'src/Repository/DummyRepository.php',
-                'src/Service/DummyService.php',
-                'src/Controller/DummyController.php',
-                'tests/Controller/DummyTest.php',
-                // DummyHex files
-                'src/Model/DummyHex.php',
-                'src/Repository/DummyHexRepository.php',
-                'src/Service/DummyHexService.php',
-                'src/Controller/DummyHexController.php',
-                'tests/Controller/DummyHexTest.php',
-                // DummyActiveRecord files
-                'src/Model/DummyActiveRecord.php',
-                'src/Controller/DummyActiveRecordController.php',
-                'tests/Controller/DummyActiveRecordTest.php',
+                'db/migrations/up/00001-create-table-examples.sql',
+                'db/migrations/down/00000-rollback-table-examples.sql',
+                // Project (Repository pattern, int PK)
+                'src/Model/Project.php',
+                'src/Repository/ProjectRepository.php',
+                'src/Service/ProjectService.php',
+                'src/Controller/ProjectController.php',
+                'tests/Controller/ProjectTest.php',
+                // Task (Repository pattern, UUID PK)
+                'src/Model/Task.php',
+                'src/Repository/TaskRepository.php',
+                'src/Service/TaskService.php',
+                'src/Controller/TaskController.php',
+                'tests/Controller/TaskTest.php',
+                // Note (ActiveRecord pattern)
+                'src/Model/Note.php',
+                'src/Controller/NoteController.php',
+                'tests/Controller/NoteTest.php',
                 // Sample files
                 'src/Controller/SampleController.php',
                 'src/Controller/SampleProtectedController.php',
                 'tests/Controller/SampleTest.php',
                 'tests/Controller/SampleProtectedTest.php',
+                // Codegen E2E test (exercises the generator against an example table)
+                'tests/Builder/CodegenTest.php',
             ];
 
             foreach ($exampleFiles as $file) {
@@ -267,19 +292,28 @@ ENV;
                 }
             }
 
-            // Clean up config files
-            $configFile = "$workdir/config/dev/04-repositories.php";
-            if (file_exists($configFile)) {
-                $contents = "<?php\n\nuse ByJG\Config\DependencyInjection as DI;\n\nreturn [\n\n    // Repository Bindings\n\n];\n";
-                file_put_contents($configFile, $contents);
-                echo "  Cleaned: config/dev/04-repositories.php\n";
+            // Remove example frontend pages (only if the frontend is present)
+            if (is_dir("$workdir/frontend")) {
+                foreach ($this->frontendExampleFiles() as $file) {
+                    $fullPath = "$workdir/$file";
+                    if (file_exists($fullPath)) {
+                        unlink($fullPath);
+                        echo "  Removed: $file\n";
+                    }
+                }
+                $this->stripFrontendExampleMarkers($workdir);
             }
 
-            $configFile = "$workdir/config/dev/05-services.php";
-            if (file_exists($configFile)) {
-                $contents = "<?php\n\nuse ByJG\Config\DependencyInjection as DI;\n\nreturn [\n\n    // Service Bindings\n\n];\n";
-                file_put_contents($configFile, $contents);
-                echo "  Cleaned: config/dev/05-services.php\n";
+            // Clean up config files. Each marks its example bindings, so cut those out
+            // and leave whatever else the file holds exactly as the project ships it.
+            // This matters beyond tidiness: DI::bind() calls class_exists() and throws on
+            // a class we just deleted, which would break the container at startup.
+            //
+            // 07-controllers.php is absent on purpose: it holds an Autowire pattern rule
+            // rather than per-class bindings, so it names no example class and needs no
+            // cleaning.
+            foreach (['04-repositories', '05-services'] as $config) {
+                $this->stripPhpExampleMarkers("$workdir/config/dev/$config.php");
             }
 
             // Clean up index.html - remove example sections marked with <!-- Start Example --> and <!-- End Example -->
@@ -307,6 +341,26 @@ ENV;
 
             echo "Example files removed successfully.\n";
         }
+
+        // ------------------------------------------------
+        // Remove the frontend entirely if not installing it. The compose service
+        // block is marker-wrapped in docker-compose.yml and is always stripped;
+        // the frontend/ dir and its Dockerfile/docs are removed when present.
+        if (!$installFrontend) {
+            echo "Removing frontend...\n";
+            $this->stripComposeFrontendService($workdir);
+            if (is_dir("$workdir/frontend")) {
+                self::removeDir("$workdir/frontend");
+                echo "  Removed: frontend/\n";
+            }
+            foreach (['docker/Dockerfile-html', 'docker/static-html-entrypoint.sh', 'docs/guides/frontend.md'] as $file) {
+                if (file_exists("$workdir/$file")) {
+                    unlink("$workdir/$file");
+                    echo "  Removed: $file\n";
+                }
+            }
+            echo "Frontend removed successfully.\n";
+        }
     }
 
     /**
@@ -315,14 +369,35 @@ ENV;
      */
     protected function finalize(string $gitUserName, string $gitUserEmail): void
     {
+        $workdir = getcwd();
+
         // ------------------------------------------------
-        // Configure git and initialize repository
-        passthru("composer update");
+        // Composer already installed the dependencies before this hook ran, but the
+        // namespace has just been rewritten — the autoload map must be regenerated
+        // before anything (including the OpenAPI generator) can load the classes.
+        $warnings = [];
+        passthru('composer dump-autoload', $status);
+        if ($status !== 0) {
+            $warnings[] = "The autoload map could not be regenerated. Run: composer dump-autoload";
+        }
+        passthru('composer run openapi', $status);
+        if ($status !== 0) {
+            $warnings[] = "The OpenAPI spec was not generated. Run: composer run openapi";
+        }
 
-        // Generate OpenAPI documentation
-        passthru("composer run openapi");
+        // Install frontend dependencies if the frontend was kept. npm/bun must exist
+        // *where Composer itself runs* — running create-project inside a PHP-only
+        // container (a dockerised `composer`, for instance) has no Node, and the SPA
+        // would silently end up without its dependencies. Say so instead.
+        if (is_dir("$workdir/frontend")) {
+            passthru('cd frontend && (npm install || bun install)', $status);
+            if ($status !== 0) {
+                $warnings[] = "Frontend dependencies were NOT installed (no npm/bun where "
+                    . "Composer ran). The API is unaffected. Run: cd frontend && npm install";
+            }
+        }
 
-        // Initialize git repository first
+        // Initialize a single git repository at the project root (spans the API + frontend/)
         passthru("git init");
         passthru("git branch -m main");
 
@@ -332,6 +407,132 @@ ENV;
 
         passthru("git add .");
         passthru("git commit -m 'Initial commit'");
+
+        if ($warnings !== []) {
+            echo "\n" . str_repeat('!', 72) . "\n";
+            echo "The project was created, but some steps did not complete:\n\n";
+            foreach ($warnings as $warning) {
+                echo "  - $warning\n";
+            }
+            echo str_repeat('!', 72) . "\n\n";
+        }
+    }
+
+    /**
+     * Generate a random JWT secret. Standard base64 of 64 random bytes — the
+     * consumer (JwtHashHmacSecret) base64-decodes it back to a 512-bit HS512 key.
+     * Dependency-free replacement for JwtWrapper::generateSecret so it stays
+     * independent of the autoload map this script rewrites.
+     */
+    protected static function generateSecret(): string
+    {
+        return base64_encode(random_bytes(64));
+    }
+
+    /**
+     * Example pages shipped with the frontend, removed when install_examples=false.
+     */
+    protected function frontendExampleFiles(): array
+    {
+        return [
+            'frontend/src/pages/examples/ProjectsList.jsx',
+            'frontend/src/pages/examples/ProjectDetail.jsx',
+            'frontend/src/pages/examples/TaskNotes.jsx',
+            'frontend/src/lib/examplesApi.js',
+        ];
+    }
+
+    /**
+     * Remove every `// Start Example` … `// End Example` block from a PHP file.
+     *
+     * Editing the real file in place beats rewriting it from a string literal here: there
+     * is one source of truth, so a binding added to the config cannot silently go missing
+     * from generated example-free projects.
+     */
+    protected function stripPhpExampleMarkers(string $file): void
+    {
+        if (!file_exists($file)) {
+            return;
+        }
+
+        $contents = file_get_contents($file);
+        $stripped = preg_replace(
+            '/^[ \t]*\/\/\s*Start Example\b.*?^[ \t]*\/\/\s*End Example\b[^\n]*\n/ms',
+            '',
+            $contents
+        );
+
+        if ($stripped === null || $stripped === $contents) {
+            return;
+        }
+
+        // Cutting a block out from between two others leaves their blank lines adjacent.
+        $stripped = preg_replace('/\n{3,}/', "\n\n", $stripped);
+
+        file_put_contents($file, $stripped);
+        echo "  Cleaned: " . basename($file) . " - removed example bindings\n";
+    }
+
+    /**
+     * Strip the example-marked blocks ({/* &gt;&gt;&gt; examples * /} … {/* &lt;&lt;&lt; examples * /})
+     * from the frontend router and navigation.
+     */
+    protected function stripFrontendExampleMarkers(string $workdir): void
+    {
+        $files = [
+            'frontend/src/App.jsx',
+            'frontend/src/components/AppNav.jsx',
+            'frontend/src/pages/dashboard/Dashboard.jsx',
+        ];
+        foreach ($files as $file) {
+            $full = "$workdir/$file";
+            if (!file_exists($full)) {
+                continue;
+            }
+            $contents = file_get_contents($full);
+            // Remove whole lines from the ">>> examples" marker line through the
+            // "<<< examples" marker line (inclusive), regardless of how they are
+            // commented (// … or {/* … */}). Matching whole lines avoids leaving a
+            // dangling "//" that would comment out the following statement.
+            $contents = preg_replace(
+                '/^[^\n]*>>>\s*examples[^\n]*\n.*?^[^\n]*<<<\s*examples[^\n]*\n/ms',
+                '',
+                $contents
+            );
+            file_put_contents($full, $contents);
+            echo "  Cleaned: $file - removed example sections\n";
+        }
+    }
+
+    /**
+     * Remove the marker-wrapped `frontend` service from docker-compose.yml.
+     */
+    protected function stripComposeFrontendService(string $workdir): void
+    {
+        $compose = "$workdir/docker-compose.yml";
+        if (!file_exists($compose)) {
+            return;
+        }
+        $contents = file_get_contents($compose);
+        $contents = preg_replace(
+            '/[ \t]*#\s*>>>\s*frontend-service.*?#\s*<<<\s*frontend-service[ \t]*\n/s',
+            '',
+            $contents
+        );
+        file_put_contents($compose, $contents);
+        echo "  Cleaned: docker-compose.yml - removed frontend service\n";
+    }
+
+    protected static function removeDir(string $dir): void
+    {
+        foreach (scandir($dir) as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = "$dir/$item";
+            is_dir($path) ? self::removeDir($path) : unlink($path);
+        }
+        rmdir($dir);
     }
 
     /**
@@ -377,20 +578,20 @@ ENV;
 
         if ($schema === 'sqlite') {
             $path = $database ?: 'database.sqlite';
-            return (string) new Uri('sqlite:///' . $path);
+            return 'sqlite:///' . $path;
         }
 
         $hostPart = $host !== '' ? $host : 'localhost';
-        $uri = new Uri();
-        $uri = $uri->withScheme($schema);
-        $uri = $uri->withHost($hostPart);
+        $auth = '';
         if ($user !== '') {
-            $uri = $uri->withUserInfo($user, $password !== '' ? $password : null);
+            $auth = rawurlencode($user);
+            if ($password !== '') {
+                $auth .= ':' . rawurlencode($password);
+            }
+            $auth .= '@';
         }
-        $path = '/' . $database;
-        $uri = $uri->withPath($path);
 
-        return (string) $uri;
+        return sprintf('%s://%s%s/%s', $schema, $auth, $hostPart, $database);
     }
 
     protected static function replaceEnvValue(string $contents, string $key, string $value): string
@@ -503,7 +704,7 @@ ENV;
             if (!in_array($value, $validSchemas, true)) {
                 throw new Exception('Database schema must be one of: ' . implode(', ', $validSchemas));
             }
-            Factory::getRegisteredDrivers($value);
+            // Driver availability is re-checked later when `composer migrate` runs.
             return $value;
         };
 
@@ -577,29 +778,27 @@ ENV;
             $composerName = $config['composer_name'] ?? 'me/myrest';
             $timezone = $config['timezone'] ?? 'UTC';
             $installExamples = $config['install_examples'] ?? true;
+            $installFrontend = $config['install_frontend'] ?? true;
 
             if (isset($config['mysql_connection'])) {
-                try {
-                    $legacyConnection = new Uri($config['mysql_connection']);
-                    if ($legacyConnection->getScheme()) {
-                        $dbConfig['schema'] = strtolower($legacyConnection->getScheme());
-                    }
-                    if ($legacyConnection->getHost()) {
-                        $dbConfig['host'] = $legacyConnection->getHost();
-                    }
-                    if ($legacyConnection->getUsername()) {
-                        $dbConfig['user'] = $legacyConnection->getUsername();
-                    }
-                    if ($legacyConnection->getPassword()) {
-                        $dbConfig['password'] = $legacyConnection->getPassword();
-                    }
-                    $legacyDb = ltrim($legacyConnection->getPath(), '/');
-                    if (!empty($legacyDb)) {
-                        $dbConfig['dev_database'] = $legacyDb;
-                        $dbConfig['test_database'] = $legacyDb;
-                    }
-                } catch (Exception $e) {
-                    throw new Exception("Invalid mysql_connection in setup.json: " . $e->getMessage());
+                $parts = parse_url($config['mysql_connection']);
+                if ($parts === false || empty($parts['scheme'])) {
+                    throw new Exception("Invalid mysql_connection in setup.json: expected scheme://user:pass@host/database");
+                }
+                $dbConfig['schema'] = strtolower($parts['scheme']);
+                if (!empty($parts['host'])) {
+                    $dbConfig['host'] = $parts['host'];
+                }
+                if (!empty($parts['user'])) {
+                    $dbConfig['user'] = rawurldecode($parts['user']);
+                }
+                if (isset($parts['pass'])) {
+                    $dbConfig['password'] = rawurldecode($parts['pass']);
+                }
+                $legacyDb = ltrim($parts['path'] ?? '', '/');
+                if (!empty($legacyDb)) {
+                    $dbConfig['dev_database'] = $legacyDb;
+                    $dbConfig['test_database'] = $legacyDb;
                 }
             }
 
@@ -654,6 +853,10 @@ ENV;
 
             if (isset($config['install_examples']) && !is_bool($config['install_examples'])) {
                 throw new Exception("Invalid install_examples in setup.json: must be true or false (boolean)");
+            }
+
+            if (isset($config['install_frontend']) && !is_bool($config['install_frontend'])) {
+                throw new Exception("Invalid install_frontend in setup.json: must be true or false (boolean)");
             }
 
             if (isset($config['db_schema'])) {
@@ -729,6 +932,7 @@ ENV;
             $stdIo->write("Dev database: " . $dbConfig['dev_database']);
             $stdIo->write("Test database: " . $dbConfig['test_database']);
             $stdIo->write("Timezone: $timezone");
+            $stdIo->write("Install Frontend: " . ($installFrontend ? 'Yes' : 'No'));
             $stdIo->write("Install Examples: " . ($installExamples ? 'Yes' : 'No'));
             $stdIo->write("");
         } else {
@@ -800,6 +1004,7 @@ ENV;
                 $defaultDbConfig['test_database']
             );
             $timezone = $stdIo->askAndValidate('Timezone [UTC]: ', $validateTimeZone, $maxRetries, 'UTC');
+            $installFrontend = $stdIo->askAndValidate('Install Frontend (Vite app) [Yes]: ', $validateYesNo, $maxRetries, 'Yes');
             $installExamples = $stdIo->askAndValidate('Install Examples [Yes]: ', $validateYesNo, $maxRetries, 'Yes');
             $stdIo->ask('Press <ENTER> to continue');
 
@@ -814,6 +1019,6 @@ ENV;
         }
 
         $script = new PostCreateScript();
-        $script->execute($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $userName, $userEmail);
+        $script->execute($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $installFrontend, $userName, $userEmail);
     }
 }

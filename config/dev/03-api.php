@@ -5,7 +5,6 @@ use ByJG\Cache\Psr16\BaseCacheEngine;
 use ByJG\Config\DependencyInjection as DI;
 use ByJG\Config\Param;
 use ByJG\JwtWrapper\JwtWrapper;
-use ByJG\RestServer\HttpRequestHandler;
 use ByJG\RestServer\Middleware\CorsMiddleware;
 use ByJG\RestServer\Middleware\JwtMiddleware;
 use ByJG\RestServer\OutputProcessor\JsonCleanOutputProcessor;
@@ -49,6 +48,11 @@ return [
         ])
         ->withMethodCall("withMiddleware", [Param::get(JwtMiddleware::class)])
         ->withMethodCall("withMiddleware", [Param::get(CorsMiddleware::class)])
+        // Resolve route controllers from the container, so they can declare their
+        // dependencies in the constructor. Controllers are registered in 07-controllers.php.
+        // Param::container() resolves to the container itself; do not use
+        // Config::getContainer() here, as it is not yet available while this file is read.
+        ->withMethodCall("withContainer", [Param::container()])
 //        ->withMethodCall("withDetailedErrorHandler", [])
         ->toSingleton(),
 

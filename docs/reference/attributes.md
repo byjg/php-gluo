@@ -39,13 +39,13 @@ The `ValidateRequest` attribute automatically validates incoming requests agains
 use ByJG\Gluo\Attribute\ValidateRequest;
 
 #[ValidateRequest]
-public function postDummy(HttpResponse $response, HttpRequest $request): void
+public function postProject(HttpResponse $response, HttpRequest $request): void
 {
     // Get the validated payload
     $payload = ValidateRequest::getPayload();
 
-    $dummyService = Config::get(DummyService::class);
-    $model = $dummyService->create($payload);
+    $projectService = Config::get(ProjectService::class);
+    $model = $projectService->create($payload);
     $response->write(["id" => $model->getId()]);
 }
 ```
@@ -77,7 +77,7 @@ $payload = ValidateRequest::getPayload();
 ### Example: JSON Request
 
 ```php
-#[OA\Post(path: "/dummy", tags: ["Dummy"])]
+#[OA\Post(path: "/project", tags: ["Project"])]
 #[OA\RequestBody(
     required: true,
     content: new OA\JsonContent(
@@ -89,7 +89,7 @@ $payload = ValidateRequest::getPayload();
     )
 )]
 #[ValidateRequest]
-public function postDummy(HttpResponse $response, HttpRequest $request): void
+public function postProject(HttpResponse $response, HttpRequest $request): void
 {
     $payload = ValidateRequest::getPayload();
     // $payload = ['field' => 'value', 'optional' => 123]
@@ -101,15 +101,15 @@ public function postDummy(HttpResponse $response, HttpRequest $request): void
 ### Example: XML Request
 
 ```php
-#[OA\Post(path: "/dummy", tags: ["Dummy"])]
+#[OA\Post(path: "/project", tags: ["Project"])]
 #[OA\RequestBody(
     required: true,
     content: new OA\XmlContent(
-        xml: new OA\Xml(name: "DummyRequest")
+        xml: new OA\Xml(name: "ProjectRequest")
     )
 )]
 #[ValidateRequest]
-public function postDummyXml(HttpResponse $response, HttpRequest $request): void
+public function postProjectXml(HttpResponse $response, HttpRequest $request): void
 {
     $payload = ValidateRequest::getPayload();
     // $payload = XmlDocument object
@@ -236,7 +236,7 @@ use ByJG\Gluo\Attribute\RequireRole;
 use RestReferenceArchitecture\Model\User;
 
 #[RequireRole(User::ROLE_ADMIN)]
-public function postDummy(HttpResponse $response, HttpRequest $request): void
+public function postProject(HttpResponse $response, HttpRequest $request): void
 {
     // This method is only accessible to users with ROLE_ADMIN
 }
@@ -274,13 +274,13 @@ class User
 ### Example: Admin-Only Endpoint
 
 ```php
-#[OA\Delete(path: "/dummy/{id}", tags: ["Dummy"])]
+#[OA\Delete(path: "/project/{id}", tags: ["Project"])]
 #[RequireRole(User::ROLE_ADMIN)]
-public function deleteDummy(HttpResponse $response, HttpRequest $request): void
+public function deleteProject(HttpResponse $response, HttpRequest $request): void
 {
     // Only admins can delete
-    $dummyService = Config::get(DummyService::class);
-    $dummyService->delete($request->attribute('id'));
+    $projectService = Config::get(ProjectService::class);
+    $projectService->delete($request->attribute('id'));
 }
 ```
 

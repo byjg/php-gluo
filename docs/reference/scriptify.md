@@ -105,7 +105,7 @@ The terminal comes with helper functions and variables automatically loaded from
 
 ```php title="Using Preloaded Helpers"
 # Execute a quick SQL query
-php> qq("SELECT * FROM dummy WHERE id = :id", ["id" => 1])
+php> qq("SELECT * FROM project WHERE id = :id", ["id" => 1])
 array(1) {
   [0]=>
   array(2) {
@@ -115,12 +115,12 @@ array(1) {
 }
 
 # Use the database executor directly
-php> $result = $executor->getScalar("SELECT COUNT(*) FROM dummy")
+php> $result = $executor->getScalar("SELECT COUNT(*) FROM project")
 php> dump($result)
 int(10)
 
 # Execute a raw query
-php> $iterator = $executor->getIterator("SELECT * FROM dummy LIMIT 5")
+php> $iterator = $executor->getIterator("SELECT * FROM project LIMIT 5")
 php> foreach ($iterator as $row) { dump($row); }
 ```
 
@@ -387,7 +387,7 @@ scriptify terminal myservice
 
 ### Composer Terminal Command
 
-The project is pre-configured with a `composer terminal` command in `composer.json`:
+The project is pre-configured with a `composer terminal` command in `composer.json`, so you can run it from the repository root:
 
 ```json title="composer.json"
 {

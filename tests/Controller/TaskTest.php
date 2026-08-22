@@ -2,37 +2,38 @@
 
 namespace Test\Controller;
 
+use ByJG\Gluo\Repository\BaseRepository;
+use ByJG\Gluo\Util\FakeApiRequester;
 use ByJG\RestServer\Exception\Error401Exception;
 use ByJG\RestServer\Exception\Error403Exception;
 use ByJG\Serializer\ObjectCopy;
-use Override;
-use RestReferenceArchitecture\Model\DummyActiveRecord;
-use ByJG\Gluo\Util\FakeApiRequester;
+use RestReferenceArchitecture\Model\Task;
 
-class DummyActiveRecordTest extends BaseApiTestCase
+class TaskTest extends BaseApiTestCase
 {
-    #[Override]
     protected function setUp(): void
     {
         parent::setUp();
     }
 
     /**
-     * @return DummyActiveRecord|array
+     * @return Task|array
      */
     protected function getSampleData($array = false)
     {
         $sample = [
 
-            'name' => 'name',
-            'value' => 'value',
+            'projectId' => 1,
+            'title' => 'title',
+            'status' => 'status',
         ];
 
         if ($array) {
             return $sample;
         }
 
-        ObjectCopy::copy($sample, $model = new DummyActiveRecord());
+        $model = new Task();
+        ObjectCopy::copy($sample, $model);
         return $model;
     }
 
@@ -47,7 +48,7 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('GET')
-            ->withPath("/dummy/active/record/1")
+            ->withPath("/task/" . BaseRepository::getUuid())
             ->expectStatus(401)
         ;
         $this->sendRequest($request);
@@ -62,7 +63,7 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('GET')
-            ->withPath("/dummy/active/record/1")
+            ->withPath("/task/" . BaseRepository::getUuid())
             ->expectStatus(401)
         ;
         $this->sendRequest($request);
@@ -77,7 +78,7 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('POST')
-            ->withPath("/dummy/active/record")
+            ->withPath("/task")
             ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(401)
         ;
@@ -93,8 +94,8 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/dummy/active/record")
-            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => 1]))
+            ->withPath("/task")
+            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => BaseRepository::getUuid()]))
             ->expectStatus(401)
         ;
         $this->sendRequest($request);
@@ -111,7 +112,7 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('POST')
-            ->withPath("/dummy/active/record")
+            ->withPath("/task")
             ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(403)
             ->withRequestHeader([
@@ -132,8 +133,8 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/dummy/active/record")
-            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => 1]))
+            ->withPath("/task")
+            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => BaseRepository::getUuid()]))
             ->expectStatus(403)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
@@ -150,7 +151,7 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('POST')
-            ->withPath("/dummy/active/record")
+            ->withPath("/task")
             ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(200)
             ->withRequestHeader([
@@ -164,7 +165,7 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('GET')
-            ->withPath("/dummy/active/record/" . $bodyAr['id'])
+            ->withPath("/task/" . $bodyAr['id'])
             ->expectStatus(200)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
@@ -176,7 +177,7 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/dummy/active/record")
+            ->withPath("/task")
             ->withRequestBody($body->getBody()->getContents())
             ->expectStatus(200)
             ->withRequestHeader([
@@ -194,7 +195,7 @@ class DummyActiveRecordTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('GET')
-            ->withPath("/dummy/active/record")
+            ->withPath("/task")
             ->expectStatus(200)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']

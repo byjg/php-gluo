@@ -159,7 +159,7 @@ See the caution above — never commit `credentials.env`.
 
 ### Available Endpoints
 
-`src/Controller/LoginController.php` provides:
+`src/Controller/LoginController.php` and `src/Controller/ProfileController.php` provide:
 
 | Endpoint                      | Description                                 |
 |-------------------------------|---------------------------------------------|
@@ -168,7 +168,13 @@ See the caution above — never commit `credentials.env`.
 | `POST /login/resetrequest`    | Send password reset token + email code      |
 | `POST /login/confirmcode`     | Confirm the email + code pair               |
 | `POST /login/resetpassword`   | Set a new password after confirmation       |
+| `GET /profile`                | Profile of the authenticated user (from the JWT) |
+| `PUT /profile`                | Update the authenticated user's name, email, and language (en/fr/pt) |
 | `GET /sampleprotected/ping`   | Sample endpoint requiring authentication    |
+
+The frontend consumes these directly — its `frontend/src/lib/api.js` stores the JWT and
+transparently calls `POST /refreshtoken` when the token is close to expiring. See the
+[Frontend guide](frontend.md).
 
 The password reset flow sends emails through `ByJG\Mail\Wrapper\MailWrapperInterface`. Customize the sender/template in `config/dev/06-external.php`, which defines the `MAIL_ENVELOPE` factory.
 
