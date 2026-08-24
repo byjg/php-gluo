@@ -5,6 +5,8 @@
 # API (PHP) — the app root is the repository root
 /composer.lock
 /vendor
+/tools/*/vendor/
+/tools/*/composer.lock
 src/*.db
 config/.env
 
