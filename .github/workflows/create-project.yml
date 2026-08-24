@@ -108,7 +108,9 @@ jobs:
 
       - name: Psalm on the generated project
         working-directory: /tmp/my-api
-        run: ./vendor/bin/psalm
+        run: |
+          composer --working-dir=tools/psalm update --no-interaction
+          ./tools/psalm/vendor/bin/psalm
 
       - name: PHPUnit on the generated project
         working-directory: /tmp/my-api
