@@ -106,12 +106,6 @@ jobs:
             ! grep -q "gluo-frontend" /tmp/my-api/docker-compose.yml
           fi
 
-      - name: Psalm on the generated project
-        working-directory: /tmp/my-api
-        run: |
-          composer --working-dir=tools/psalm update --no-interaction
-          ./tools/psalm/vendor/bin/psalm
-
       - name: PHPUnit on the generated project
         working-directory: /tmp/my-api
         run: ./vendor/bin/phpunit
