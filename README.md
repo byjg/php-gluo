@@ -218,7 +218,7 @@ The starter generates a project that is fully yours — `src/`, `config/`, `db/`
 
 ## License
 
-This project is open source. See [LICENSE](https://opensource.byjg.com/opensource/licensing.html) for details.
+This project is open source. See [LICENSE](https://opensource.byjg.com/license/) for details.
 
 ## Dependencies
 
