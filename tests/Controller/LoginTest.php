@@ -7,6 +7,7 @@ use ByJG\Authenticate\Service\UsersService;
 use ByJG\Config\Config;
 use ByJG\Gluo\Util\FakeApiRequester;
 use ByJG\JwtWrapper\JwtWrapper;
+use ByJG\Mail\Wrapper\FakeSenderWrapper;
 use ByJG\RestServer\Exception\Error401Exception;
 use ByJG\RestServer\Exception\Error422Exception;
 use RestReferenceArchitecture\Model\User;
@@ -151,6 +152,25 @@ class LoginTest extends BaseApiTestCase
         $this->assertNotEmpty($user->get(User::PROP_RESETTOKENEXPIRE));
         $this->assertNotEmpty($user->get(User::PROP_RESETCODE));
         $this->assertEmpty($user->get(User::PROP_RESETALLOWED));
+    }
+
+    public function testResetRequestSendsTheCodeByEmail()
+    {
+        $email = Credentials::getRegularUser()["username"];
+
+        FakeSenderWrapper::clear();
+        $user = $this->startPasswordReset($email);
+        $this->assertNotNull($user);
+
+        $sent = FakeSenderWrapper::getSent();
+        $this->assertCount(1, $sent);
+        $this->assertEquals([$email], $sent[0]->getTo());
+        // The test environment's MAIL_ENVELOPE factory prefixes the subject with "[test] "
+        $this->assertEquals("[test] Password Reset", $sent[0]->getSubject());
+        $this->assertStringContainsString(
+            trim(chunk_split($user->get(User::PROP_RESETCODE), 1, ' ')),
+            $sent[0]->getBody()
+        );
     }
 
     public function testConfirmCodeFail()
