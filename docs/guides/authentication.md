@@ -178,6 +178,21 @@ transparently calls `POST /refreshtoken` when the token is close to expiring. Se
 
 The password reset flow sends emails through `ByJG\Mail\Wrapper\MailWrapperInterface`. Customize the sender/template in `config/dev/06-external.php`, which defines the `MAIL_ENVELOPE` factory.
 
+To change the subject or the template of the reset email, override these hooks in
+`src/Controller/LoginController.php`:
+
+```php
+protected function getResetEmailSubject(): string
+{
+    return 'Acme - Password Reset';   // default: 'Password Reset'
+}
+
+protected function getResetEmailTemplate(): string
+{
+    return 'email_code.html';          // a file in templates/emails/
+}
+```
+
 ## Testing Authentication
 
 ```bash
