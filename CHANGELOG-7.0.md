@@ -7,6 +7,15 @@
 
 - None.
 
+## Changes
+
+- **`composer create-project` no longer copies `docs/` into the new project.** The copy
+  was frozen at creation time while `byjg/gluo-core` keeps updating through
+  `composer update`, so it drifted out of date. The project now gets a short
+  `README.md` with a quick start, the common commands and links to the online
+  documentation at https://opensource.byjg.com/docs/php/gluo/. The `.claude/` skills
+  are still copied.
+
 ## Requirements
 
 - PHP 8.3, 8.4, 8.5 and 8.6 are now supported: `"php": ">=8.3 <8.7"`.
