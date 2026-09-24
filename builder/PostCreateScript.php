@@ -227,6 +227,17 @@ ENV;
             }
         }
 
+        // ------------------------------------------------
+        // The documentation is published online, where it follows gluo-core updates; a
+        // copy in the project would be frozen at creation time. Drop docs/ and replace the
+        // template's README with a short one that links to the online documentation.
+        if (is_dir("$workdir/docs")) {
+            self::removeDir("$workdir/docs");
+            echo "Removed docs/\n";
+        }
+        rename("$workdir/builder/README.project.md", "$workdir/README.md");
+        echo "Created README.md\n";
+
         // Drop the create-project hook from composer.json (its class no longer exists).
         // Removing the whole line takes its own trailing comma with it, which is correct
         // for every position except the last entry of a block — there the *previous*
@@ -345,7 +356,7 @@ ENV;
         // ------------------------------------------------
         // Remove the frontend entirely if not installing it. The compose service
         // block is marker-wrapped in docker-compose.yml and is always stripped;
-        // the frontend/ dir and its Dockerfile/docs are removed when present.
+        // the frontend/ dir and its Dockerfile are removed when present.
         if (!$installFrontend) {
             echo "Removing frontend...\n";
             $this->stripComposeFrontendService($workdir);
@@ -353,7 +364,7 @@ ENV;
                 self::removeDir("$workdir/frontend");
                 echo "  Removed: frontend/\n";
             }
-            foreach (['docker/Dockerfile-html', 'docker/static-html-entrypoint.sh', 'docs/guides/frontend.md'] as $file) {
+            foreach (['docker/Dockerfile-html', 'docker/static-html-entrypoint.sh'] as $file) {
                 if (file_exists("$workdir/$file")) {
                     unlink("$workdir/$file");
                     echo "  Removed: $file\n";

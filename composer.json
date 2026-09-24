@@ -7,16 +7,15 @@
   "prefer-stable": true,
   "license": "MIT",
   "require": {
-    "php": ">=8.3 <8.6",
+    "php": ">=8.3 <8.7",
     "ext-json": "*",
     "ext-openssl": "*",
     "ext-curl": "*",
     "byjg/gluo-core": "^7.0",
-    "byjg/scriptify": "^6.0"
+    "byjg/scriptify": "^7.0"
   },
   "require-dev": {
-    "phpunit/phpunit": "^12.5.8",
-    "vimeo/psalm": "^6.13"
+    "phpunit/phpunit": "^12.5"
   },
   "autoload": {
     "psr-4": {
@@ -40,7 +39,10 @@
     "openapi": "Builder\\Scripts::genOpenApiDocs",
     "openapi:check": "Builder\\Scripts::checkOpenApi",
     "terminal": "./vendor/bin/scriptify terminal --preload ./templates/scriptify/scriptify.php --env APP_ENV=$APP_ENV",
-    "psalm": "vendor/bin/psalm",
+    "psalm": [
+      "@composer --working-dir=tools/psalm update --no-interaction",
+      "tools/psalm/vendor/bin/psalm"
+    ],
     "compile": "git pull && composer run openapi && composer run test",
     "up-local-dev": "docker compose -f docker-compose.yml up -d",
     "down-local-dev": "docker compose -f docker-compose.yml down"

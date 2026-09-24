@@ -213,6 +213,24 @@ class PostCreateScriptTest extends TestCase
         $this->assertNotNull(json_decode($composer), 'composer.json must remain valid JSON');
     }
 
+    public function testDocsReplacedByReadmeLinkingToOnlineDocs(): void
+    {
+        $this->assertDirectoryExists($this->workdir . '/docs');
+        $this->assertFileExists($this->workdir . '/builder/README.project.md');
+
+        $this->applyTemplate(true);
+
+        $this->assertDirectoryDoesNotExist($this->workdir . '/docs');
+        $this->assertFileDoesNotExist($this->workdir . '/builder/README.project.md');
+
+        $readme = file_get_contents($this->workdir . '/README.md');
+        $this->assertStringStartsWith("# acme/shop\n", $readme);
+        $this->assertStringContainsString('under the `AcmeShop` namespace', $readme);
+        $this->assertStringContainsString('https://opensource.byjg.com/docs/php/gluo/', $readme);
+        $this->assertStringContainsString('`byjg/gluo-core`', $readme);
+        $this->assertStringNotContainsString('RestReferenceArchitecture', $readme);
+    }
+
     /**
      * Regression: the hook is stripped by deleting its whole line, which also removes
      * that line's own trailing comma. That is correct everywhere except as the LAST

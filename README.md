@@ -53,7 +53,7 @@ my-api/
 ├── frontend/             # optional Vite + React frontend (React 19 + Vite 6 + Tailwind)
 ├── docker/               # Dockerfile (API) + Dockerfile-html (frontend)
 ├── docker-compose.yml    # API :8080, frontend :7080, MySQL :3306
-└── docs/
+└── README.md             # quick start + link to the online documentation
 ```
 
 The `create-project` installer offers two toggles:
@@ -218,7 +218,7 @@ The starter generates a project that is fully yours — `src/`, `config/`, `db/`
 
 ## License
 
-This project is open source. See [LICENSE](https://opensource.byjg.com/opensource/licensing.html) for details.
+This project is open source. See [LICENSE](https://opensource.byjg.com/license/) for details.
 
 ## Dependencies
 

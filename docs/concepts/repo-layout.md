@@ -30,7 +30,7 @@ my-api/
 │
 ├── docker/               # Dockerfile (API) + Dockerfile-html (frontend)
 ├── docker-compose.yml    # API :8080, frontend :7080, MySQL :3306
-└── docs/
+└── README.md             # quick start + link to the online documentation
 ```
 
 ## Why the PHP app sits at the root

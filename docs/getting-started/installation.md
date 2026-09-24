@@ -124,8 +124,8 @@ my-api/
 ├── tests/
 ├── frontend/         # the Vite frontend (only when Install Frontend = Yes)
 ├── docker/           # Dockerfiles
-├── docs/
-└── docker-compose.yml
+├── docker-compose.yml
+└── README.md         # quick start + link to the online documentation
 ```
 
 Run PHP tooling from the repo root (`composer test`, `composer migrate`,
