@@ -91,29 +91,24 @@ graph TD
 
 **Inheritance Rules:**
 - **test** inherits from **dev**
-- **staging** inherits from **dev** (with caching enabled)
-- **prod** inherits from **staging** and **dev** (with caching enabled)
+- **staging** inherits from **dev** (cached, see `config/ConfigBootstrap.php`)
+- **prod** inherits from **staging** and **dev** (cached, see `config/ConfigBootstrap.php`)
 
 Child environments override parent configurations. For example:
 - `config/dev/credentials.env` defines base database connection
 - `config/prod/credentials.env` overrides with production database connection
 - `config/prod/01-infrastructure.php` overrides to use FileSystemCache instead of NoCache
 
-The project bootstrap in `config/ConfigBootstrap.php` is intentionally tiny — the
-environment set, inheritance and caching live in gluo-core, so improvements arrive with
-`composer update`:
+The project bootstrap in `config/ConfigBootstrap.php` is intentionally small — the
+environment set and inheritance live in gluo-core, so improvements arrive with
+`composer update`. The project only decides where to cache the resolved container (the
+template uses `FileSystemCacheEngine` for staging and prod, see
+[Environment-Specific Caching](../guides/configuration.md#5-environment-specific-caching)).
 
-```php
-<?php
-
-use ByJG\Gluo\Config\BaseConfigBootstrap;
-
-return new class extends BaseConfigBootstrap {
-};
-```
-
-To register more OS environment variables, add config directories, or define extra
-environments, override `configureDefinition()`:
+To register more OS environment variables, add config directories, define extra
+environments, or cache the resolved container
+([Environment-Specific Caching](../guides/configuration.md#5-environment-specific-caching)),
+override `configureDefinition()`:
 
 ```php
 return new class extends BaseConfigBootstrap {

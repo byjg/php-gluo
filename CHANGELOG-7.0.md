@@ -9,6 +9,11 @@
 
 ## Changes
 
+- **The config cache is set in `config/ConfigBootstrap.php`.** `byjg/gluo-core` no longer
+  caches the resolved container for staging and prod; the template now does it in
+  `configureDefinition()`, with the same `FileSystemCacheEngine` as before, so the behaviour
+  doesn't change. Change it there if your deploy needs another cache (see
+  [Environment-Specific Caching](docs/guides/configuration.md#5-environment-specific-caching)).
 - **`composer create-project` no longer copies `docs/` into the new project.** The copy
   was frozen at creation time while `byjg/gluo-core` keeps updating through
   `composer update`, so it drifted out of date. The project now gets a short
