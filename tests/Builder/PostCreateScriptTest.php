@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Builder;
+namespace Tests\Builder;
 
 use Builder\PostCreateScript;
 use PHPUnit\Framework\TestCase;

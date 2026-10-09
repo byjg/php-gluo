@@ -251,13 +251,13 @@ Create or update the test file `tests/Controller/ExampleCrudTest.php`:
 ```php
 <?php
 
-namespace Test\Controller;
+namespace Tests\Controller;
 
 use ByJG\Config\Config;
 use RestReferenceArchitecture\Service\ExampleCrudService;
 use ByJG\Gluo\Util\FakeApiRequester;
-use Test\Controller\BaseApiTestCase;
-use Test\Controller\Credentials;
+use Tests\Controller\BaseApiTestCase;
+use Tests\Controller\Credentials;
 
 class ExampleCrudTest extends BaseApiTestCase
 {

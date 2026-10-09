@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Controller;
+namespace Tests\Controller;
 
 use ByJG\Config\Config;
 use ByJG\Gluo\Util\FakeApiRequester;

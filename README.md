@@ -1,13 +1,19 @@
+---
+sidebar_key: gluo
+tags: [php, http, openapi]
+---
+
 # Gluo — PHP REST API Starter
 
+**Gluo** (Esperanto for *glue*) is a **production-ready PHP REST API starter**: create a project you fully own, powered by an updatable framework core — so you focus on business logic, not infrastructure.
+
 [![Sponsor](https://img.shields.io/badge/Sponsor-%23ea4aaa?logo=githubsponsors&logoColor=white&labelColor=0d1117)](https://github.com/sponsors/byjg)
-[![Build Status](https://github.com/byjg/php-gluo/actions/workflows/build-app-image.yml/badge.svg?branch=master)](https://github.com/byjg/php-gluo/actions/workflows/build-app-image.yml)
-[![Opensource ByJG](https://img.shields.io/badge/opensource-byjg-success.svg)](http://opensource.byjg.com)
+[![Build Status](https://github.com/byjg/php-gluo/actions/workflows/phpunit.yml/badge.svg?branch=master)](https://github.com/byjg/php-gluo/actions/workflows/phpunit.yml)
+[![Opensource ByJG](https://img.shields.io/badge/opensource-byjg-success.svg)](https://opensource.byjg.com)
+[![Install MCP Server](https://img.shields.io/badge/Install-MCP_Server-8A2BE2?logo=modelcontextprotocol&logoColor=white)](https://opensource.byjg.com/docs/ai/mcpserver-byjg-docs/)
 [![GitHub source](https://img.shields.io/badge/Github-source-informational?logo=github)](https://github.com/byjg/php-gluo)
 [![GitHub license](https://img.shields.io/github/license/byjg/php-gluo.svg)](https://opensource.byjg.com/license/)
 [![GitHub release](https://img.shields.io/github/release/byjg/php-gluo.svg)](https://github.com/byjg/php-gluo/releases)
-
-**Gluo** (Esperanto for *glue*) is a **production-ready PHP REST API starter**: create a project you fully own, powered by an updatable framework core — so you focus on business logic, not infrastructure.
 
 ## Why Use This?
 
@@ -206,7 +212,7 @@ You just created a complete CRUD API with:
 - 📖 **[Full Documentation](docs/getting-started/installation.md)**
 - 🐛 **[Report Issues](https://github.com/byjg/php-gluo/issues)**
 - 💡 **[Request Features](https://github.com/byjg/php-gluo/issues)**
-- 🌐 **[ByJG Open Source](http://opensource.byjg.com)**
+- 🌐 **[ByJG Open Source](https://opensource.byjg.com)**
 
 ## Your Code vs. the Framework
 
@@ -224,6 +230,15 @@ This project is open source. See [LICENSE](https://opensource.byjg.com/license/)
 
 **📚 [Complete Component Dependency Graph →](docs/reference/components.md)**
 
+## Running Tests
+
+```bash
+docker compose up -d
+composer test
+```
+
+See the [testing guide](docs/guides/testing.md) for writing tests for your own endpoints.
+
 ---
 
-**[Open source ByJG](http://opensource.byjg.com)**
+[Open source ByJG](https://opensource.byjg.com)

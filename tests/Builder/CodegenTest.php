@@ -1,9 +1,9 @@
 <?php
 
-namespace Test\Builder;
+namespace Tests\Builder;
 
 use Builder\Scripts;
-use Test\Controller\BaseApiTestCase;
+use Tests\Controller\BaseApiTestCase;
 
 /**
  * End-to-end code generator test: introspects the real `project` table from the
@@ -83,7 +83,7 @@ class CodegenTest extends BaseApiTestCase
             $this->assertFileExists("$workdir/tests/Controller/ProjectTest.php");
 
             $test = file_get_contents("$workdir/tests/Controller/ProjectTest.php");
-            $this->assertStringContainsString('namespace Test\Controller;', $test);
+            $this->assertStringContainsString('namespace Tests\Controller;', $test);
             $this->assertStringContainsString('class ProjectTest', $test);
         } finally {
             shell_exec('rm -rf ' . escapeshellarg($workdir));

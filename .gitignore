@@ -30,3 +30,4 @@ ignore.txt
 
 # Setup configuration (keep example only)
 setup.json
+.vscode

@@ -654,7 +654,7 @@ Services are easy to unit test:
 ```php
 <?php
 
-namespace Test\Unit\Service;
+namespace Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
 use RestReferenceArchitecture\Service\ProductService;

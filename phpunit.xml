@@ -21,7 +21,7 @@ and open the template in the editor.
          failOnPhpunitDeprecation="true"
          failOnRisky="true"
          stopOnFailure="false"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd">
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.5/phpunit.xsd">
 
   <source>
     <include>
