@@ -242,6 +242,13 @@ ENV;
         rename("$workdir/builder/README.project.md", "$workdir/README.md");
         echo "Created README.md\n";
 
+        // The changelogs are the history of this starter, not of the project being
+        // created, which starts its own.
+        foreach (glob("$workdir/CHANGELOG-*.md") ?: [] as $changelog) {
+            unlink($changelog);
+            echo "Removed " . basename($changelog) . "\n";
+        }
+
         // Drop the create-project hook from composer.json (its class no longer exists).
         // Removing the whole line takes its own trailing comma with it, which is correct
         // for every position except the last entry of a block — there the *previous*

@@ -9,6 +9,9 @@
 
 ## Changes
 
+- **`composer create-project` no longer leaves the starter's changelogs in the new
+  project.** `CHANGELOG-*.md` are the history of this starter, not of the project being
+  created, so the installer removes them, as it already did with `docs/`.
 - **`?orderBy=` works on the list endpoints, and `?filter=` is gone.** The example
   controllers (`Project`, `Task`, `Note`) documented both parameters and applied neither.
   `orderBy` is now applied through `ByJG\Gluo\Util\OrderBy::fromQueryString()`, which only

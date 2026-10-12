@@ -149,6 +149,12 @@ class PostCreateScriptTest extends TestCase
         $this->assertSame('byjg/gluo-shop', $root['name']);
         $this->assertArrayHasKey('byjg/gluo-core', $root['require']);
 
+        // The search below has to be able to find something, or an empty result proves
+        // nothing: the new name is in the files that are meant to carry it.
+        $withNewName = $this->findFilesContaining('byjg/gluo-shop');
+        $this->assertContains('composer.json', $withNewName);
+        $this->assertContains('README.md', $withNewName);
+
         // No file anywhere carries the doubled name.
         $this->assertSame([], $this->findFilesContaining('gluo-shop-shop'));
         $compose = file_get_contents($this->workdir . '/docker-compose.yml');
@@ -220,12 +226,16 @@ class PostCreateScriptTest extends TestCase
         foreach ($templateOnlyFiles as $file) {
             $this->assertFileExists($this->workdir . '/' . $file);
         }
+        $this->assertNotEmpty(glob($this->workdir . '/CHANGELOG-*.md'), 'The starter ships changelogs for this test to be meaningful');
 
         $this->applyTemplate(true);
 
         foreach ($templateOnlyFiles as $file) {
             $this->assertFileDoesNotExist($this->workdir . '/' . $file);
         }
+
+        // The starter's changelogs are its own history, not the new project's.
+        $this->assertSame([], glob($this->workdir . '/CHANGELOG*'));
 
         $composer = file_get_contents($this->workdir . '/composer.json');
         $this->assertStringNotContainsString('post-create-project-cmd', $composer);
@@ -380,8 +390,19 @@ class PostCreateScriptTest extends TestCase
         $compose = file_get_contents($this->workdir . '/docker-compose.yml');
         $this->assertStringNotContainsString('gluo-frontend', $compose);
         $this->assertStringNotContainsString('Dockerfile-html', $compose);
-        // the rest + db services must survive
+        // The API's HTTPS setup borrows the frontend's certificate. Without the frontend
+        // nothing writes it, and nginx would not start pointing at a file that is not there.
+        $this->assertStringNotContainsString('NGINX_SSL_CERT', $compose);
+        $this->assertStringNotContainsString('certs', $compose);
+        $this->assertStringNotContainsString('8443', $compose);
+        $this->assertStringNotContainsString('depends_on', $compose);
+        $this->assertStringNotContainsString('frontend-service', $compose);
+        // the rest + db services must survive, with what they had before
         $this->assertStringContainsString('rest:', $compose);
         $this->assertStringContainsString('image: mysql:', $compose);
+        $this->assertStringContainsString('- "8080:80"', $compose);
+        $this->assertStringContainsString('- .:/srv/', $compose);
+        $this->assertStringContainsString('- APP_ENV=dev', $compose);
+        $this->assertStringContainsString("volumes:\n  mysql-volume:\n", $compose);
     }
 }
