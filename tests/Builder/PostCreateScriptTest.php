@@ -69,7 +69,7 @@ class PostCreateScriptTest extends TestCase
         }
     }
 
-    protected function applyTemplate(bool $installExamples, bool $installFrontend = true): void
+    protected function applyTemplate(bool $installExamples, bool $installFrontend = true, string $composerName = 'acme/shop'): void
     {
         $script = new PostCreateScript();
         ob_start();
@@ -77,7 +77,7 @@ class PostCreateScriptTest extends TestCase
             $script->applyTemplate(
                 $this->workdir,
                 'AcmeShop',
-                'acme/shop',
+                $composerName,
                 '8.4',
                 [
                     'schema' => 'mysql',
@@ -135,6 +135,25 @@ class PostCreateScriptTest extends TestCase
         $this->assertStringNotContainsString('"byjg/gluo"', $root);
         // the framework dependency must survive the rename
         $this->assertStringContainsString('"byjg/gluo-core"', $root);
+    }
+
+    /**
+     * A project name that starts with the template's own name must not be expanded twice
+     * ("byjg/gluo-shop" becoming "byjg/gluo-shop-shop").
+     */
+    public function testComposerNameStartingWithTheTemplateNameIsNotDoubled(): void
+    {
+        $this->applyTemplate(true, composerName: 'byjg/gluo-shop');
+
+        $root = json_decode(file_get_contents($this->workdir . '/composer.json'), true);
+        $this->assertSame('byjg/gluo-shop', $root['name']);
+        $this->assertArrayHasKey('byjg/gluo-core', $root['require']);
+
+        // No file anywhere carries the doubled name.
+        $this->assertSame([], $this->findFilesContaining('gluo-shop-shop'));
+        $compose = file_get_contents($this->workdir . '/docker-compose.yml');
+        $this->assertStringContainsString('image: gluo-shop:dev', $compose);
+        $this->assertStringContainsString('container_name: gluo-shop', $compose);
     }
 
     public function testDockerfileVersionAndTimezone(): void

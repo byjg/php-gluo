@@ -57,6 +57,13 @@
   tests in `Tests\Controller`. A project created from an earlier template keeps working as it
   is; rename its namespace when you want the generated tests to match.
 
+## Bug Fixes
+
+- `composer create-project` wrote the package name twice when the chosen name started
+  with `byjg/gluo` (`byjg/gluo-shop` became `byjg/gluo-shop-shop` in `composer.json`).
+  The installer now replaces only the template's exact name. Names with any other vendor
+  or prefix were never affected.
+
 ## Requirements
 
 - PHP 8.3, 8.4, 8.5 and 8.6 are now supported: `"php": ">=8.3 <8.7"`.

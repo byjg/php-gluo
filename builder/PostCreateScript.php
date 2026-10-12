@@ -194,9 +194,13 @@ ENV;
                 // Replace reserved name
                 $contents = str_replace('RestReferenceArchitecture', $namespace, $contents);
 
-                // Replace the template package name, but never the framework dependency
+                // Replace the template package name, and only that exact name: a longer
+                // one that merely starts with it is left alone. That covers the framework
+                // dependency (byjg/gluo-core) and a project whose own name starts with
+                // byjg/gluo, which composer.json already carries by this point and would
+                // otherwise get its suffix appended a second time.
                 $contents = preg_replace(
-                    '~byjg/gluo(?!-core)~',
+                    '~byjg/gluo(?![\w-])~',
                     $composerName,
                     $contents
                 );
