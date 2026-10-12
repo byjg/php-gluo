@@ -128,8 +128,8 @@ my-api/
 └── README.md         # quick start + link to the online documentation
 ```
 
-Run PHP tooling from the repo root (`composer test`, `composer migrate`,
-`composer openapi`) — there is one manifest and one `vendor/`.
+Run PHP tooling from the repo root (`composer test`, `./gluo migrate:update`,
+`./gluo openapi`) — there is one manifest and one `vendor/`.
 
 #### Configuration Options
 
@@ -169,11 +169,11 @@ docker compose -f docker-compose.yml up -d
 
 ```shell
 # Create a fresh database (warning: destroys existing data)
-APP_ENV=dev composer run migrate -- reset --yes
+APP_ENV=dev ./gluo migrate:reset --yes
 
 # Alternative if local PHP isn't configured:
 # export CONTAINER_NAME=myrest  # second part of your composer name
-# docker exec -it $CONTAINER_NAME composer run migrate -- reset --yes
+# docker exec -it $CONTAINER_NAME ./gluo migrate:reset --yes
 ```
 
 Expected output:

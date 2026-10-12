@@ -3,14 +3,14 @@
 namespace Builder;
 
 use ByJG\Gluo\Builder\BaseScripts;
-use Composer\Script\Event;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
 /**
  * Migration, OpenAPI generation and code generation logic live in
- * BaseScripts (byjg/gluo). This class binds them to composer scripts
- * and anchors the working directory to this project.
+ * BaseScripts (byjg/gluo-core). ./gluo runs its built-in commands through
+ * this class, which anchors the working directory to this project and is
+ * the place to override them.
  */
 class Scripts extends BaseScripts
 {
@@ -34,21 +34,6 @@ class Scripts extends BaseScripts
         return 'RestReferenceArchitecture';
     }
 
-    public static function migrate(Event $event): void
-    {
-        (new Scripts())->runMigrate($event->getArguments());
-    }
-
-    public static function genOpenApiDocs(Event $event): void
-    {
-        (new Scripts())->runGenOpenApiDocs($event->getArguments());
-    }
-
-    public static function codeGenerator(Event $event): void
-    {
-        (new Scripts())->runCodeGenerator($event->getArguments());
-    }
-
     /**
      * Routing is derived from the generated spec: OpenApiRouteList reads
      * public/docs/openapi.json. A controller change that has not been regenerated
@@ -57,11 +42,6 @@ class Scripts extends BaseScripts
      *
      * Never blocks — a stale spec is a nuisance, not a reason to stop a test run.
      */
-    public static function checkOpenApi(Event $event): void
-    {
-        (new Scripts())->runCheckOpenApi();
-    }
-
     public function runCheckOpenApi(): void
     {
         $spec = $this->workdir . '/public/docs/openapi.json';
@@ -125,6 +105,6 @@ class Scripts extends BaseScripts
         foreach ($lines as $line) {
             fwrite(STDERR, "  $line\n");
         }
-        fwrite(STDERR, "\n  Run:  composer openapi\n$rule\n\n");
+        fwrite(STDERR, "\n  Run:  ./gluo openapi\n$rule\n\n");
     }
 }

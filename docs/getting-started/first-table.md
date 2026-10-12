@@ -34,9 +34,9 @@ drop table example_crud;
 Apply your migrations with:
 
 ```shell
-APP_ENV=dev composer run migrate -- update
+APP_ENV=dev ./gluo migrate:update
 # OR
-composer run migrate -- --env=dev update
+./gluo --env=dev migrate:update
 ```
 
 Expected output:
@@ -52,9 +52,9 @@ Migration completed successfully.
 To rollback changes:
 
 ```shell
-APP_ENV=dev composer run migrate -- update --version=1
+APP_ENV=dev ./gluo migrate:update --version=1
 # OR
-composer run migrate -- --env=dev update --version=1
+./gluo --env=dev migrate:update --version=1
 ```
 
 The result should be:
@@ -77,12 +77,12 @@ Generate all necessary files for your new table:
 
 ```shell
 # Ensure DB is updated first
-APP_ENV=dev composer run migrate -- update
-# OR: composer run migrate -- --env=dev update
+APP_ENV=dev ./gluo migrate:update
+# OR: ./gluo --env=dev migrate:update
 
 # Generate files (options: rest, model, test, repo, config, or all)
-APP_ENV=dev composer run codegen -- --table example_crud --save all
-# OR: composer run codegen -- --env=dev --table example_crud --save all
+APP_ENV=dev ./gluo codegen:all --table example_crud --save
+# OR: ./gluo --env=dev codegen:all --table example_crud --save
 ```
 
 This creates:
@@ -104,8 +104,8 @@ No manual configuration needed!
 To generate ActiveRecord pattern instead of Repository pattern:
 
 ```shell
-APP_ENV=dev composer run codegen -- --table example_crud all --activerecord --save
-# OR: composer run codegen -- --env=dev --table example_crud all --activerecord --save
+APP_ENV=dev ./gluo codegen:all --table example_crud --activerecord --save
+# OR: ./gluo --env=dev codegen:all --table example_crud --activerecord --save
 ```
 
 This generates a simpler architecture with the model containing data access methods.
@@ -127,7 +127,7 @@ Initial tests **_will fail_** because we need to:
 1. Generate OpenAPI documentation to create the endpoints:
 
 ```shell
-composer run openapi
+./gluo openapi
 ```
 
 2. Fix the test data by updating `tests/Controller/ExampleCrudTest.php`:

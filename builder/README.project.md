@@ -8,7 +8,7 @@ is the `byjg/gluo-core` package in `vendor/` and is updated with `composer updat
 
 ```bash
 docker compose up -d
-composer migrate -- --env=dev reset
+./gluo --env=dev migrate:reset
 composer test
 ```
 
@@ -17,9 +17,10 @@ composer test
 | Command                                                   | What it does                           |
 |-----------------------------------------------------------|----------------------------------------|
 | `composer test`                                           | Run the test suite                     |
-| `composer migrate -- --env=dev <command>`                 | Run database migrations                |
-| `composer openapi`                                        | Regenerate `public/docs/openapi.json`  |
-| `composer codegen -- --env=dev --table=<table> all --save` | Scaffold model, repository, service, controller and test from a table |
+| `./gluo --env=dev migrate:<command>`                 | Run database migrations                |
+| `./gluo list --check` | List every command and validate it |
+| `./gluo openapi`                                        | Regenerate `public/docs/openapi.json`  |
+| `./gluo --env=dev codegen:all --table=<table> --save` | Scaffold model, repository, service, controller and test from a table |
 
 ## Documentation
 

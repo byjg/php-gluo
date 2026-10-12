@@ -404,7 +404,7 @@ After modifying templates, test generation:
 
 ```bash
 # Generate with modified template
-composer codegen -- --env=dev --table=test_table all --save
+./gluo --env=dev codegen:all --table=test_table --save
 
 # Review generated code
 cat src/Model/TestTable.php

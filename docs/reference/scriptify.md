@@ -24,7 +24,7 @@ Scriptify allows you to:
 Start an interactive PHP shell with your project loaded:
 
 ```bash
-composer terminal
+./gluo terminal
 ```
 
 This gives you immediate access to test your code with preloaded helpers:
@@ -62,17 +62,17 @@ The interactive terminal provides a REPL (Read-Eval-Print Loop) environment with
 ### Starting the Terminal
 
 ```bash
-# Using composer shortcut (recommended - includes preload and environment)
-composer terminal
+# Using ./gluo (recommended - includes preload and environment)
+./gluo terminal
 
 # Or directly
 ./vendor/bin/scriptify terminal
 
 # With custom environment
-APP_ENV=prod composer terminal
+APP_ENV=prod ./gluo terminal
 ```
 
-The `composer terminal` command automatically:
+The `./gluo terminal` command automatically:
 - Loads your project's autoloader
 - Sets up the environment from `APP_ENV` variable
 - Preloads helper functions from `templates/scriptify/scriptify.php`
@@ -211,6 +211,17 @@ scriptify terminal --env DEBUG=true --env LOG_LEVEL=verbose
 ## Running PHP Methods from the Command Line
 
 Execute any public method of your classes directly from the command line.
+
+:::tip Prefer project commands
+Give the method a short name in `config/commands.php` and run it as
+`./gluo user:cleanup 30`: see [Project commands](gluo-cli.md#project-commands). The
+launcher runs it through Scriptify with the Gluo container, so the class gets its
+constructor dependencies. The `scriptify run` form below is what it does underneath.
+:::
+
+To build a class that has constructor dependencies, point `--bootstrap` at
+`config/scriptify-bootstrap.php`, which returns the Gluo container. With the default
+bootstrap (`vendor/autoload.php`) Scriptify can only build classes with `new`.
 
 ### Basic Usage
 
@@ -387,7 +398,7 @@ scriptify terminal myservice
 
 ### Composer Terminal Command
 
-The project is pre-configured with a `composer terminal` command in `composer.json`, so you can run it from the repository root:
+The `./gluo terminal` command is built in, so you can run it from the repository root:
 
 ```json title="composer.json"
 {

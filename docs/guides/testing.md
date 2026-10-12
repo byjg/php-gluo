@@ -50,7 +50,7 @@ Add additional directories (e.g., `tests/Service`) as needed—PHPUnit's configu
 
 ```bash
 # Create or reset the testing database
-APP_ENV=test composer migrate -- reset --yes
+APP_ENV=test ./gluo migrate:reset --yes
 
 # Run all tests using the composer script
 APP_ENV=test composer run test

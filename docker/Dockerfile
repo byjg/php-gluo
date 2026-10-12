@@ -28,7 +28,7 @@ COPY --chown=app:app public /srv/public
 COPY --chown=app:app templates /srv/templates
 
 # This is necessary for the migration script
-COPY --chown=app:app composer.* /srv/
+COPY --chown=app:app composer.* gluo /srv/
 
 # Optional: Override app user UID/GID to match host user for volume permissions
 # This is useful when mounting host directories as volumes to avoid permission issues.

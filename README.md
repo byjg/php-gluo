@@ -35,13 +35,13 @@ cd my-api
 docker compose up -d
 
 # Run migrations
-composer migrate -- --env=dev reset
+./gluo --env=dev migrate:reset
 
 # Your API is ready!
 curl http://localhost:8080/sample/ping
 ```
 
-Commands like `composer migrate`, `composer test`, `composer codegen`, `composer openapi`,
+Commands like `./gluo migrate:update`, `./gluo codegen:all`, `./gluo openapi`, `composer test`,
 and `composer psalm` run from the repository root — there is a single `composer.json`, and
 the repository root *is* the PHP application root.
 
@@ -118,7 +118,7 @@ mindmap
 
 ```bash
 # Generate a complete CRUD API from a single table (run from the repo root)
-composer codegen -- --env=dev --table=project all --save
+./gluo --env=dev codegen:all --table=project --save
 ```
 
 ## Documentation
@@ -156,6 +156,7 @@ composer codegen -- --env=dev --table=project all --save
 - **[Code Generator](docs/reference/code-generator.md)** – Automate models, repositories, services, controllers, and tests.
 - **[Attributes](docs/reference/attributes.md)** – `RequireAuthenticated`, `RequireRole`, `ValidateRequest`, and custom attributes.
 - **[Traits](docs/reference/traits.md)** – Timestamp and soft-delete helpers for models.
+- **[The gluo Command](docs/reference/gluo-cli.md)** – `./gluo`: migrations, codegen, OpenAPI, and your own project commands.
 - **[Scriptify](docs/reference/scriptify.md)** – REPL, CLI runner, and service manager utilities.
 - **[Components](docs/reference/components.md)** – Full PHP component dependency graph.
 
@@ -173,13 +174,13 @@ CREATE TABLE products (
 EOF
 
 # 2. Run migration
-composer migrate -- --env=dev update
+./gluo --env=dev migrate:update
 
 # 3. Generate all code
-composer codegen -- --env=dev --table=products all --save
+./gluo --env=dev codegen:all --table=products --save
 
 # 4. Generate the OpenAPI spec so routing is active
-composer run openapi
+./gluo openapi
 
 # 5. Log in and capture the token
 TOKEN=$(curl -s -X POST http://localhost:8080/login \

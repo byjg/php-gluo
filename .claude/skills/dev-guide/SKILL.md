@@ -86,7 +86,7 @@ MySQL
 git fetch && git pull && git merge origin/master
 composer update     # PHP deps live in vendor
 docker compose up -d
-composer migrate -- --env=dev reset   # creates schema from scratch
+./gluo --env=dev migrate:reset   # creates schema from scratch
 composer psalm                        # or: php85 vendor/bin/psalm
 composer test                         # or: vendor/bin/phpunit
 ```
@@ -96,7 +96,7 @@ composer test                         # or: vendor/bin/phpunit
 git fetch && git pull && git merge origin/master
 composer update
 docker compose up -d
-composer migrate -- --env=dev update  # applies only pending migrations
+./gluo --env=dev migrate:update  # applies only pending migrations
 composer psalm
 composer test
 ```
@@ -182,13 +182,13 @@ The example CRUD entities are `Project` (Repository, int PK, table `project`),
 ### Option A: Codegen (recommended starting point)
 ```bash
 # 1. Write the migration (see below), then apply it:
-composer migrate -- --env=dev update
+./gluo --env=dev migrate:update
 
 # 2. Generate all classes:
-composer codegen -- --env=dev --table=product all --save
+./gluo --env=dev codegen:all --table=product --save
 
 # 3. Regenerate OpenAPI:
-composer run openapi
+./gluo openapi
 ```
 
 Codegen produces: model, repository, service, controller, and tests. Edit to add business logic.
@@ -213,7 +213,7 @@ CREATE TABLE product (
 
 `db/migrations/down/XXXX.sql`: `DROP TABLE product;`
 
-Apply: `composer migrate -- --env=dev update`
+Apply: `./gluo --env=dev migrate:update`
 
 #### 2. Model
 
@@ -360,12 +360,12 @@ class ProductController
 #### 7. Regenerate OpenAPI
 
 ```bash
-composer run openapi
+./gluo openapi
 ```
 
 Always run this after adding or changing controller attributes. It updates `public/docs/openapi.json`
 which drives both routing and contract testing. Forgetting it makes the endpoint 404 with no error —
-`composer openapi:check` (run automatically by `composer test`) warns when the spec is older than
+`./gluo openapi:check` (run automatically by `composer test`) warns when the spec is older than
 anything in `src/Controller/` or `src/Model/`.
 
 `openapi.json` is the single source of truth: `OpenApiRouteList` reads it to build the route
@@ -502,7 +502,7 @@ Throw to return the right HTTP status:
 1. Read the existing code first (model, repository, service, controller, tests)
 2. Make changes at the appropriate layer
 3. Write a new migration if DB schema changes
-4. `composer run openapi` after any controller attribute changes
+4. `./gluo openapi` after any controller attribute changes
 5. `composer psalm` — fix type errors (or `php85 vendor/bin/psalm`)
 6. `composer test` — all tests must pass
 7. Update tests to reflect new behavior
@@ -515,21 +515,23 @@ Throw to return the right HTTP status:
 |---------|---------|
 | `docker compose up -d` | Start MySQL + PHP (+ frontend) containers |
 | `docker compose down` | Stop containers |
+| `./gluo list` | List the built-in and project commands (`--check` validates them) |
+| `./gluo <name> [args]` | Run a project command declared in `config/commands.php` |
 | `composer update` | Update PHP dependencies (live in vendor) |
 | `composer psalm` | Run static analysis |
 | `php85 vendor/bin/psalm` | Psalm fallback (if default is buggy) |
 | `composer test` | Run test suite (phpunit) |
-| `composer run openapi` | Regenerate OpenAPI spec from attributes |
-| `composer openapi:check` | Warn if the spec is stale (auto-run by `composer test`) |
-| `composer migrate -- --env=dev update` | Apply pending migrations (normal dev) |
-| `composer migrate -- --env=dev reset` | Wipe and recreate DB (first install / CI) |
-| `composer codegen -- --env=dev --table=X all --save` | Scaffold full CRUD for table X |
+| `./gluo openapi` | Regenerate OpenAPI spec from attributes |
+| `./gluo openapi:check` | Warn if the spec is stale (auto-run by `composer test`) |
+| `./gluo --env=dev migrate:update` | Apply pending migrations (normal dev) |
+| `./gluo --env=dev migrate:reset` | Wipe and recreate DB (first install / CI) |
+| `./gluo --env=dev codegen:all --table=X --save` | Scaffold full CRUD for table X |
 
 ---
 
 ## After Every Change Checklist
 
-- [ ] `composer run openapi` — if any controller attributes changed
+- [ ] `./gluo openapi` — if any controller attributes changed
 - [ ] `composer psalm` — static analysis passes
 - [ ] `composer test` — all tests pass
 - [ ] Documentation in `docs/` reflects changes if relevant
