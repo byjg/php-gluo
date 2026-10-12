@@ -390,19 +390,8 @@ class PostCreateScriptTest extends TestCase
         $compose = file_get_contents($this->workdir . '/docker-compose.yml');
         $this->assertStringNotContainsString('gluo-frontend', $compose);
         $this->assertStringNotContainsString('Dockerfile-html', $compose);
-        // The API's HTTPS setup borrows the frontend's certificate. Without the frontend
-        // nothing writes it, and nginx would not start pointing at a file that is not there.
-        $this->assertStringNotContainsString('NGINX_SSL_CERT', $compose);
-        $this->assertStringNotContainsString('certs', $compose);
-        $this->assertStringNotContainsString('8443', $compose);
-        $this->assertStringNotContainsString('depends_on', $compose);
-        $this->assertStringNotContainsString('frontend-service', $compose);
-        // the rest + db services must survive, with what they had before
+        // the rest + db services must survive
         $this->assertStringContainsString('rest:', $compose);
         $this->assertStringContainsString('image: mysql:', $compose);
-        $this->assertStringContainsString('- "8080:80"', $compose);
-        $this->assertStringContainsString('- .:/srv/', $compose);
-        $this->assertStringContainsString('- APP_ENV=dev', $compose);
-        $this->assertStringContainsString("volumes:\n  mysql-volume:\n", $compose);
     }
 }

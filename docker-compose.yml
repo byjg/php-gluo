@@ -10,33 +10,15 @@ services:
         - GROUP_ID=${GROUP_ID:-1000}
     ports:
       - "8080:80"
-      # >>> frontend-service
-      # The API over HTTPS, with the certificate the frontend container generates
-      # (see the `certs` volume below). The SPA uses it when its own page is HTTPS.
-      - "8443:443"
-      # <<< frontend-service
     volumes:
       # The PHP app root is the repository root, so the whole repo is mounted.
       # Only src/, config/, public/, db/, templates/ and builder/ are read by
       # the app; frontend/ and docs/ ride along harmlessly in dev.
       - .:/srv/
-      # >>> frontend-service
-      - certs:/certs:ro
-      # <<< frontend-service
     environment:
       - APP_ENV=dev
       - PHP_FPM_SERVER=0.0.0.0:9000
       - VERBOSE=true
-      # >>> frontend-service
-      - NGINX_SSL_CERT=/certs/selfsigned-cert.pem
-      - NGINX_SSL_CERT_KEY=/certs/selfsigned-key.pem
-      # <<< frontend-service
-    # >>> frontend-service
-    # nginx reads the certificate when it starts, so the frontend, which writes it,
-    # goes first.
-    depends_on:
-      - frontend
-    # <<< frontend-service
     networks:
       - net
 
@@ -48,24 +30,14 @@ services:
       dockerfile: docker/Dockerfile-html
     # Injected into /config.js at container start so the SPA targets the API
     # without a rebuild. Must be reachable from the browser (host), not the
-    # internal service name — the API is published on the host at :8080 (HTTP)
-    # and :8443 (HTTPS).
-    #
-    # The SPA follows its own page: loaded over HTTP it calls API_BASE_URL, loaded
-    # over HTTPS it calls API_BASE_URL_HTTPS. A browser blocks an HTTPS page that
-    # calls an HTTP API (mixed content), except on localhost.
+    # internal service name — the API is published on the host at :8080.
     environment:
       API_BASE_URL: "http://localhost:8080"
-      API_BASE_URL_HTTPS: "https://localhost:8443"
     ports:
       - "7080:8080"
       # HTTPS: byjg/static-httpserver also listens on 8443 with a self-signed
       # certificate it generates at start. Mount cert.pem/key.pem at /certs to use your own.
       - "7443:8443"
-    volumes:
-      # Where the static server keeps its self-signed certificate. The API container
-      # mounts the same volume, so both present the same certificate.
-      - certs:/certs
     networks:
       - net
   # <<< frontend-service
@@ -85,9 +57,6 @@ services:
 
 volumes:
   mysql-volume:
-  # >>> frontend-service
-  certs:
-  # <<< frontend-service
 
 networks:
   net:

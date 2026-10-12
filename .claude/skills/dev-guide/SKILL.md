@@ -113,7 +113,7 @@ optional Vite + React frontend is a sibling package under `frontend/`.
 ```
 <repo root>/               # the PHP REST API — everything below is relative to the root
 ├── composer.json          # the single manifest (require, autoload, scripts)
-├── docker-compose.yml     # API :8080 (HTTPS :8443), frontend :7080 (HTTPS :7443), MySQL :3306
+├── docker-compose.yml     # API :8080, frontend :7080 (HTTPS :7443), MySQL :3306
 ├── docker/                # Dockerfile (API) + Dockerfile-html (frontend)
 ├── frontend/              # optional React 19 + Vite 6 + Tailwind SPA (see Frontend note below)
 
@@ -153,7 +153,7 @@ The example CRUD entities are `Project` (Repository, int PK, table `project`),
 
 > **Frontend (optional, `frontend/`).** A React 19 + Vite 6 + Tailwind SPA with login,
 > password-reset, dashboard, and profile screens wired to the API over JWT. Built by
-> `docker/Dockerfile-html` and served by byjg/static-httpserver on **:7080**, and over HTTPS on **:7443** (API on :8080, and :8443 over HTTPS with the same certificate).
+> `docker/Dockerfile-html` and served by byjg/static-httpserver on **:7080**, and over HTTPS on **:7443** (API on :8080).
 > Kept or removed by the *Install Frontend* toggle at create-project time. See
 > `docs/guides/frontend.md`. This skill covers the PHP side; the frontend is plain Vite.
 
