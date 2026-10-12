@@ -95,6 +95,7 @@ Each field in `{{ fields }}` mirrors the MySQL `EXPLAIN` output plus derived key
 {{ field.php_type }}        # PHP type (string, int, float)
 {{ field.openapi_type }}    # OpenAPI type (string, integer, number)
 {{ field.openapi_format }}  # OpenAPI format (string, int32, int64, double, date-time)
+{{ field.openapi_max_length }}  # Declared length of a char/varchar column (e.g., 120); 0 for any other type
 {{ field.null }}            # "YES" when NULL allowed, "NO" otherwise
 {{ field.key }}             # "PRI" for primary key columns
 {{ field.default }}         # Default value (or null)

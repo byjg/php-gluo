@@ -183,7 +183,7 @@ ActiveRecord Pattern:
 - `varTableName` - camelCase variable name (e.g., `userProfile`)
 - `restPath` / `restTag` - REST route path (e.g., `user/profile`) and OpenAPI tag
 - `namespace` - Project namespace
-- `fields` - Array of table columns (keys: `field`, `property`, `type`, `php_type`, `openapi_type`, `openapi_format`, `null`, `key`, `default`, `extra`)
+- `fields` - Array of table columns (keys: `field`, `property`, `type`, `php_type`, `openapi_type`, `openapi_format`, `openapi_max_length`, `null`, `key`, `default`, `extra`)
 - `primaryKeys` - Array of primary key column names
 - `nullableFields` / `nonNullableFields` - camelCase property lists
 - `indexes` - Table indexes (with `camelColumnName`)
