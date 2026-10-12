@@ -9,6 +9,11 @@
 
 ## Changes
 
+- **The frontend is published over HTTPS too.** `docker-compose.yml` now maps
+  `7443:8443` on the `frontend` service, so the SPA answers on https://localhost:7443
+  with the self-signed certificate `byjg/static-httpserver` generates at start. HTTP on
+  `:7080` is unchanged. See [Frontend](docs/guides/frontend.md#https).
+
 - **`./gluo` is the command-line entry point.** It replaces the Composer scripts for the
   framework tasks and runs your own commands by a short name:
 

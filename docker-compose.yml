@@ -35,6 +35,9 @@ services:
       API_BASE_URL: "http://localhost:8080"
     ports:
       - "7080:8080"
+      # HTTPS: byjg/static-httpserver also listens on 8443 with a self-signed
+      # certificate it generates at start. Mount cert.pem/key.pem at /certs to use your own.
+      - "7443:8443"
     networks:
       - net
   # <<< frontend-service

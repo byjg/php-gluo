@@ -58,7 +58,7 @@ my-api/
 ├── tests/
 ├── frontend/             # optional Vite + React frontend (React 19 + Vite 6 + Tailwind)
 ├── docker/               # Dockerfile (API) + Dockerfile-html (frontend)
-├── docker-compose.yml    # API :8080, frontend :7080, MySQL :3306
+├── docker-compose.yml    # API :8080, frontend :7080 (HTTPS :7443), MySQL :3306
 └── README.md             # quick start + link to the online documentation
 ```
 
@@ -76,6 +76,7 @@ The `create-project` installer offers two toggles:
 | **Frontend: No**   | Pure API with example endpoints      | Pure API, clean slate           |
 
 When the frontend is enabled, `docker compose up -d` serves it at **http://localhost:7080**
+and, with a self-signed certificate, at **https://localhost:7443**
 (via [byjg/static-httpserver](https://github.com/byjg/docker-static-httpserver)) while the API
 answers on **http://localhost:8080**. See the **[Frontend guide →](docs/guides/frontend.md)**.
 
