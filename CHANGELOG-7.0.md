@@ -19,6 +19,14 @@
   was removed from the OpenAPI attributes because it never had a defined format. See
   [Filtering and Ordering](docs/guides/repository-advanced.md#filtering-and-ordering).
 
+- **The API is published over HTTPS when the frontend is installed.** An HTTPS page may
+  not call an HTTP API, except on `localhost`, so publishing only the frontend over HTTPS
+  was half of it. The API container now mounts the volume where `byjg/static-httpserver`
+  keeps its self-signed certificate and serves it on https://localhost:8443, and the SPA
+  calls that address when its own page is HTTPS (new optional `API_BASE_URL_HTTPS`,
+  handled by `docker/static-html-entrypoint.sh`). The HTTP page and `:8080` are
+  unchanged. A project created without the frontend keeps an HTTP-only API. See
+  [Frontend](docs/guides/frontend.md#the-api-over-https).
 - **The frontend is published over HTTPS too.** `docker-compose.yml` now maps
   `7443:8443` on the `frontend` service, so the SPA answers on https://localhost:7443
   with the self-signed certificate `byjg/static-httpserver` generates at start. HTTP on
