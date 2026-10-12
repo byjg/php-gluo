@@ -9,6 +9,13 @@
 
 ## Changes
 
+- **`?orderBy=` works on the list endpoints, and `?filter=` is gone.** The example
+  controllers (`Project`, `Task`, `Note`) documented both parameters and applied neither.
+  `orderBy` is now applied through `ByJG\Gluo\Util\OrderBy::fromQueryString()`, which only
+  accepts fields of the model (`?orderBy=name desc,id`; anything else is a 400). `filter`
+  was removed from the OpenAPI attributes because it never had a defined format. See
+  [Filtering and Ordering](docs/guides/repository-advanced.md#filtering-and-ordering).
+
 - **The frontend is published over HTTPS too.** `docker-compose.yml` now maps
   `7443:8443` on the `frontend` service, so the SPA answers on https://localhost:7443
   with the self-signed certificate `byjg/static-httpserver` generates at start. HTTP on

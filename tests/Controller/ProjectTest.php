@@ -3,6 +3,7 @@
 namespace Tests\Controller;
 
 use ByJG\Gluo\Util\FakeApiRequester;
+use ByJG\RestServer\Exception\Error400Exception;
 use ByJG\RestServer\Exception\Error401Exception;
 use ByJG\RestServer\Exception\Error403Exception;
 use ByJG\Serializer\ObjectCopy;
@@ -200,5 +201,35 @@ class ProjectTest extends BaseApiTestCase
             ])
         ;
         $this->sendRequest($request);
+    }
+
+    public function testListOrderBy()
+    {
+        $result = json_decode($this->sendRequest(Credentials::requestLogin(Credentials::getRegularUser()))->getBody()->getContents(), true);
+
+        $list = function (string $orderBy) use ($result) {
+            $request = new FakeApiRequester();
+            $request
+                ->withPsr7Request($this->getPsr7Request())
+                ->withMethod('GET')
+                ->withPath("/project")
+                ->withQuery(['orderBy' => $orderBy])
+                ->expectStatus(200)
+                ->withRequestHeader([
+                    "Authorization" => "Bearer " . $result['token']
+                ])
+            ;
+            return json_decode($this->sendRequest($request)->getBody()->getContents(), true);
+        };
+
+        $descending = array_column($list('id desc'), 'id');
+        $expected = $descending;
+        rsort($expected);
+        $this->assertSame($expected, $descending);
+
+        // A field the model does not have is refused, not passed to the database.
+        $this->expectException(Error400Exception::class);
+        $this->expectExceptionMessage("unknown field 'notAField'");
+        $list('notAField');
     }
 }
