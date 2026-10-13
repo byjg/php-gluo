@@ -373,11 +373,12 @@ $models = $query->toArray();
 ```
 
 ### filter() — legacy IteratorFilter (use where() instead for new code)
+
 ```php
 use ByJG\AnyDataset\Core\IteratorFilter;
 use ByJG\AnyDataset\Core\Enum\Relation;
 
-$filter = (new IteratorFilter())->and('body', Relation::EQUAL, 'foo');
+$filter = (new IteratorFilter())->and('body', Relation::Equal, 'foo');
 $models = Note::filter($filter, page: 0, limit: 50);
 ```
 

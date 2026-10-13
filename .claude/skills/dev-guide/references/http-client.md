@@ -83,7 +83,7 @@ use ByJG\WebRequest\HttpMethod;
 
 $request = RequestJson::build(
     new Uri('https://api.example.com/v1/products'),
-    HttpMethod::POST,
+    HttpMethod::Post,
     ['name' => 'Widget', 'price' => 9.99]       // array is json_encoded automatically
 );
 
@@ -97,17 +97,17 @@ $data = ParseBody::parse($response);             // decoded array
 use ByJG\WebRequest\Helper\RequestJson;
 
 // PUT
-$request = RequestJson::build($uri, HttpMethod::PUT, $payload);
+$request = RequestJson::build($uri, HttpMethod::Put, $payload);
 
 // DELETE (no body)
 use ByJG\WebRequest\Psr7\Request;
-$request = Request::getInstance($uri)->withMethod(HttpMethod::DELETE);
+$request = Request::getInstance($uri)->withMethod(HttpMethod::Delete);
 ```
 
 ### Adding headers (e.g. Authorization)
 
 ```php
-$request = RequestJson::build($uri, HttpMethod::POST, $payload)
+$request = RequestJson::build($uri, HttpMethod::Post, $payload)
     ->withHeader('Authorization', 'Bearer ' . $token)
     ->withHeader('X-Api-Key', $apiKey);
 ```
@@ -135,7 +135,7 @@ $items = [
     new MultiPartItem('description', 'Monthly report'),
 ];
 
-$request = RequestMultiPart::build(new Uri('https://api.example.com/upload'), HttpMethod::POST, $items);
+$request = RequestMultiPart::build(new Uri('https://api.example.com/upload'), HttpMethod::Post, $items);
 ```
 
 ### Client options
@@ -262,7 +262,7 @@ class PaymentGatewayService
     {
         $request = RequestJson::build(
             new Uri($this->baseUrl . '/charge'),
-            HttpMethod::POST,
+            HttpMethod::Post,
             $payload
         )->withHeader('Authorization', 'Bearer ' . getenv('PAYMENT_API_KEY'));
 
