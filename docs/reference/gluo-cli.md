@@ -124,6 +124,51 @@ public function cleanOldRecords(int $days, ?string $table = null): void
   example). It is built by the container, never with `new`, so its constructor
   dependencies are injected as everywhere else in the application.
 - **The method must be public.**
+- **`./gluo list` describes the command** with the first line of the method's PHPDoc
+  (`Delete records older than the given number of days.`), or shows the target when the
+  method has no PHPDoc.
+
+### A class as a group of commands
+
+Map a name to a class, without `::`, and every public method the class declares becomes a
+command under that name, in kebab-case:
+
+```php
+<?php
+return [
+    'payment' => 'MyApp/Command/PaymentCommands',     // payment:create, payment:refund, ...
+    'user:cleanup' => 'MyApp/Service/MaintenanceService::cleanOldRecords',
+];
+```
+
+```php
+class PaymentCommands
+{
+    public function __construct(private PaymentWorkflow $workflow) {}
+
+    /** Create a payment and send it to the gateway. */
+    public function create(float $amount): void { /* ... */ }    // ./gluo payment:create 10.50
+
+    /** Refund a paid payment, inside the refund window. */
+    public function refund(int $paymentId): void { /* ... */ }   // ./gluo payment:refund 42
+
+    public function cleanOldRecords(int $days): void { /* ... */ } // ./gluo payment:clean-old-records 30
+
+    protected function say(string $line): void { /* ... */ }      // not a command
+}
+```
+
+- Only the **public, non-static methods declared by the class** become commands. The
+  constructor, magic methods (`__*`), static methods and inherited methods do not; keep
+  helpers `protected` or `private`.
+- Method names become kebab-case: `cleanOldRecords` and `clean_old_records` both give
+  `clean-old-records`.
+- **A name produced twice is an error**, for every `./gluo` command until it is fixed: an
+  explicit `'payment:create'` entry next to `'payment' => ...PaymentCommands`, or two methods
+  with the same kebab-case name.
+- A method added to the class is a command at once, with no change to `config/commands.php`.
+- The rest is the same as for a single method: the class must be in the container,
+  `--help` prints the method's PHPDoc, and `./gluo list --check` checks each command.
 
 Commands are run by [Scriptify](scriptify.md), with the container returned by
 `config/scriptify-bootstrap.php`. The same target and bootstrap work with
@@ -171,7 +216,7 @@ configuration, and it exits with 1 unless every command is `OK`.
 |---|---|
 | `INVALID_NAME` | The name has characters outside `a-z`, `0-9`, `:` and `-` |
 | `RESERVED` | The name is the exact name of a built-in command |
-| `INVALID_TARGET` | The target is not in `Class::method` form |
+| `INVALID_TARGET` | The target is neither `Class::method` nor an existing class |
 | `MISSING_CLASS` | The class does not exist |
 | `MISSING_METHOD` | The method does not exist |
 | `NOT_PUBLIC` | The method is not public |
