@@ -122,7 +122,6 @@ src/
 ├── Service/        # Business logic — wraps repositories (Repository pattern only)
 ├── Repository/     # Data access — queries and persistence
 ├── Model/          # Database models with ORM + OpenAPI attributes
-├── Generator/      # UuidSeedGenerator (UUID PK helper)
 └── OpenApiSpec.php # Root OpenAPI spec definition
 
 # Attributes (RequireAuthenticated, ...), traits (OaCreatedAt, ...), base
@@ -241,7 +240,7 @@ class Product
 
 **Available traits:** `use OaCreatedAt;` / `use OaUpdatedAt;` / `use OaDeletedAt;`
 
-**UUID primary key:** use `#[TableMySqlUuidPKAttribute("product")]` and `#[FieldUuidAttribute(primaryKey: true)]`
+**UUID primary key:** use `#[TableUuidPKAttribute("product")]` and `#[FieldUuidAttribute(primaryKey: true)]`
 (see `src/Model/Task.php` for the complete UUID model pattern)
 
 #### 3. Repository

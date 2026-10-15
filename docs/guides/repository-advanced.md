@@ -361,16 +361,16 @@ Use this helper when you need a UUID string outside of ORM inserts (e.g., buildi
 
 ### Attribute-Based Binary Columns
 
-Use `TableMySqlUuidPKAttribute` and `FieldUuidAttribute` to keep repositories tiny while persisting binary UUIDs:
+Use `TableUuidPKAttribute` and `FieldUuidAttribute` to keep repositories tiny while persisting binary UUIDs:
 
 ```php
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
-use ByJG\MicroOrm\Attributes\TableMySqlUuidPKAttribute;
+use ByJG\MicroOrm\Attributes\TableUuidPKAttribute;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\MicroOrm\Literal\Literal;
 
-#[TableMySqlUuidPKAttribute("task")]
+#[TableUuidPKAttribute("task")]
 class Task
 {
     #[FieldUuidAttribute(primaryKey: true)]
@@ -390,7 +390,7 @@ class Task
 }
 ```
 
-`TableMySqlUuidPKAttribute` generates a UUID literal automatically when inserting rows, while `FieldUuidAttribute` handles binary ⇄ string conversion on selects/updates.
+`TableUuidPKAttribute` generates a UUID (version 7, in PHP) automatically when inserting rows, unless the model already has one, while `FieldUuidAttribute` handles binary ⇄ string conversion on selects/updates.
 
 The repository stays simple:
 

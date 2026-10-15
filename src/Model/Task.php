@@ -4,7 +4,7 @@ namespace RestReferenceArchitecture\Model;
 
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
-use ByJG\MicroOrm\Attributes\TableMySqlUuidPKAttribute;
+use ByJG\MicroOrm\Attributes\TableUuidPKAttribute;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\MicroOrm\Literal\LiteralInterface;
 use OpenApi\Attributes as OA;
@@ -15,7 +15,7 @@ use OpenApi\Attributes as OA;
  * @package RestReferenceArchitecture\Model
  */
 #[OA\Schema(required: ["id", "projectId", "title", "status"], type: "object", xml: new OA\Xml(name: "Task"))]
-#[TableMySqlUuidPKAttribute("task")]
+#[TableUuidPKAttribute("task")]
 class Task
 {
 

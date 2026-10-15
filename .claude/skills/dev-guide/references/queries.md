@@ -312,7 +312,7 @@ $this->repository->save($model);
 Models using UUID PK have type `string|LiteralInterface|null` for the id field.
 
 ```php
-// Create (ORM generates the UUID automatically via TableMySqlUuidPKAttribute):
+// Create (ORM generates the UUID automatically via TableUuidPKAttribute):
 $model = new Task();
 $model->setProjectId(1);
 $model->setTitle('Draft the proposal');

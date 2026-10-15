@@ -62,10 +62,19 @@
 
 ## Bug Fixes
 
+- `src/Generator/UuidSeedGenerator.php` is removed. Nothing in the template used it, and it ran
+  the MySQL-only `SELECT hex(uuid_to_bin(uuid()))`. `TableUuidPKAttribute` generates UUID keys;
+  for a seed function of your own, return `HexUuidLiteral::forDatabase($executor, HexUuidLiteral::v7())`.
+
 - `composer create-project` wrote the package name twice when the chosen name started
   with `byjg/gluo` (`byjg/gluo-shop` became `byjg/gluo-shop-shop` in `composer.json`).
   The installer now replaces only the template's exact name. Names with any other vendor
   or prefix were never affected.
+
+- `User` and `Task` used micro-orm's `TableMySqlUuidPKAttribute`, which asked MySQL for
+  `uuid_to_bin(uuid())`, so every insert into `users` or `task` failed on any other database.
+  They now use `TableUuidPKAttribute`, which generates a version 7 UUID in PHP. A project created
+  from an earlier template keeps working on MySQL; replace the attribute to run it elsewhere.
 
 ## Requirements
 

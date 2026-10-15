@@ -9,7 +9,7 @@ use ByJG\Gluo\Trait\OaDeletedAt;
 use ByJG\Gluo\Trait\OaUpdatedAt;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
-use ByJG\MicroOrm\Attributes\TableMySqlUuidPKAttribute;
+use ByJG\MicroOrm\Attributes\TableUuidPKAttribute;
 use ByJG\MicroOrm\Literal\Literal;
 use OpenApi\Attributes as OA;
 
@@ -17,7 +17,7 @@ use OpenApi\Attributes as OA;
 // base fields live in BaseUser (byjg/gluo). This class owns the table mapping
 // and the OpenAPI schema. NOTE: not a docblock — swagger-php would publish it
 // as the schema description.
-#[TableMySqlUuidPKAttribute("users")]
+#[TableUuidPKAttribute("users")]
 #[OA\Schema(required: ["email"], type: "object", xml: new OA\Xml(name: "User"))]
 class User extends BaseUser
 {

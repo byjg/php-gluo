@@ -35,7 +35,7 @@ class Project
 }
 ```
 
-Need UUID support? Use `#[TableMySqlUuidPKAttribute]` + `#[FieldUuidAttribute]` as shown in `src/Model/Task.php` and `src/Model/User.php`. They automatically read/write binary UUIDs via `HexUuidLiteral`.
+Need UUID support? Use `#[TableUuidPKAttribute]` + `#[FieldUuidAttribute]` as shown in `src/Model/Task.php` and `src/Model/User.php`. They automatically read/write binary UUIDs via `HexUuidLiteral`, on every database.
 
 ## 2. Repository Definition
 
@@ -106,7 +106,7 @@ class ProjectRepository extends BaseRepository
 
 Binary UUID columns are transparent when you rely on the attribute helpers:
 
-- `#[TableMySqlUuidPKAttribute("task")]` wires the table and default UUID generator.
+- `#[TableUuidPKAttribute("task")]` wires the table and generates a version 7 UUID (time-ordered) in PHP on insert.
 - `#[FieldUuidAttribute(primaryKey: true)]` handles binary ⇄ string conversion automatically.
 - `HexUuidLiteral::create($uuid)` lets you query by UUID strings without manual hex handling.
 
