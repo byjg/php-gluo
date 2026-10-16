@@ -6,3 +6,6 @@
 vendor
 node_modules
 dist
+
+# A SQLite project keeps its local database in db/; the image takes db/ for the migrations only
+db/*.sqlite

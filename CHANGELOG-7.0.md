@@ -84,6 +84,10 @@
 
 ## Bug Fixes
 
+- The Docker image copied `./gluo` and `composer.json` "for the migration script", but not
+  `db/`, so `./gluo migrate:update` in the image had no migrations to run. It now copies
+  `db/` (a local SQLite database file in it stays out, through `.dockerignore`).
+
 - A project created with `db_schema` `sqlite` or `postgres` did not work: only the connection
   string changed. Now:
   - the project gets the SQL of its database. `db/base.sql` and `db/migrations/` are MySQL in the

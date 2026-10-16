@@ -27,7 +27,9 @@ COPY --chown=app:app src /srv/src
 COPY --chown=app:app public /srv/public
 COPY --chown=app:app templates /srv/templates
 
-# This is necessary for the migration script
+# The migrations and ./gluo, so the image can migrate its database
+# (./gluo --env=prod migrate:update, e.g. from a Kubernetes init container)
+COPY --chown=app:app db /srv/db
 COPY --chown=app:app composer.* gluo /srv/
 
 # Optional: Override app user UID/GID to match host user for volume permissions
