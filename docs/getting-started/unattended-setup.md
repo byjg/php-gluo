@@ -75,8 +75,7 @@ Create your personal defaults once:
 mkdir -p ~/.gluo
 cat > ~/.gluo/setup.json << 'EOF'
 {
-  "git_user_name": "John Doe",
-  "git_user_email": "john.doe@example.com",
+  "timezone": "America/Toronto",
   "install_frontend": true,
   "install_examples": false
 }
@@ -112,8 +111,6 @@ composer create-project byjg/gluo my-project ^7.0
 # Store config anywhere
 cat > /etc/ci-configs/rest-setup.json << 'EOF'
 {
-  "git_user_name": "CI Bot",
-  "git_user_email": "ci@company.com",
   "namespace": "AutoDeployApp",
   "install_frontend": true,
   "install_examples": false
@@ -128,8 +125,6 @@ SETUP_JSON=/etc/ci-configs/rest-setup.json composer create-project byjg/gluo pro
 
 | Field              | Type    | Default                                           | Description                                     |
 |--------------------|---------|---------------------------------------------------|-------------------------------------------------|
-| `git_user_name`    | string  | Global git config or "Your Name"                  | Git user name for the project                   |
-| `git_user_email`   | string  | Global git config or "your.email@example.com"     | Git user email for the project                  |
 | `php_version`      | string  | Current PHP version                               | PHP version (8.3, 8.4, 8.5)                     |
 | `namespace`        | string  | "MyRest"                                          | Project namespace (CamelCase)                   |
 | `composer_name`    | string  | "me/myrest"                                       | Composer package name (vendor/package)          |

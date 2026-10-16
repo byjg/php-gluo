@@ -16,10 +16,10 @@ use RecursiveIteratorIterator;
  */
 class PostCreateScript
 {
-    public function execute($workdir, $namespace, $composerName, $phpVersion, array $dbConfig, $timezone, $installExamples, $installFrontend, $gitUserName, $gitUserEmail): void
+    public function execute($workdir, $namespace, $composerName, $phpVersion, array $dbConfig, $timezone, $installExamples, $installFrontend): void
     {
         $this->applyTemplate($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $installFrontend);
-        $this->finalize($gitUserName, $gitUserEmail);
+        $this->finalize();
     }
 
     /**
@@ -386,10 +386,13 @@ ENV;
     }
 
     /**
-     * Side effects after the template is applied: install dependencies,
-     * generate the OpenAPI docs and initialize the git repository.
+     * Side effects after the template is applied: regenerate the autoload map, generate the
+     * OpenAPI docs and install the frontend dependencies.
+     *
+     * It does not create a git repository: the project may be created inside one (a monorepo,
+     * a demo with several apps), where a nested .git would have to be removed by hand.
      */
-    protected function finalize(string $gitUserName, string $gitUserEmail): void
+    protected function finalize(): void
     {
         $workdir = getcwd();
 
@@ -418,17 +421,6 @@ ENV;
                     . "Composer ran). The API is unaffected. Run: cd frontend && npm install";
             }
         }
-
-        // Initialize a single git repository at the project root (spans the API + frontend/)
-        passthru("git init");
-        passthru("git branch -m main");
-
-        // Set git user config locally for this repository
-        passthru('git config user.name ' . escapeshellarg($gitUserName));
-        passthru('git config user.email ' . escapeshellarg($gitUserEmail));
-
-        passthru("git add .");
-        passthru("git commit -m 'Initial commit'");
 
         if ($warnings !== []) {
             echo "\n" . str_repeat('!', 72) . "\n";
@@ -647,12 +639,6 @@ ENV;
             throw new Exception('PHP is not installed or not available in PATH. Please install PHP before proceeding.');
         }
 
-        // Check if git is installed
-        $gitCheck = shell_exec('git --version 2>&1');
-        if (empty($gitCheck) || !str_contains($gitCheck, 'git version')) {
-            throw new Exception('Git is not installed or not available in PATH. Please install Git before proceeding.');
-        }
-
         // Check if docker is installed (warning only)
         $dockerCheck = shell_exec('docker --version 2>&1');
         $dockerInstalled = !empty($dockerCheck) && str_contains($dockerCheck, 'Docker version');
@@ -679,10 +665,6 @@ ENV;
                 $stdIo->write("");
             }
         }
-
-        // Get current git user configuration
-        $gitUserName = trim(shell_exec('git config --global user.name 2>/dev/null') ?? '');
-        $gitUserEmail = trim(shell_exec('git config --global user.email 2>/dev/null') ?? '');
 
         $currentPhpVersion = PHP_MAJOR_VERSION . "." .PHP_MINOR_VERSION;
         $defaultDbConfig = [
@@ -771,17 +753,6 @@ ENV;
             return trim($arg);
         };
 
-        $validateEmail = function ($arg) {
-            $email = trim($arg);
-            if (empty($email)) {
-                throw new Exception('Email cannot be empty');
-            }
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                throw new Exception('Invalid email format');
-            }
-            return $email;
-        };
-
         $maxRetries = 5;
 
         if ($unattended) {
@@ -793,8 +764,6 @@ ENV;
             $stdIo->write("Project Directory: " . $workdir);
 
             // Get values with defaults
-            $userName = $config['git_user_name'] ?? $gitUserName ?: 'Your Name';
-            $userEmail = $config['git_user_email'] ?? $gitUserEmail ?: 'your.email@example.com';
             $phpVersion = $config['php_version'] ?? $currentPhpVersion;
             $namespace = $config['namespace'] ?? 'MyRest';
             $composerName = $config['composer_name'] ?? 'me/myrest';
@@ -825,22 +794,6 @@ ENV;
             }
 
             // Validate provided values (only if they were explicitly provided in JSON)
-            if (isset($config['git_user_name'])) {
-                try {
-                    $userName = $validateNonEmpty($userName);
-                } catch (Exception $e) {
-                    throw new Exception("Invalid git_user_name in setup.json: " . $e->getMessage());
-                }
-            }
-
-            if (isset($config['git_user_email'])) {
-                try {
-                    $userEmail = $validateEmail($userEmail);
-                } catch (Exception $e) {
-                    throw new Exception("Invalid git_user_email in setup.json: " . $e->getMessage());
-                }
-            }
-
             if (isset($config['php_version'])) {
                 try {
                     $phpVersion = $validatePHPVersion($phpVersion);
@@ -943,8 +896,6 @@ ENV;
                 $dbConfig['test_database'] = $validateDbName($dbConfig['test_database']);
             }
 
-            $stdIo->write("Git user name: $userName");
-            $stdIo->write("Git user email: $userEmail");
             $stdIo->write("PHP Version: $phpVersion");
             $stdIo->write("Namespace: $namespace");
             $stdIo->write("Composer name: $composerName");
@@ -965,21 +916,6 @@ ENV;
             $stdIo->write("========================================================");
             $stdIo->write("");
             $stdIo->write("Project Directory: " . $workdir);
-
-            // Git configuration
-            $defaultGitName = !empty($gitUserName) ? $gitUserName : 'Your Name';
-            $defaultGitEmail = !empty($gitUserEmail) ? $gitUserEmail : 'your.email@example.com';
-
-            $userName = $stdIo->askAndValidate("Git user name [$defaultGitName]: ", $validateNonEmpty, $maxRetries, $defaultGitName);
-            $userEmail = $stdIo->askAndValidate("Git user email [$defaultGitEmail]: ", $validateEmail, $maxRetries, $defaultGitEmail);
-
-            // Show info about git configuration
-            if ($userName !== $gitUserName && !empty($gitUserName)) {
-                $stdIo->write("<info>Git user.name for this project will be set to: $userName</info>");
-            }
-            if ($userEmail !== $gitUserEmail && !empty($gitUserEmail)) {
-                $stdIo->write("<info>Git user.email for this project will be set to: $userEmail</info>");
-            }
 
             $phpVersion = $stdIo->askAndValidate("PHP Version [$currentPhpVersion]: ", $validatePHPVersion, $maxRetries, $currentPhpVersion);
             $namespace = $stdIo->askAndValidate('Project namespace [MyRest]: ', $validateNamespace, $maxRetries, 'MyRest');
@@ -1041,6 +977,6 @@ ENV;
         }
 
         $script = new PostCreateScript();
-        $script->execute($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $installFrontend, $userName, $userEmail);
+        $script->execute($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $installFrontend);
     }
 }

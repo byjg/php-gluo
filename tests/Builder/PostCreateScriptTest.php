@@ -10,7 +10,7 @@ use RecursiveIteratorIterator;
 /**
  * Tests the create-project file transformation (applyTemplate) against a
  * copy of the real project tree (repo root, spanning the API + frontend/). The
- * side-effect part (composer update, npm install, git init) is in finalize()
+ * side-effect part (composer dump-autoload, openapi, npm install) is in finalize()
  * and is exercised end-to-end by the create-project CI job.
  */
 class PostCreateScriptTest extends TestCase

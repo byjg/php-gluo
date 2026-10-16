@@ -68,8 +68,6 @@ jobs:
         run: |
           cat > /tmp/setup.json <<EOF
           {
-            "git_user_name": "CI",
-            "git_user_email": "ci@example.com",
             "php_version": "8.5",
             "namespace": "AcmeShop",
             "composer_name": "acme/shop",
@@ -98,6 +96,8 @@ jobs:
         run: |
           test -f /tmp/my-api/composer.json
           test ! -f /tmp/my-api/builder/PostCreateScript.php
+          # The installer does not create a git repository
+          test ! -d /tmp/my-api/.git
           if [ "${{ matrix.install_frontend }}" = "true" ]; then
             test -d /tmp/my-api/frontend
             grep -q "frontend:" /tmp/my-api/docker-compose.yml

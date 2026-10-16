@@ -21,6 +21,13 @@
 
 ## Changes
 
+- **`composer create-project` no longer creates a git repository.** The installer ran `git init`
+  and made an "Initial commit", so a project created inside an existing repository (a monorepo,
+  a demo with several apps) got a nested `.git` to remove by hand. Run `git init` yourself when
+  the project is a repository of its own. The installer no longer asks for the git user name and
+  email, and no longer needs git; `git_user_name` and `git_user_email` in `setup.json` are
+  ignored.
+
 - **`composer create-project` no longer leaves the starter's changelogs in the new
   project.** `CHANGELOG-*.md` are the history of this starter, not of the project being
   created, so the installer removes them, as it already did with `docs/`.
