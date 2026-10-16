@@ -81,6 +81,38 @@
 
 ## Bug Fixes
 
+- A project created with `db_schema` `sqlite` or `postgres` did not work: only the connection
+  string changed. Now:
+  - the project gets the SQL of its database. `db/base.sql` and `db/migrations/` are MySQL in the
+    template, and `db/.dialects/postgres/` and `db/.dialects/sqlite/` hold the same files for the
+    other two; the installer puts the chosen set in `db/` and removes `db/.dialects/`, so a project
+    keeps one `db/base.sql` and one `db/migrations/`;
+  - `docker-compose.yml` runs the server of the database chosen: MySQL, PostgreSQL
+    (`postgres-container`), or none for SQLite;
+  - a SQLite database is a file under `db/`, `sqlite://{__ROOT__}/db/<name>.sqlite`, which works on
+    the host and in Docker (it was `sqlite:///<name>`, a file at the filesystem root), and
+    `*.sqlite` is ignored by git;
+  - the staging and prod placeholder connections use the scheme of the database chosen;
+  - the questions use the host and user of the database chosen (`postgres-container`, `postgres`),
+    and SQLite is not asked for a host, user or password.
+
+  The installer offers `mysql`, `postgres` and `sqlite`. `sqlsrv` is no longer offered: a project
+  created with it could not run its migrations. The create-project CI job runs every database.
+  This needs, from the libraries: byjg/anydataset-db (the `postgres://` alias), byjg/migration
+  (`postgres://` migrations), byjg/micro-orm (an empty key and "now" on PostgreSQL), byjg/authuser
+  (user properties on PostgreSQL) and byjg/gluo-core (`BaseApiTestCase` picking the database).
+
+- An unattended setup that could not read its answers fell back to the questions, and so
+  created the project with the default answers: a `SETUP_JSON` naming a file that is not there
+  (a Composer running in a container sees only the directories mounted into it), or a
+  `setup.json` that is not valid JSON. Both now stop the setup with an error naming the file.
+- A Composer running in a container (a dockerised `composer`) warned that Docker is not
+  installed and waited for ENTER, because the container has no `docker` command. Inside a
+  container the setup now says Docker could not be checked, and goes on.
+- A new project kept the starter's own `composer.json` description ("Run `composer
+  create-project byjg/gluo` …", with the project's name in it). It is now
+  "A PHP REST API built with Gluo."
+
 - The installer rewrites `byjg/gluo` to the project's composer name wherever the template names
   itself, and some comments about the framework said `byjg/gluo` where they meant
   `byjg/gluo-core`: a new project got `BaseUser (acme/shop)` in `src/Model/User.php`, and the same

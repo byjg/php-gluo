@@ -29,6 +29,8 @@ class PostCreateScript
      */
     public function applyTemplate(string $workdir, string $namespace, string $composerName, string $phpVersion, array $dbConfig, string $timezone, bool $installExamples, bool $installFrontend = true): void
     {
+        $this->applyDialect($workdir, $dbConfig['schema'] ?? 'mysql');
+
         $devConnection = self::buildConnectionString($dbConfig, $dbConfig['dev_database']);
         $testConnection = self::buildConnectionString($dbConfig, $dbConfig['test_database']);
 
@@ -58,12 +60,17 @@ class PostCreateScript
 
         // ------------------------------------------------
         // Replace the composer name in the single root manifest
-        // (quote-exact so the byjg/gluo-core requirement is untouched):
-        $rootComposer = file_get_contents($workdir . '/composer.json');
-        file_put_contents(
-            $workdir . '/composer.json',
-            str_replace('"byjg/gluo"', '"' . $composerName . '"', $rootComposer)
+        // (quote-exact so the byjg/gluo-core requirement is untouched), and the starter's own
+        // description ("Run composer create-project byjg/gluo ...") with a neutral one:
+        $rootComposer = (string)file_get_contents($workdir . '/composer.json');
+        $rootComposer = str_replace('"byjg/gluo"', '"' . $composerName . '"', $rootComposer);
+        $rootComposer = (string)preg_replace(
+            '/("description":\s*)"(?:[^"\\\\]|\\\\.)*"/',
+            '$1"A PHP REST API built with Gluo."',
+            $rootComposer,
+            1
         );
+        file_put_contents($workdir . '/composer.json', $rootComposer);
 
         // ------------------------------------------------
         // Replace Docker PHP Version
@@ -106,8 +113,18 @@ class PostCreateScript
                 $contents
             );
 
+            if ($file === 'docker-compose.yml') {
+                $contents = self::composeDatabase($contents, $dbConfig['schema'] ?? 'mysql');
+            }
+
+            // staging and prod hold placeholders (CHANGE_ME), written as MySQL URIs: give them the
+            // scheme of the database chosen
+            if (preg_match('~^config/(staging|prod)/~', $file)) {
+                $contents = self::placeholderConnection($contents, $dbConfig['schema'] ?? 'mysql');
+            }
+
             if (!empty($dbConfig['host'])) {
-                $contents = str_replace('mysql-container', $dbConfig['host'], $contents);
+                $contents = str_replace(['mysql-container', 'postgres-container'], $dbConfig['host'], $contents);
             }
 
             if (!empty($dbConfig['password'])) {
@@ -223,6 +240,8 @@ ENV;
             '.github/workflows/frontend.yml',
             'builder/PostCreateScript.php',
             'tests/Builder/PostCreateScriptTest.php',
+            'tests/Builder/SetupJsonTest.php',
+            'tests/Builder/ContainerDetectionTest.php',
         ];
         foreach ($templateOnlyFiles as $file) {
             if (file_exists("$workdir/$file")) {
@@ -537,6 +556,116 @@ ENV;
         echo "  Cleaned: docker-compose.yml - removed frontend service\n";
     }
 
+    /**
+     * The placeholder DBDRIVER_CONNECTION of staging and prod, written as a MySQL URI, for
+     * $schema: "postgres://" for PostgreSQL, a file under db/ named after the database for SQLite.
+     */
+    protected static function placeholderConnection(string $contents, string $schema): string
+    {
+        return match ($schema) {
+            'postgres' => str_replace('DBDRIVER_CONNECTION=mysql://', 'DBDRIVER_CONNECTION=postgres://', $contents),
+            'sqlite' => (string)preg_replace_callback(
+                '~^DBDRIVER_CONNECTION=mysql://[^\n]*/([^/\n]+)$~m',
+                fn (array $match) => 'DBDRIVER_CONNECTION=' . self::buildConnectionString(['schema' => 'sqlite'], $match[1]),
+                $contents
+            ),
+            default => $contents,
+        };
+    }
+
+    /**
+     * The PostgreSQL service and volume of docker-compose.yml, in place of the MySQL ones.
+     */
+    protected const POSTGRES_COMPOSE = [
+        'database-service' => <<<'YAML'
+  postgres-container:
+    image: postgres:17
+    container_name: postgres-container
+    environment:
+      POSTGRES_PASSWORD: mysqlp455w0rd
+      TZ: UTC
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - net
+
+YAML,
+        'database-volume' => <<<'YAML'
+volumes:
+  postgres-volume:
+
+YAML,
+    ];
+
+    /**
+     * The database part of docker-compose.yml, between the database-service and database-volume
+     * markers: the MySQL server as it is, the PostgreSQL one in its place, or nothing for SQLite,
+     * whose databases are files in db/. The marker lines are removed.
+     */
+    protected static function composeDatabase(string $contents, string $schema): string
+    {
+        foreach (['database-service', 'database-volume'] as $marker) {
+            $contents = (string)preg_replace_callback(
+                '/[ \t]*#\s*>>>\s*' . $marker . '[^\n]*\n(.*?)[ \t]*#\s*<<<\s*' . $marker . '[^\n]*\n/s',
+                fn (array $match) => match ($schema) {
+                    'sqlite' => '',
+                    'postgres' => rtrim(self::POSTGRES_COMPOSE[$marker], "\n") . "\n",
+                    default => $match[1],
+                },
+                $contents
+            );
+        }
+        return $contents;
+    }
+
+    /**
+     * The host and user of the database service docker-compose.yml runs for $schema.
+     *
+     * @return array{host: string, user: string}
+     */
+    protected static function defaultServer(string $schema): array
+    {
+        return $schema === 'postgres'
+            ? ['host' => 'postgres-container', 'user' => 'postgres']
+            : ['host' => 'mysql-container', 'user' => 'root'];
+    }
+
+    /**
+     * Put the SQL of the chosen database in db/. The MySQL SQL is db/ itself; every other database
+     * has its own copy of each file in db/.dialects/<schema>/. db/.dialects/ is removed either way,
+     * so the project keeps exactly one db/base.sql and one db/migrations/.
+     *
+     * @throws Exception
+     */
+    protected function applyDialect(string $workdir, string $schema): void
+    {
+        $dialects = "$workdir/db/.dialects";
+        if (!is_dir($dialects)) {
+            return;
+        }
+
+        if ($schema !== 'mysql') {
+            $dialect = "$dialects/$schema";
+            if (!is_dir($dialect)) {
+                throw new Exception("There is no SQL for the database '$schema' in db/.dialects/");
+            }
+            foreach (array_diff(scandir($dialect), ['.', '..']) as $item) {
+                $target = "$workdir/db/$item";
+                if (is_dir($target)) {
+                    self::removeDir($target);
+                } elseif (file_exists($target)) {
+                    unlink($target);
+                }
+                rename("$dialect/$item", $target);
+            }
+            echo "Database: db/ now holds the $schema SQL\n";
+        }
+
+        self::removeDir($dialects);
+    }
+
     protected static function removeDir(string $dir): void
     {
         foreach (scandir($dir) as $item) {
@@ -556,30 +685,74 @@ ENV;
      * @param string $workdir
      * @return array|null
      */
+    /**
+     * Whether this script runs inside a container: Docker creates /.dockerenv, and Podman
+     * /run/.containerenv.
+     *
+     * @param list<string> $markers
+     */
+    protected static function isInsideContainer(array $markers = ['/.dockerenv', '/run/.containerenv']): bool
+    {
+        foreach ($markers as $marker) {
+            if (file_exists($marker)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The answers for an unattended setup, from the first setup.json found: the file named by
+     * SETUP_JSON, the parent directory (where create-project was run), then ~/.gluo/setup.json.
+     *
+     * A setup.json that is found but cannot be read as JSON is an error, and so is SETUP_JSON
+     * naming a file that is not there: falling back to the questions would silently create a
+     * project with the defaults.
+     *
+     * @throws Exception
+     */
     protected static function loadConfigFromJson(string $workdir): ?array
     {
-        $locations = [
-            // 1. Environment variable (highest priority)
-            getenv('SETUP_JSON'),
+        $setupJson = getenv('SETUP_JSON');
+        if (!empty($setupJson)) {
+            if (!is_file($setupJson) || !is_readable($setupJson)) {
+                throw new Exception(
+                    "SETUP_JSON is '$setupJson', but that file cannot be read here. It has to be "
+                    . "visible where Composer runs: a Composer running in a container only sees the "
+                    . "directories mounted into it, usually just the current one."
+                );
+            }
+            return self::readConfigFile($setupJson);
+        }
 
-            // 2. Parent directory (where user ran composer create-project)
+        $locations = [
+            // Parent directory (where the user ran composer create-project)
             dirname($workdir) . '/setup.json',
 
-            // 3. User's home directory
+            // User's home directory
             (getenv('HOME') ?: getenv('USERPROFILE')) . '/.gluo/setup.json',
         ];
 
         foreach ($locations as $configFile) {
-            if (!empty($configFile) && file_exists($configFile)) {
-                $json = file_get_contents($configFile);
-                $config = json_decode($json, true);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    return $config;
-                }
+            if (is_file($configFile)) {
+                return self::readConfigFile($configFile);
             }
         }
 
         return null;
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected static function readConfigFile(string $configFile): array
+    {
+        $config = json_decode((string)file_get_contents($configFile), true);
+        if (!is_array($config)) {
+            $error = json_last_error() === JSON_ERROR_NONE ? 'it is not a JSON object' : json_last_error_msg();
+            throw new Exception("Cannot read the setup from '$configFile': $error");
+        }
+        return $config;
     }
 
     protected static function buildConnectionString(array $dbConfig, string $database): string
@@ -591,8 +764,9 @@ ENV;
         $database = ltrim($database, '/');
 
         if ($schema === 'sqlite') {
-            $path = $database ?: 'database.sqlite';
-            return 'sqlite:///' . $path;
+            // A file under db/ of the project. byjg/config replaces {__ROOT__} with the project
+            // root, so the same .env works on the host, in Docker and behind the web server.
+            return 'sqlite://{__ROOT__}/db/' . ($database ?: 'database') . '.sqlite';
         }
 
         $hostPart = $host !== '' ? $host : 'localhost';
@@ -643,7 +817,11 @@ ENV;
         $dockerCheck = shell_exec('docker --version 2>&1');
         $dockerInstalled = !empty($dockerCheck) && str_contains($dockerCheck, 'Docker version');
 
-        if (!$dockerInstalled) {
+        if (!$dockerInstalled && self::isInsideContainer()) {
+            // A Composer running in a container (a dockerised composer) has no Docker of its own,
+            // and cannot see the host's: saying that Docker is not installed would be wrong
+            $stdIo->write("<info>Composer is running inside a container: Docker on the host could not be checked.</info>");
+        } elseif (!$dockerInstalled) {
             $stdIo->write("");
             $stdIo->write("<warning>========================================================</warning>");
             $stdIo->write("<warning> WARNING: Docker is not installed</warning>");
@@ -701,10 +879,10 @@ ENV;
 
         $validateDbSchema = function ($arg) {
             $value = strtolower(trim($arg));
-            if ($value === 'sqlsvr') {
-                $value = 'sqlsrv';
+            if ($value === 'pgsql' || $value === 'postgresql') {
+                $value = 'postgres';
             }
-            $validSchemas = ['mysql', 'sqlite', 'postgres', 'sqlsrv'];
+            $validSchemas = ['mysql', 'postgres', 'sqlite'];
             if (!in_array($value, $validSchemas, true)) {
                 throw new Exception('Database schema must be one of: ' . implode(', ', $validSchemas));
             }
@@ -844,8 +1022,16 @@ ENV;
                 $dbConfig['schema'] = $validateDbSchema($dbConfig['schema']);
             }
 
+            if ($dbConfig['schema'] !== 'sqlite' && !isset($config['mysql_connection'])) {
+                // The host and user of the database service docker-compose.yml runs for this schema
+                $dbConfig = array_merge($dbConfig, self::defaultServer($dbConfig['schema']));
+            }
+
             if ($dbConfig['schema'] === 'sqlite') {
+                // A file under db/: no server, no credentials
                 $dbConfig['host'] = '';
+                $dbConfig['user'] = '';
+                $dbConfig['password'] = '';
             } elseif (isset($config['db_host'])) {
                 try {
                     $dbConfig['host'] = $validateDbHost($config['db_host']);
@@ -856,7 +1042,9 @@ ENV;
                 $dbConfig['host'] = $validateDbHost($dbConfig['host']);
             }
 
-            if (isset($config['db_user'])) {
+            if ($dbConfig['schema'] === 'sqlite') {
+                // nothing to ask for
+            } elseif (isset($config['db_user'])) {
                 try {
                     $dbConfig['user'] = $validateNonEmpty($config['db_user']);
                 } catch (Exception $e) {
@@ -866,7 +1054,9 @@ ENV;
                 $dbConfig['user'] = $validateNonEmpty($dbConfig['user']);
             }
 
-            if (isset($config['db_password'])) {
+            if ($dbConfig['schema'] === 'sqlite') {
+                // nothing to ask for
+            } elseif (isset($config['db_password'])) {
                 try {
                     $dbConfig['password'] = $validateNonEmpty($config['db_password']);
                 } catch (Exception $e) {
@@ -901,7 +1091,7 @@ ENV;
             $stdIo->write("Composer name: $composerName");
             $stdIo->write("Database schema: " . $dbConfig['schema']);
             $stdIo->write("Database host: " . ($dbConfig['schema'] === 'sqlite' ? '(not used)' : $dbConfig['host']));
-            $stdIo->write("Database user: " . $dbConfig['user']);
+            $stdIo->write("Database user: " . ($dbConfig['schema'] === 'sqlite' ? '(not used)' : $dbConfig['user']));
             $stdIo->write("Dev database: " . $dbConfig['dev_database']);
             $stdIo->write("Test database: " . $dbConfig['test_database']);
             $stdIo->write("Timezone: $timezone");
@@ -921,34 +1111,37 @@ ENV;
             $namespace = $stdIo->askAndValidate('Project namespace [MyRest]: ', $validateNamespace, $maxRetries, 'MyRest');
             $composerName = $stdIo->askAndValidate('Composer name [me/myrest]: ', $validateComposer, $maxRetries, 'me/myrest');
             $dbSchema = $stdIo->askAndValidate(
-                'Database schema [mysql]: ',
+                'Database schema (mysql, postgres, sqlite) [mysql]: ',
                 $validateDbSchema,
                 $maxRetries,
                 $defaultDbConfig['schema']
             );
             if ($dbSchema === 'sqlite') {
                 $dbHost = '';
-                $stdIo->write("<info>SQLite selected - host will be ignored.</info>");
+                $dbUser = '';
+                $dbPassword = '';
+                $stdIo->write("<info>SQLite selected: the databases are files under db/, with no host or credentials.</info>");
             } else {
+                $server = self::defaultServer($dbSchema);
                 $dbHost = $stdIo->askAndValidate(
-                    "Database host [{$defaultDbConfig['host']}]: ",
+                    "Database host [{$server['host']}]: ",
                     $validateDbHost,
                     $maxRetries,
-                    $defaultDbConfig['host']
+                    $server['host']
+                );
+                $dbUser = $stdIo->askAndValidate(
+                    "Database user [{$server['user']}]: ",
+                    $validateNonEmpty,
+                    $maxRetries,
+                    $server['user']
+                );
+                $dbPassword = $stdIo->askAndValidate(
+                    "Database password [{$defaultDbConfig['password']}]: ",
+                    $validateNonEmpty,
+                    $maxRetries,
+                    $defaultDbConfig['password']
                 );
             }
-            $dbUser = $stdIo->askAndValidate(
-                "Database user [{$defaultDbConfig['user']}]: ",
-                $validateNonEmpty,
-                $maxRetries,
-                $defaultDbConfig['user']
-            );
-            $dbPassword = $stdIo->askAndValidate(
-                "Database password [{$defaultDbConfig['password']}]: ",
-                $validateNonEmpty,
-                $maxRetries,
-                $defaultDbConfig['password']
-            );
             $devDatabase = $stdIo->askAndValidate(
                 "Dev database name [{$defaultDbConfig['dev_database']}]: ",
                 $validateDbName,

@@ -9,6 +9,11 @@
 /tools/*/composer.lock
 src/*.db
 config/.env
+# SQLite databases (db_schema sqlite), and the files SQLite writes next to them
+/db/*.sqlite
+/db/*.sqlite-journal
+/db/*.sqlite-wal
+/db/*.sqlite-shm
 
 # Frontend (Vite)
 frontend/node_modules

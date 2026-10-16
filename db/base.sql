@@ -23,7 +23,7 @@ ALTER TABLE `users`
     ADD INDEX `ix_users_email` (`email` ASC, `password` ASC),
     ADD INDEX `ix_users_username` (`username` ASC, `password` ASC);
 
--- Default Password is "pwd"
+-- The password of both users below is "!P4ssw0rdstr!".
 -- Please change it!
 insert into users (name, email, username, password, role) VALUES
     ('Administrator', 'admin@example.com', 'admin', '9800aa1b77334ff0952b203062f0fbb0c480d3de', 'admin');   -- !P4ssw0rdstr!

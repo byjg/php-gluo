@@ -29,16 +29,39 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Every combination on MySQL; on PostgreSQL and SQLite the full stack, whose examples
+        # run all the SQL that differs between the databases (db/.dialects/).
         include:
           - combo: full-stack
             install_frontend: true
             install_examples: true
+            db_schema: mysql
+            db_host: mysql-container
+            db_user: root
           - combo: auth-shell
             install_frontend: true
             install_examples: false
+            db_schema: mysql
+            db_host: mysql-container
+            db_user: root
           - combo: pure-api
             install_frontend: false
             install_examples: false
+            db_schema: mysql
+            db_host: mysql-container
+            db_user: root
+          - combo: full-stack-postgres
+            install_frontend: true
+            install_examples: true
+            db_schema: postgres
+            db_host: postgres-container
+            db_user: postgres
+          - combo: full-stack-sqlite
+            install_frontend: true
+            install_examples: true
+            db_schema: sqlite
+            db_host: ""
+            db_user: ""
 
     services:
       mysql-container:
@@ -52,6 +75,16 @@ jobs:
           --health-cmd="mysqladmin ping"
           --health-interval=10s
           --health-timeout=20s
+          --health-retries=10
+
+      postgres-container:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: mysqlp455w0rd
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
           --health-retries=10
 
     steps:
@@ -74,9 +107,9 @@ jobs:
             "timezone": "UTC",
             "install_frontend": ${{ matrix.install_frontend }},
             "install_examples": ${{ matrix.install_examples }},
-            "db_schema": "mysql",
-            "db_host": "mysql-container",
-            "db_user": "root",
+            "db_schema": "${{ matrix.db_schema }}",
+            "db_host": "${{ matrix.db_host }}",
+            "db_user": "${{ matrix.db_user }}",
             "db_password": "mysqlp455w0rd",
             "db_name_dev": "localdev",
             "db_name_test": "localtest"
@@ -98,6 +131,9 @@ jobs:
           test ! -f /tmp/my-api/builder/PostCreateScript.php
           # The installer does not create a git repository
           test ! -d /tmp/my-api/.git
+          # Only the SQL of the database chosen is left
+          test -f /tmp/my-api/db/base.sql
+          test ! -d /tmp/my-api/db/.dialects
           if [ "${{ matrix.install_frontend }}" = "true" ]; then
             test -d /tmp/my-api/frontend
             grep -q "frontend:" /tmp/my-api/docker-compose.yml

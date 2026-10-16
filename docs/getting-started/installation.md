@@ -136,11 +136,15 @@ Run PHP tooling from the repo root (`composer test`, `./gluo migrate:update`,
 - **PHP Version**: The PHP version for your Docker container (8.3, 8.4, 8.5)
 - **Project namespace**: Your application's root namespace (must be CamelCase, e.g., `MyApp`, `Tutorial`)
 - **Composer name**: Package name in `vendor/package` format (e.g., `me/myrest`)
-- **Database schema**: Supported drivers: `mysql`, `postgres`, `sqlsrv`, or `sqlite`
-- **Database host**: Hostname or container name for the DB server (ignored for SQLite)
-- **Database user**: Username that will be injected in your `.env` files
-- **Database password**: Password that will be injected in your `.env` files
-- **Dev/Test database name**: Logical databases used for the dev and test environments (for SQLite, this is the file path)
+- **Database schema**: `mysql`, `postgres` or `sqlite`. The project gets the SQL of that database in `db/`
+  (`db/base.sql` and `db/migrations/`) and its server in `docker-compose.yml` (none for SQLite).
+- **Database host**: Hostname or container name for the DB server: `mysql-container` or `postgres-container` by
+  default (not asked for SQLite)
+- **Database user**: Username that will be injected in your `.env` files: `root` or `postgres` by default (not asked
+  for SQLite)
+- **Database password**: Password that will be injected in your `.env` files (not asked for SQLite)
+- **Dev/Test database name**: Logical databases used for the dev and test environments. For SQLite, the name of the
+  file under `db/`: `localdev` is `db/localdev.sqlite`, connected as `sqlite://{__ROOT__}/db/localdev.sqlite`
 - **Timezone**: Server timezone (e.g., `UTC`, `America/New_York`, `Europe/London`)
 - **Install Frontend**: Whether to include the `frontend/` Vite app (login, reset, dashboard, profile). See the [Frontend guide](../guides/frontend.md).
 - **Install Examples**: Whether to include example code (Project/Task/Note demonstrating the three patterns, plus Sample endpoints — and, if the frontend is installed, its example screens)

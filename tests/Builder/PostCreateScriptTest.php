@@ -69,7 +69,7 @@ class PostCreateScriptTest extends TestCase
         }
     }
 
-    protected function applyTemplate(bool $installExamples, bool $installFrontend = true, string $composerName = 'acme/shop'): void
+    protected function applyTemplate(bool $installExamples, bool $installFrontend = true, string $composerName = 'acme/shop', array $dbConfig = []): void
     {
         $script = new PostCreateScript();
         ob_start();
@@ -79,7 +79,7 @@ class PostCreateScriptTest extends TestCase
                 'AcmeShop',
                 $composerName,
                 '8.4',
-                [
+                $dbConfig + [
                     'schema' => 'mysql',
                     'host' => 'db-host',
                     'user' => 'root',
@@ -149,6 +149,107 @@ class PostCreateScriptTest extends TestCase
         );
     }
 
+    /**
+     * @return list<string> the files under $dir, relative to it, without db/.dialects/
+     */
+    protected static function filesUnder(string $dir): array
+    {
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS));
+        foreach ($iterator as $item) {
+            $relative = substr($item->getPathname(), strlen($dir) + 1);
+            if (!str_starts_with($relative, '.dialects/')) {
+                $files[] = $relative;
+            }
+        }
+        sort($files);
+        return $files;
+    }
+
+    /**
+     * Each database other than MySQL has its own copy of every file in db/, in db/.dialects/<schema>/:
+     * a migration added for MySQL and not for the others would only fail when a project is created.
+     */
+    public function testEveryDialectHasTheSameFilesAsDb(): void
+    {
+        $db = realpath(__DIR__ . '/../../db');
+        foreach (['postgres', 'sqlite'] as $dialect) {
+            $this->assertSame(self::filesUnder($db), self::filesUnder("$db/.dialects/$dialect"), "db/.dialects/$dialect");
+        }
+    }
+
+    /**
+     * @return array<string, mixed> docker-compose.yml of the generated project, parsed
+     */
+    protected function compose(): array
+    {
+        $compose = (string)file_get_contents($this->workdir . '/docker-compose.yml');
+        $this->assertStringNotContainsString('>>> database', $compose);
+        $this->assertStringNotContainsString('<<< database', $compose);
+        return \Symfony\Component\Yaml\Yaml::parse($compose);
+    }
+
+    protected function envValue(string $env, string $key): string
+    {
+        preg_match('/^' . $key . '=(.*)$/m', (string)file_get_contents($this->workdir . "/config/$env/credentials.env"), $match);
+        return $match[1] ?? '';
+    }
+
+    public function testAMysqlProjectKeepsTheMysqlSql(): void
+    {
+        $source = (string)file_get_contents($this->workdir . '/db/base.sql');
+        $this->applyTemplate(true);
+
+        $this->assertDirectoryDoesNotExist($this->workdir . '/db/.dialects');
+        $this->assertSame($source, file_get_contents($this->workdir . '/db/base.sql'));
+        $compose = $this->compose();
+        $this->assertSame('mysql:8.0', $compose['services']['db-host']['image']);
+        $this->assertArrayHasKey('mysql-volume', $compose['volumes']);
+        $this->assertSame('mysql://root:secret123@db-host/shopdev', $this->envValue('dev', 'DBDRIVER_CONNECTION'));
+    }
+
+    public function testAPostgresProjectGetsThePostgresSqlAndServer(): void
+    {
+        $base = (string)file_get_contents($this->workdir . '/db/.dialects/postgres/base.sql');
+        $migration = (string)file_get_contents($this->workdir . '/db/.dialects/postgres/migrations/up/00001-create-table-examples.sql');
+        $this->applyTemplate(true, true, 'acme/shop', ['schema' => 'postgres', 'host' => 'pg-host', 'user' => 'postgres']);
+
+        $this->assertDirectoryDoesNotExist($this->workdir . '/db/.dialects');
+        $this->assertSame($base, file_get_contents($this->workdir . '/db/base.sql'));
+        $this->assertSame($migration, file_get_contents($this->workdir . '/db/migrations/up/00001-create-table-examples.sql'));
+
+        $compose = $this->compose();
+        $this->assertArrayNotHasKey('mysql-container', $compose['services']);
+        $this->assertSame('postgres:17', $compose['services']['pg-host']['image']);
+        $this->assertSame('secret123', $compose['services']['pg-host']['environment']['POSTGRES_PASSWORD']);
+        $this->assertSame(['postgres-volume'], array_keys($compose['volumes']));
+
+        $this->assertSame('postgres://postgres:secret123@pg-host/shopdev', $this->envValue('dev', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('postgres://postgres:secret123@pg-host/shoptest', $this->envValue('test', 'DBDRIVER_CONNECTION'));
+        $this->assertStringStartsWith('postgres://', $this->envValue('staging', 'DBDRIVER_CONNECTION'));
+        $this->assertStringStartsWith('postgres://', $this->envValue('prod', 'DBDRIVER_CONNECTION'));
+    }
+
+    public function testASqliteProjectHasNoServerAndKeepsItsDatabasesUnderDb(): void
+    {
+        $base = (string)file_get_contents($this->workdir . '/db/.dialects/sqlite/base.sql');
+        $this->applyTemplate(false, true, 'acme/shop', ['schema' => 'sqlite', 'host' => '', 'user' => '', 'password' => '']);
+
+        $this->assertDirectoryDoesNotExist($this->workdir . '/db/.dialects');
+        $this->assertSame($base, file_get_contents($this->workdir . '/db/base.sql'));
+        // Without the examples, their migration is removed from the SQLite set as well
+        $this->assertFileDoesNotExist($this->workdir . '/db/migrations/up/00001-create-table-examples.sql');
+
+        $compose = $this->compose();
+        $this->assertSame(['rest', 'frontend'], array_keys($compose['services']));
+        $this->assertArrayNotHasKey('volumes', $compose);
+
+        $this->assertSame('sqlite://{__ROOT__}/db/shopdev.sqlite', $this->envValue('dev', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('sqlite://{__ROOT__}/db/shoptest.sqlite', $this->envValue('test', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('sqlite://{__ROOT__}/db/mydb_staging.sqlite', $this->envValue('staging', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('sqlite://{__ROOT__}/db/mydb_prod.sqlite', $this->envValue('prod', 'DBDRIVER_CONNECTION'));
+    }
+
     public function testComposerJsonRenamed(): void
     {
         $this->applyTemplate(true);
@@ -158,6 +259,8 @@ class PostCreateScriptTest extends TestCase
         $this->assertStringNotContainsString('"byjg/gluo"', $root);
         // the framework dependency must survive the rename
         $this->assertStringContainsString('"byjg/gluo-core"', $root);
+        // the starter's own description is not the project's
+        $this->assertSame('A PHP REST API built with Gluo.', json_decode($root, true)['description']);
     }
 
     /**
@@ -245,6 +348,8 @@ class PostCreateScriptTest extends TestCase
             '.github/workflows/create-project.yml',
             'builder/PostCreateScript.php',
             'tests/Builder/PostCreateScriptTest.php',
+            'tests/Builder/SetupJsonTest.php',
+            'tests/Builder/ContainerDetectionTest.php',
         ];
         foreach ($templateOnlyFiles as $file) {
             $this->assertFileExists($this->workdir . '/' . $file);
@@ -256,6 +361,13 @@ class PostCreateScriptTest extends TestCase
         foreach ($templateOnlyFiles as $file) {
             $this->assertFileDoesNotExist($this->workdir . '/' . $file);
         }
+
+        // A test of the installer would fail in the project, which has no PostCreateScript
+        $installerTests = array_filter(
+            $this->findFilesContaining('PostCreateScript'),
+            fn (string $file) => str_starts_with($file, 'tests/')
+        );
+        $this->assertSame([], array_values($installerTests));
 
         // The starter's changelogs are its own history, not the new project's.
         $this->assertSame([], glob($this->workdir . '/CHANGELOG*'));

@@ -9,7 +9,9 @@ Authentication, password management, and JWT issuance are powered by [`byjg/auth
 
 ## Database Schema
 
-Two tables ship with the reference architecture:
+Two tables ship with the reference architecture, in `db/base.sql`. This is the MySQL version; a project created for
+PostgreSQL or SQLite has the same tables in that database's SQL (a `uuid` or `blob` user id, and a trigger in place of
+`ON UPDATE CURRENT_TIMESTAMP`):
 
 ```sql
 CREATE TABLE `users` (
