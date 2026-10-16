@@ -14,7 +14,7 @@ use ByJG\MicroOrm\Literal\Literal;
 use OpenApi\Attributes as OA;
 
 // Constants (ROLE_*, PROP_*, VALUE_*), the password definition wiring and the
-// base fields live in BaseUser (byjg/gluo). This class owns the table mapping
+// base fields live in BaseUser (byjg/gluo-core). This class owns the table mapping
 // and the OpenAPI schema. NOTE: not a docblock — swagger-php would publish it
 // as the schema description.
 #[TableUuidPKAttribute("users")]

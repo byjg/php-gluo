@@ -7,7 +7,7 @@ use Tests\Controller\BaseApiTestCase;
 
 /**
  * End-to-end code generator test: introspects the real `project` table from the
- * migrated test database and renders through the byjg/gluo templates.
+ * migrated test database and renders through the byjg/gluo-core templates.
  * Extends BaseApiTestCase to reuse the database reset and environment guard.
  */
 class CodegenTest extends BaseApiTestCase

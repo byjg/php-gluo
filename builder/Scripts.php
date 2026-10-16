@@ -25,7 +25,7 @@ class Scripts extends BaseScripts
     {
         parent::__construct();
         // Anchor to the project root. The base class guesses from the vendor
-        // location, which fails when byjg/gluo is symlinked (path repository).
+        // location, which fails when byjg/gluo-core is symlinked (path repository).
         $this->workdir = realpath(__DIR__ . '/..');
     }
 

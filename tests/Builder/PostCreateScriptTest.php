@@ -126,6 +126,29 @@ class PostCreateScriptTest extends TestCase
         $this->assertStringContainsString('use ByJG\Gluo\Model\BaseUser;', $user);
     }
 
+    /**
+     * "byjg/gluo" is rewritten to the project's name wherever the template names itself. A
+     * comment about the framework names byjg/gluo-core, which the rewrite leaves alone; one that
+     * said "byjg/gluo" ended up naming the project ("BaseUser (acme/shop)").
+     */
+    public function testTheProjectNameOnlyReplacesTheStarterName(): void
+    {
+        $this->applyTemplate(true);
+
+        $found = $this->findFilesContaining('acme/shop');
+        sort($found);
+        $this->assertSame(['README.md', 'composer.json'], $found);
+
+        $this->assertStringContainsString(
+            'BaseUser (byjg/gluo-core)',
+            file_get_contents($this->workdir . '/src/Model/User.php')
+        );
+        $this->assertStringContainsString(
+            'BaseLoginController (byjg/gluo-core)',
+            file_get_contents($this->workdir . '/src/Controller/LoginController.php')
+        );
+    }
+
     public function testComposerJsonRenamed(): void
     {
         $this->applyTemplate(true);

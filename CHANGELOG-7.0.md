@@ -81,6 +81,12 @@
 
 ## Bug Fixes
 
+- The installer rewrites `byjg/gluo` to the project's composer name wherever the template names
+  itself, and some comments about the framework said `byjg/gluo` where they meant
+  `byjg/gluo-core`: a new project got `BaseUser (acme/shop)` in `src/Model/User.php`, and the same
+  in `LoginController.php`. Those comments now name `byjg/gluo-core`, which the rewrite leaves
+  alone.
+
 - `src/Generator/UuidSeedGenerator.php` is removed. Nothing in the template used it, and it ran
   the MySQL-only `SELECT hex(uuid_to_bin(uuid()))`. `TableUuidPKAttribute` generates UUID keys;
   for a seed function of your own, return `HexUuidLiteral::forDatabase($executor, HexUuidLiteral::v7())`.
