@@ -49,6 +49,7 @@ loaded. It is not passed to the command.
 | `openapi` | Regenerate `public/docs/openapi.json` from the controller attributes |
 | `openapi:check` | Warn when the spec is older than its sources |
 | `terminal` | Open the [interactive PHP terminal](scriptify.md) |
+| `install` / `uninstall` | Install a project command as a system service, or remove it ([below](#running-a-command-as-a-service)) |
 
 Everything after the command name is passed to the command unchanged:
 
@@ -86,16 +87,35 @@ as Composer scripts.
 
 ## Project commands
 
-Declare them in `config/commands.php`, as a command name mapped to `Namespace/Class::method`:
+Declare them in `src/Command/Commands.php`, the project's `CommandProvider`, as a command
+name mapped to a method. The `./gluo` script passes this class to the launcher.
 
 ```php
 <?php
-return [
-    'user:cleanup' => 'MyApp/Service/MaintenanceService::cleanOldRecords',
-    'mail:welcome' => 'MyApp/Service/MailService::sendWelcomeEmail',
-    'migrate:seed' => 'MyApp/Service/SeedService::run',
-];
+
+namespace MyApp\Command;
+
+use ByJG\Scriptify\CommandProvider;
+use MyApp\Service\MailService;
+use MyApp\Service\MaintenanceService;
+use MyApp\Service\SeedService;
+
+class Commands implements CommandProvider
+{
+    #[\Override]
+    public function commands(): array
+    {
+        return [
+            'user:cleanup' => MaintenanceService::class . '::cleanOldRecords',
+            'mail:welcome' => MailService::class . '::sendWelcomeEmail',
+            'migrate:seed' => SeedService::class . '::run',
+        ];
+    }
+}
 ```
+
+The targets are class references (`::class`), so a typo fails in the IDE and in Psalm,
+and a rename is refactor-safe.
 
 ```php
 /**
@@ -134,10 +154,9 @@ Map a name to a class, without `::`, and every public method the class declares 
 command under that name, in kebab-case:
 
 ```php
-<?php
 return [
-    'payment' => 'MyApp/Command/PaymentCommands',     // payment:create, payment:refund, ...
-    'user:cleanup' => 'MyApp/Service/MaintenanceService::cleanOldRecords',
+    'payment' => PaymentCommands::class,      // payment:create, payment:refund, ...
+    'user:cleanup' => MaintenanceService::class . '::cleanOldRecords',
 ];
 ```
 
@@ -166,20 +185,39 @@ class PaymentCommands
 - **A name produced twice is an error**, for every `./gluo` command until it is fixed: an
   explicit `'payment:create'` entry next to `'payment' => ...PaymentCommands`, or two methods
   with the same kebab-case name.
-- A method added to the class is a command at once, with no change to `config/commands.php`.
+- A method added to the class is a command at once, with no change to `Commands`.
 - The rest is the same as for a single method: the class must be in the container,
   `--help` prints the method's PHPDoc, and `./gluo list --check` checks each command.
 
-Commands are run by [Scriptify](scriptify.md), with the container returned by
-`config/scriptify-bootstrap.php`. The same target and bootstrap work with
-`scriptify install`, to run a command as a system service:
+Commands are run by [Scriptify](scriptify.md)'s launcher, with the Gluo container
+(`Config::getContainer()`). `./gluo list` and the built-ins never build it.
+
+## Running a command as a service
+
+`./gluo install` installs a project command as a system service; it needs root, like any
+service file:
 
 ```bash
-sudo vendor/bin/scriptify install --template=systemd queue-worker \
-    --class "MyApp/Service/QueueWorker::processLoop" \
-    --bootstrap "config/scriptify-bootstrap.php" \
-    --rootdir "/var/www/myapi"
+sudo ./gluo --env=prod install payment:sweep                          # systemd, runs it again every second
+sudo ./gluo --env=prod install --template=crond payment:sweep         # once a minute
+sudo ./gluo --env=prod install --name=sweeper --description="Payment sweep" payment:sweep 24
+sudo ./gluo uninstall payment:sweep
 ```
+
+The service runs `./gluo` itself, so the Gluo container is built when it starts, exactly
+as on the command line. Its command line is written in full, nothing left to a default:
+
+```text
+ExecStart=/usr/bin/php '/var/www/shop/gluo' --env='prod' payment:sweep '24' --daemon
+WorkingDirectory=/var/www/shop
+```
+
+- `--env` is required: it is the environment the service runs in.
+- `--template` is `systemd` (default), `crond`, `upstart` or `initd`. Every template but
+  `crond` adds `--daemon`, which calls the method again every second.
+- The service is named after the project directory and the command (`shop-payment-sweep`);
+  `--name` chooses another, and `uninstall` takes the same `--name`.
+- The command must pass `./gluo list --check`, and installing runs nothing.
 
 ## Checking the commands
 
@@ -215,7 +253,7 @@ configuration, and it exits with 1 unless every command is `OK`.
 | Project status | Meaning |
 |---|---|
 | `INVALID_NAME` | The name has characters outside `a-z`, `0-9`, `:` and `-` |
-| `RESERVED` | The name is the exact name of a built-in command |
+| `RESERVED` | The name is the exact name of a built-in command, or `list` |
 | `INVALID_TARGET` | The target is neither `Class::method` nor an existing class |
 | `MISSING_CLASS` | The class does not exist |
 | `MISSING_METHOD` | The method does not exist |

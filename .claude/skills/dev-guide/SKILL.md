@@ -515,7 +515,8 @@ Throw to return the right HTTP status:
 | `docker compose up -d` | Start MySQL + PHP (+ frontend) containers |
 | `docker compose down` | Stop containers |
 | `./gluo list` | List the built-in and project commands (`--check` validates them) |
-| `./gluo <name> [args]` | Run a project command declared in `config/commands.php` |
+| `./gluo <name> [args]` | Run a project command declared in `src/Command/Commands.php` |
+| `./gluo --env=prod install <name>` | Install a project command as a system service |
 | `composer update` | Update PHP dependencies (live in vendor) |
 | `composer psalm` | Run static analysis |
 | `php85 vendor/bin/psalm` | Psalm fallback (if default is buggy) |
@@ -555,5 +556,5 @@ Throw to return the right HTTP status:
 - `references/imageutil.md` — GD-based image manipulation: resize, crop, rotate, flip, watermark, text overlay, saving; install instructions
 - `references/statemachine.md` — Finite state machine: workflow transitions, autoTransitionFrom for classification, DI registration pattern
 - `references/messagequeue.md` — Message queues (RabbitMQ, Redis, mock): publish, consume, DLQ, ACK/NACK, DI wiring, test mock
-- `references/scriptify.md` — CLI scripts, cron jobs, and systemd services: run any class::method from the command line or install as a daemon
+- `references/scriptify.md` — Project commands (`./gluo <name>`, `src/Command/Commands.php`, DI-built) and `./gluo install` as a cron job or systemd service; `scriptify run` and `scriptify call` directly
 - `references/featureflags.md` — Feature flags: PHP attribute approach, DI registration, dispatcher-per-handler-class pattern, testing with clearFlags()

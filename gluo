@@ -2,4 +2,4 @@
 <?php
 require __DIR__ . '/vendor/autoload.php';
 
-exit((new \ByJG\Gluo\Console\Launcher(__DIR__))->run($argv));
+exit((new \ByJG\Gluo\Console\Launcher(__DIR__, new \RestReferenceArchitecture\Command\Commands()))->run($argv));

@@ -1,101 +1,143 @@
-# CLI Scripts and Services: byjg/scriptify
+# CLI Commands and Services: ./gluo and byjg/scriptify
 
-`byjg/scriptify` turns any `ClassName::methodName` into a runnable command, cron job, or
-background service — no CLI framework required in your own classes.
-
-Already a direct dependency of this project (`byjg/scriptify` in composer.json — it powers `./gluo terminal`).
-
----
-
-## How it works
-
-Scriptify:
-1. Loads your project's autoloader (`vendor/autoload.php`)
-2. Instantiates the class with `new ClassName()` — **constructor must take no arguments**
-3. Calls the method, passing `--arg` values positionally
-4. In daemon mode, loops with a 1-second sleep between calls
-
-Your class stays plain PHP. All the service/cron wiring is outside it.
+A method of a service class becomes a command line, a cron job or a background service
+without a CLI framework in your class. In this project that is a **project command** of
+`./gluo`, run with the DI container. `byjg/scriptify` does the work underneath (it is a
+direct dependency; it also powers `./gluo terminal`).
 
 ---
 
-## Running a command once
+## Project commands (the default)
+
+### 1. Write the method
+
+A plain public method. The class gets its dependencies through the constructor, like any
+service:
+
+```php
+namespace RestReferenceArchitecture\Command;
+
+use RestReferenceArchitecture\Service\OrderService;
+
+class OrderCommands
+{
+    public function __construct(private OrderService $orders)
+    {
+    }
+
+    /**
+     * Process the pending orders, at most $limit of them.
+     */
+    public function process(int $limit = 100): void
+    {
+        $this->orders->processPending($limit);
+    }
+
+    protected function log(string $line): void   // not a command: keep helpers protected
+    {
+    }
+}
+```
+
+### 2. Register the class in the container
+
+The class is built by the container, never with `new`:
+
+```php
+// config/dev/05-services.php
+OrderCommands::class => DI::bind(OrderCommands::class)
+    ->withInjectedConstructor()
+    ->toSingleton(),
+```
+
+### 3. Name it in `src/Command/Commands.php`
+
+The project's `CommandProvider`; the `./gluo` script passes it to the launcher:
+
+```php
+public function commands(): array
+{
+    return [
+        'order' => OrderCommands::class,                              // order:process, ... every public method
+        'cache:clear' => CacheService::class . '::clear',             // or one method
+    ];
+}
+```
+
+- Names are lowercase `group:action` (`a-z`, `0-9`, `:`, `-`); a class gives
+  `<group>:<method-in-kebab-case>`. Built-in names (`migrate:update`, `install`, ...) are
+  reserved; a name produced twice is an error.
+- Use class references (`::class`): a typo fails in Psalm.
+
+### 4. Run it
 
 ```bash
-php vendor/bin/scriptify run "\\App\\Jobs\\SendEmails::process" \
-    --arg "user@example.com" \
-    --arg "weekly"
+./gluo list                         # the commands, with the first line of each PHPDoc
+./gluo --env=dev list --check       # validate every command without running it
+./gluo order:process --help         # the PHPDoc and: ./gluo order:process [limit]
+./gluo --env=dev order:process 50   # values map, in order, to the method parameters
+./gluo --env=dev order:process -v   # stack trace on failure
+```
+
+`--env` (or `APP_ENV`) selects the configuration. The container is built only when a
+project command runs, so `./gluo list` and the built-ins need none.
+
+`list --check` statuses: `OK`, `INVALID_NAME`, `RESERVED`, `INVALID_TARGET`,
+`MISSING_CLASS`, `MISSING_METHOD`, `NOT_PUBLIC`, `NOT_IN_CONTAINER` (step 2 is missing).
+
+---
+
+## Install a command as a service
+
+```bash
+sudo ./gluo --env=prod install order:process 50                       # systemd (default): runs it again every second
+sudo ./gluo --env=prod install --template=crond order:process         # once a minute
+sudo ./gluo --env=prod install --name=orders --description="Order processor" order:process
+sudo ./gluo uninstall order:process                                   # (--name=orders if it was given)
+```
+
+- Templates: `systemd` (default), `crond`, `upstart`, `initd`.
+- The service runs `./gluo` itself, so it builds the container exactly as the command line
+  does. The command is written in full, nothing left to a default:
+  `ExecStart=/usr/bin/php '/var/www/myapp/gluo' --env='prod' order:process '50' --daemon`,
+  with `WorkingDirectory=/var/www/myapp`.
+- The service is named after the project directory and the command (`myapp-order-process`);
+  `--name` chooses another.
+- `--env` is required, and the command must pass `list --check`.
+
+For a cron schedule other than every minute, edit `/etc/cron.d/<name>` after installing.
+
+```bash
+sudo systemctl start|stop|restart|status myapp-order-process
+sudo systemctl enable myapp-order-process      # start on boot
+sudo journalctl -u myapp-order-process -f      # follow logs
+php vendor/bin/scriptify services              # list the services installed by Scriptify
+```
+
+---
+
+## `scriptify run` directly
+
+For a class without constructor dependencies, outside `./gluo`:
+
+```bash
+php vendor/bin/scriptify run "App/Jobs/SendEmails::process" --arg "user@example.com" --arg "weekly"
 ```
 
 | Option | Short | Default | Purpose |
 |---|---|---|---|
 | `--arg VALUE` | `-a` | — | Pass an argument (positional, repeatable) |
-| `--bootstrap PATH` | `-b` | `vendor/autoload.php` | Autoloader path, relative to rootdir |
+| `--bootstrap PATH` | `-b` | `vendor/autoload.php` | Relative to rootdir: the autoloader, or a file that returns a PSR-11 container |
 | `--rootdir PATH` | `-r` | CWD | Project root directory |
 | `--daemon` | `-d` | false | Loop indefinitely (1 s sleep between calls) |
 | `--showdocs` | `-s` | false | Print method docblock and exit |
 
----
+With the default bootstrap the class is built with `new`. A `--bootstrap` file that
+returns a container has the class built by it, and the container must then hold the class.
+The project ships no such file: a class with dependencies belongs in a project command.
 
-## Your class
-
-No special interface needed. The only constraint is a **no-argument constructor**:
-
-```php
-namespace App\Jobs;
-
-use ByJG\Config\Definition as Config;
-
-class SendEmails
-{
-    // ✓ no-arg constructor — scriptify can instantiate this
-    public function process(string $recipient = 'all'): void
-    {
-        // Use DI container normally inside the method
-        $mailer = Config::get(MailWrapperInterface::class);
-        // ...
-    }
-}
-```
-
-> The DI container is available inside the method body because scriptify loads your
-> bootstrap/autoloader before calling the method. `Config::get()` works as long as
-> `ConfigBootstrap::init()` (or equivalent) is called somewhere in the autoload chain.
-> If it isn't, call it explicitly at the start of the method.
-
----
-
-## Setting up the DI container in scriptify context
-
-If the project bootstrap doesn't auto-initialize the DI container, create a thin
-entry-point class:
-
-```php
-namespace App\Console;
-
-use ByJG\Config\Definition as Config;
-
-class Bootstrap
-{
-    public function init(): void
-    {
-        // Only do this once — boot the DI container
-        require_once __DIR__ . '/../../config/bootstrap.php';
-    }
-}
-```
-
-Or call `ConfigBootstrap::init()` at the top of every command method:
-
-```php
-public function run(): void
-{
-    \App\Config\AppConfig::boot();   // idempotent — safe to call multiple times
-
-    $service = Config::get(OrderService::class);
-    $service->processNext();
-}
-```
+`scriptify install --template=... <name> --class "..." --rootdir ...` installs such a
+command as a service, the same way.
 
 ---
 
@@ -125,179 +167,60 @@ php vendor/bin/scriptify call /reports/daily \
 | `--rootdir PATH` | `-r` | Project root directory |
 | `--http-get KEY=VALUE` | `-g` | Query string parameter (repeatable) |
 
-**What it does internally:**
-
-```php
-$_SERVER['REQUEST_METHOD'] = 'GET';
-$_SERVER['REQUEST_URI']    = '/product/1';
-$_SERVER['QUERY_STRING']   = 'format=csv&date=2024-01-31';
-parse_str($_SERVER['QUERY_STRING'], $_GET);
-require_once 'public/index.php';   // triggers your full router
-```
-
 Your controller, middleware, and JWT handling all run normally. Only GET requests are
-supported — for queue-based triggers or POST-equivalent work use `scriptify run` instead.
-
-**Useful for:** cron-triggered reports, scheduled data exports, or any endpoint that
-performs work when hit with GET.
+supported — for work that is not a GET, write a project command.
 
 ---
 
-## Install as a cron job
+## Message queue consumers
 
-Runs the method on a schedule via `/etc/cron.d/`:
-
-```bash
-sudo php vendor/bin/scriptify install --template=crond my-job \
-    --class "\\App\\Jobs\\SyncInventory::run" \
-    --rootdir "/var/www/myapp" \
-    --bootstrap "vendor/autoload.php"
-```
-
-This writes `/etc/cron.d/my-job` running the command every minute (`* * * * *`).
-Edit the file to change the schedule:
-
-```bash
-sudo nano /etc/cron.d/my-job
-# Change "* * * * *" to "*/5 * * * *" for every 5 minutes
-```
-
----
-
-## Install as a systemd daemon
-
-Runs the method in a loop (`--daemon` flag passed automatically):
-
-```bash
-sudo php vendor/bin/scriptify install --template=systemd order-consumer \
-    --class "\\App\\Services\\OrderConsumer::consume" \
-    --rootdir "/var/www/myapp" \
-    --bootstrap "vendor/autoload.php" \
-    --description "Order Queue Consumer" \
-    --env APP_ENV=production \
-    --env QUEUE_CONNECTION="amqp://user:pass@rabbitmq.local:5672/"
-```
-
-This creates:
-- `/etc/systemd/system/order-consumer.service`
-- `/etc/scriptify/order-consumer.env` (environment variables)
-
-```bash
-sudo systemctl start   order-consumer
-sudo systemctl stop    order-consumer
-sudo systemctl restart order-consumer
-sudo systemctl status  order-consumer
-sudo systemctl enable  order-consumer   # start on boot
-sudo journalctl -u order-consumer -f    # follow logs
-```
-
----
-
-## Other service types
-
-```bash
-# Init.d (legacy Linux)
-sudo php vendor/bin/scriptify install --template=initd myservice \
-    --class "\\App\\Service::run" --rootdir "/var/www/myapp"
-# → /etc/init.d/myservice
-
-# Upstart (Ubuntu legacy)
-sudo php vendor/bin/scriptify install --template=upstart myservice \
-    --class "\\App\\Service::run" --rootdir "/var/www/myapp"
-# → /etc/init/myservice.conf
-```
-
----
-
-## Passing environment variables to services
-
-```bash
-sudo php vendor/bin/scriptify install --template=systemd myservice \
-    --class "\\App\\Service::run" \
-    --rootdir "/var/www/myapp" \
-    --env APP_ENV=production \
-    --env DB_URL="mysql://user:pass@localhost/db"
-```
-
-Variables are written to `/etc/scriptify/myservice.env` and available as `getenv()` inside
-your method.
-
----
-
-## Managing installed services
-
-```bash
-# List all services installed by scriptify
-php vendor/bin/scriptify services
-
-# Uninstall (removes service file + env file)
-sudo php vendor/bin/scriptify uninstall myservice
-```
-
----
-
-## Combining with message queue consumers
-
-A typical pattern: scriptify starts the consumer, which blocks on the queue:
+A consumer is a project command whose method blocks on the queue; install it as a systemd
+service. Inject the connector:
 
 ```php
-namespace App\Services;
+namespace RestReferenceArchitecture\Command;
 
-use ByJG\Config\Definition as Config;
 use ByJG\MessageQueueClient\Connector\ConnectorInterface;
 use ByJG\MessageQueueClient\Connector\Pipe;
+use ByJG\MessageQueueClient\Envelope;
 use ByJG\MessageQueueClient\Message;
 
 class OrderConsumer
 {
+    public function __construct(private ConnectorInterface $connector)
+    {
+    }
+
+    /**
+     * Consume the orders queue until it is told to stop.
+     */
     public function consume(): void
     {
-        $connector = Config::get(ConnectorInterface::class);
         $pipe = (new Pipe('orders'))->withDeadLetter(new Pipe('orders-dlq'));
 
-        // This blocks until EXIT is returned
-        $connector->consume(
+        $this->connector->consume(
             $pipe,
             function (Envelope $envelope): int {
                 // process...
                 return Message::ACK;
             },
-            fn($env, $ex) => Message::NACK
+            fn ($env, $ex) => Message::NACK
         );
     }
 }
 ```
 
-Install as a systemd service:
-
 ```bash
-sudo php vendor/bin/scriptify install --template=systemd order-consumer \
-    --class "\\App\\Services\\OrderConsumer::consume" \
-    --rootdir "/var/www/myapp" \
-    --env APP_ENV=production
+# 'queue' => OrderConsumer::class in Commands, registered in the container
+sudo ./gluo --env=prod install queue:consume
 ```
-
-Systemd restarts the process automatically if it exits unexpectedly.
 
 ---
 
 ## Interactive terminal (REPL)
 
 ```bash
-php vendor/bin/scriptify terminal
-php vendor/bin/scriptify terminal myservice    # loads /etc/scriptify/myservice.env
-```
-
-Optionally pre-load helpers:
-
-```php
-// .scriptify-preload.php
-use ByJG\Config\Definition as Config;
-AppConfig::boot();   // init DI so Config::get() works in the REPL
-```
-
-```bash
-php vendor/bin/scriptify terminal --preload .scriptify-preload.php
+./gluo --env=dev terminal      # preloads templates/scriptify/scriptify.php, with the container
 ```
 
 ---
@@ -306,13 +229,13 @@ php vendor/bin/scriptify terminal --preload .scriptify-preload.php
 
 | Goal | Command |
 |---|---|
-| Run once | `php vendor/bin/scriptify run "\\Ns\\Class::method" --arg value` |
-| Show method docs | `php vendor/bin/scriptify run "\\Ns\\Class::method" --showdocs` |
-| Call REST endpoint | `php vendor/bin/scriptify call /path --controller public/index.php --http-get "k=v"` |
-| Install cron | `sudo php vendor/bin/scriptify install --template=crond name --class "..." --rootdir ...` |
-| Install systemd | `sudo php vendor/bin/scriptify install --template=systemd name --class "..." --rootdir ...` |
+| List / validate commands | `./gluo list`, `./gluo --env=dev list --check` |
+| Run a project command | `./gluo --env=dev order:process 50` |
+| Show its docs | `./gluo order:process --help` |
+| Install as a service | `sudo ./gluo --env=prod install [--template=crond] order:process` |
+| Remove the service | `sudo ./gluo uninstall order:process` |
 | List services | `php vendor/bin/scriptify services` |
-| Remove service | `sudo php vendor/bin/scriptify uninstall name` |
-| Start/stop/restart | `sudo systemctl start\|stop\|restart name` |
-| View logs | `sudo journalctl -u name -f` |
-| REPL | `php vendor/bin/scriptify terminal` |
+| Call a REST endpoint | `php vendor/bin/scriptify call /path --controller public/index.php --http-get "k=v"` |
+| Start/stop/restart | `sudo systemctl start\|stop\|restart <name>` |
+| View logs | `sudo journalctl -u <name> -f` |
+| REPL | `./gluo --env=dev terminal` |

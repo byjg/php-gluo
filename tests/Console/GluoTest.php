@@ -3,13 +3,14 @@
 namespace Tests\Console;
 
 use Builder\Scripts;
-use ByJG\Authenticate\Service\UsersService;
 use ByJG\Gluo\Console\Launcher;
+use ByJG\Scriptify\CommandProvider;
+use RestReferenceArchitecture\Command\Commands;
 use Tests\Controller\BaseApiTestCase;
 
 /**
- * The ./gluo wiring this project owns: config/scriptify-bootstrap.php, config/commands.php
- * and Builder\Scripts, against the real container and the migrated test database.
+ * The ./gluo wiring this project owns: the Commands provider and Builder\Scripts, against
+ * the real container and the migrated test database.
  * Extends BaseApiTestCase to reuse the database reset and environment guard.
  */
 class GluoTest extends BaseApiTestCase
@@ -17,23 +18,24 @@ class GluoTest extends BaseApiTestCase
     protected const ROOT = __DIR__ . '/../..';
 
     /**
-     * @param array<string, string>|null $commands Replaces config/commands.php when given.
+     * @param array<string, string>|null $commands Replaces the Commands provider when given.
      * @return array{0: int, 1: string}
      */
     protected function gluo(array $arguments, ?array $commands = null): array
     {
-        $launcher = new class (self::ROOT, $commands) extends Launcher {
-            public function __construct(string $rootDir, private ?array $commands)
+        $provider = $commands === null ? new Commands() : new class ($commands) implements CommandProvider {
+            /** @param array<string, string> $commands */
+            public function __construct(private array $commands)
             {
-                parent::__construct($rootDir);
             }
 
             #[\Override]
-            public function getProjectCommands(): array
+            public function commands(): array
             {
-                return $this->commands ?? parent::getProjectCommands();
+                return $this->commands;
             }
         };
+        $launcher = new Launcher(self::ROOT, $provider);
 
         ob_start();
         try {
@@ -55,19 +57,7 @@ class GluoTest extends BaseApiTestCase
         $this->assertStringContainsString('codegen:all            OK', $output);
     }
 
-    public function testShippedRegistryIsAnArrayOfTargets(): void
-    {
-        $commands = require self::ROOT . '/config/commands.php';
-
-        $this->assertIsArray($commands);
-        foreach ($commands as $name => $target) {
-            $this->assertTrue(Launcher::isValidName((string) $name), "Invalid command name: $name");
-            $this->assertFalse(Launcher::isBuiltIn((string) $name), "Reserved command name: $name");
-            $this->assertStringContainsString('::', $target);
-        }
-    }
-
-    public function testBootstrapReturnsTheContainerThatBuildsRegisteredServices(): void
+    public function testTheGluoContainerBuildsTheRegisteredServices(): void
     {
         $commands = [
             'user:find' => 'ByJG/Authenticate/Service/UsersService::getByEmail',
@@ -88,10 +78,7 @@ class GluoTest extends BaseApiTestCase
 
     public function testBuiltInsRunThroughTheProjectScripts(): void
     {
-        $launcher = new Launcher(self::ROOT);
-
-        $this->assertInstanceOf(Scripts::class, $launcher->getScripts());
-        $this->assertTrue($launcher->getContainer()->has(UsersService::class));
+        $this->assertInstanceOf(Scripts::class, (new Launcher(self::ROOT, new Commands()))->getScripts());
     }
 
     public function testMigrateVersionAgainstTheTestDatabase(): void

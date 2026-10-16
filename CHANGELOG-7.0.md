@@ -55,10 +55,13 @@
   | `./gluo user:cleanup 30` | `scriptify run "\\MyApp\\Service\\MaintenanceService::cleanOldRecords" --arg 30` |
 
   The Composer scripts remain as aliases that call `./gluo`, so existing pipelines keep
-  working. Project commands are declared in the new `config/commands.php`, and
-  `config/scriptify-bootstrap.php` hands the Gluo container to Scriptify so a command's
-  class gets its constructor dependencies. `./gluo list --check` validates every command
-  without running it. See [The gluo Command](docs/reference/gluo-cli.md).
+  working. Project commands are declared in the new `src/Command/Commands.php`, a
+  `ByJG\Scriptify\CommandProvider` that the `./gluo` script passes to the launcher, with
+  class references (`PaymentCommands::class`) instead of strings. They run with the Gluo
+  container, so a command's class gets its constructor dependencies.
+  `./gluo list --check` validates every command without running it, and
+  `./gluo --env=prod install <command>` installs one as a system service.
+  See [The gluo Command](docs/reference/gluo-cli.md).
 
   `Builder\Scripts` lost its static Composer entry points (`migrate`, `codeGenerator`,
   `genOpenApiDocs`, `checkOpenApi`); the `run*` methods the launcher calls are unchanged.

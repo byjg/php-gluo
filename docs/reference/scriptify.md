@@ -213,16 +213,17 @@ scriptify terminal --env DEBUG=true --env LOG_LEVEL=verbose
 Execute any public method of your classes directly from the command line.
 
 :::tip Prefer project commands
-Give the method a short name in `config/commands.php` and run it as
+Give the method a short name in `src/Command/Commands.php` and run it as
 `./gluo user:cleanup 30`, or map a whole class to expose all its public methods: see
-[Project commands](gluo-cli.md#project-commands). The
-launcher runs it through Scriptify with the Gluo container, so the class gets its
-constructor dependencies. The `scriptify run` form below is what it does underneath.
+[Project commands](gluo-cli.md#project-commands). The launcher runs it through Scriptify
+with the Gluo container, so the class gets its constructor dependencies, and
+`./gluo install` makes it a service.
 :::
 
-To build a class that has constructor dependencies, point `--bootstrap` at
-`config/scriptify-bootstrap.php`, which returns the Gluo container. With the default
-bootstrap (`vendor/autoload.php`) Scriptify can only build classes with `new`.
+With the default `--bootstrap` (`vendor/autoload.php`), `scriptify run` builds the class
+with `new`. A `--bootstrap` file that returns a PSR-11 container has the class built by
+it, and then the container must hold the class. The project does not ship such a file:
+a project command does the same through `./gluo`, with the Gluo container.
 
 ### Basic Usage
 
