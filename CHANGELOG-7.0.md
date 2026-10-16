@@ -5,7 +5,19 @@
 
 ## Breaking Changes
 
-- None.
+- `config/dev/03-api.php` builds the OpenAPI `Schema` with `Schema::fromFile()`. It used
+  `Schema::getInstance()`, which byjg/swagger-test 7.0 removes (deprecated since 6.0): a project
+  created from an earlier template fails every API test with
+  `class ByJG\ApiTools\Base\Schema does not have a method "getInstance"` once it updates. Make
+  the same change in the project:
+
+  ```php
+  Schema::class => DI::bind(Schema::class)
+      ->withFactoryMethod('fromFile', [__DIR__ . '/../../public/docs/openapi.json'])
+      ->toSingleton(),
+  ```
+
+  `fromFile()` exists since swagger-test 6.0, so the change can be made before updating.
 
 ## Changes
 
