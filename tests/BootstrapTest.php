@@ -30,16 +30,16 @@ class BootstrapTest extends TestCase
     }
 
     /**
-     * The server comes from the variable; the database is the one config/test/credentials.env
-     * connects to on the host.
+     * The server comes from the variable; the database is the test database of config/test
+     * (`/localtest` on a server, `db/localtest.sqlite` for SQLite: the name is the same).
      */
     public function testKeepsTheServerAndForcesTheTestDatabase(): void
     {
         preg_match('/^DBDRIVER_CONNECTION=(.*)$/m', (string)file_get_contents(__DIR__ . '/../config/test/credentials.env'), $match);
-        $testDatabase = (string)parse_url($match[1], PHP_URL_PATH);
+        $testDatabase = pathinfo((string)parse_url($match[1], PHP_URL_PATH), PATHINFO_FILENAME);
 
         $this->assertSame(
-            'mysql://root:secret@gluo-database' . $testDatabase,
+            'mysql://root:secret@gluo-database/' . $testDatabase,
             $this->connectionAfterBootstrap('mysql://root:secret@gluo-database/localdev')
         );
     }

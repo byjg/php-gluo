@@ -62,7 +62,7 @@ jobs:
       # db/ (copied into the image) is written from .db-dialects/, not versioned
       - name: Write the MySQL database files
         run: |
-          docker run --rm -v "$PWD":/srv -w /srv byjg/php:8.5-cli \
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/srv -w /srv byjg/php:8.5-cli \
             sh -c "composer install --no-interaction --no-progress && ./gluo --env=dev db:dialect mysql"
 
       - name: Set up QEMU
