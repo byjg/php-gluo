@@ -19,6 +19,10 @@
 
   `fromFile()` exists since swagger-test 6.0, so the change can be made before updating.
 
+- byjg/swagger-test 7.0 also removes `assertRequest()` (deprecated since 6.0), the former name of
+  `sendRequest()`. The template's tests already use `sendRequest()`; a project's own test that calls
+  `$this->assertRequest($request)` must call `$this->sendRequest($request)`.
+
 ## Changes
 
 - **The database server is the `gluo-database` service, in `docker-compose.database.yml`.** It was
@@ -199,3 +203,4 @@ While 7.0 is unreleased these resolve to `7.0.x-dev` from each component's
   `.db-dialects/` are removed from a created project. The CI runs the command before the tests and
   before building the image.
 - `phpunit.xml.dist` renamed to `phpunit.xml`.
+- `.vscode/launch.json` is removed, and `.vscode` is ignored by git.

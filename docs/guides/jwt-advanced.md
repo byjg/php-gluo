@@ -548,7 +548,7 @@ class CustomJwtContext extends JwtContext
 ```php
 try {
     // Token validation happens automatically in RequireAuthenticated
-    $this->assertRequest($request);
+    $this->sendRequest($request);
 } catch (Error401Exception $e) {
     // Token expired or invalid
     if (strpos($e->getMessage(), 'expired') !== false) {

@@ -265,7 +265,7 @@ class ExampleCrudTest extends BaseApiTestCase
     {
         // Authenticate to get a valid token (if the endpoint requires auth)
         $authResult = json_decode(
-            $this->assertRequest(Credentials::requestLogin(Credentials::getAdminUser()))
+            $this->sendRequest(Credentials::requestLogin(Credentials::getAdminUser()))
                 ->getBody()
                 ->getContents(),
             true
@@ -281,18 +281,18 @@ class ExampleCrudTest extends BaseApiTestCase
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
             ->withPath("/example/crud/status")
-            ->withBody([
+            ->withRequestBody(json_encode([
                 'id' => $recordId,
                 'status' => $newStatus
-            ])
+            ]))
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $authResult['token']
             ])
-            ->assertResponseCode(200);
+            ->expectStatus(200);
 
         // Execute the request
-        // assertRequest automatically validates response against OpenAPI spec
-        $this->assertRequest($request);
+        // sendRequest automatically validates response against OpenAPI spec
+        $this->sendRequest($request);
 
         // Verify the database was updated correctly
         $service = Config::get(ExampleCrudService::class);
@@ -303,7 +303,7 @@ class ExampleCrudTest extends BaseApiTestCase
 ```
 
 :::tip Automatic Validation
-The `assertRequest()` method automatically validates:
+The `sendRequest()` method automatically validates:
 - Response status code matches OpenAPI specification
 - Response body structure matches OpenAPI schema
 - No need for manual assertions on response format!

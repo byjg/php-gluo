@@ -110,7 +110,7 @@ Document every response status code so the OpenAPI spec (and test validation) st
 
 ## Request Validation with `#[ValidateRequest]`
 
-Add `#[ValidateRequest]` to a controller method to automatically validate the incoming request body against the OpenAPI schema before the method executes. Invalid payloads receive a 422 response.
+Add `#[ValidateRequest]` to a controller method to automatically validate the incoming request body against the OpenAPI schema before the method executes. Invalid payloads receive a 400 response (`Error400Exception`).
 
 ```php
 use ByJG\Gluo\Attribute\ValidateRequest;

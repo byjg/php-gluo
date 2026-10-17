@@ -137,7 +137,7 @@ Copy the output and replace `JWT_SECRET` in the appropriate `credentials.env`.
 :::
 
 :::caution Never commit secrets
-Each environment gets its own `config/<env>/credentials.env` — keep this file out of version control (it is already listed in `.gitignore`).
+Each environment gets its own `config/<env>/credentials.env`, and it is versioned (it is not in `.gitignore`). Keep real secrets out of it: put local ones in `config/.env`, which is in `.gitignore`, and production ones in OS environment variables (see [Configuration](configuration.md#credentials-management)).
 :::
 
 ```php title="config/dev/02-security.php"
@@ -157,7 +157,7 @@ return [
 ];
 ```
 
-See the caution above — never commit `credentials.env`.
+See the caution above — never commit real secrets in `credentials.env`.
 
 ### Available Endpoints
 

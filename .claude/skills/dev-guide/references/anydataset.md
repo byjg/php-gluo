@@ -91,8 +91,8 @@ foreach ($ds->getIterator($filter) as $row) {
 ```
 
 **Available relations:**
-`EQUAL`, `NotEqual`, `LessThan`, `GreaterThan`, `LessThanOrEqualTo`,
-`GreaterThanOrEqualTo`, `StartsWith`, `CONTAINS`, `IN`, `NotIn`,
+`Equal`, `NotEqual`, `LessThan`, `GreaterThan`, `LessThanOrEqualTo`,
+`GreaterThanOrEqualTo`, `StartsWith`, `Contains`, `In`, `NotIn`,
 `IsNull`, `IsNotNull`
 
 ### Grouped conditions (AND/OR)

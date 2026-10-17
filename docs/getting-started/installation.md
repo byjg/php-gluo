@@ -26,7 +26,7 @@ title: Getting Started
 - openssl
 - pcre
 - pdo
-- pdo_mysql
+- pdo_mysql (pdo_pgsql or pdo_sqlite for a PostgreSQL or SQLite project)
 - phar
 - simplexml
 - tokenizer
@@ -92,12 +92,10 @@ The installation will prompt you for configuration details:
 ========================================================
 
 Project Directory: ~/tutorial
-Git user name [Your Name]:
-Git user email [your.email@example.com]:
 PHP Version [8.4]: 8.4
 Project namespace [MyRest]: Tutorial
 Composer name [me/myrest]:
-Database schema [mysql]:
+Database schema (mysql, postgres, sqlite) [mysql]:
 Database host [gluo-database]:
 Database user [root]:
 Database password [mysqlp455w0rd]:
@@ -184,15 +182,14 @@ docker compose -f docker-compose.yml up -d
 
 ```shell
 # Create a fresh database (warning: destroys existing data)
-APP_ENV=dev ./gluo migrate:reset --yes
+APP_ENV=dev ./gluo migrate:reset
 
 # Alternative if local PHP isn't configured: run it in the rest container
-# docker compose exec rest ./gluo migrate:reset --yes
+# docker compose exec rest ./gluo migrate:reset
 ```
 
 Expected output:
 ```text
-> Builder\Scripts::migrate
 > Environment: dev
 > Database: mysql://root:****@127.0.0.1/localdev
 

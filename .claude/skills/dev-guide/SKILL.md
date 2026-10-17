@@ -113,7 +113,8 @@ optional Vite + React frontend is a sibling package under `frontend/`.
 ```
 <repo root>/               # the PHP REST API — everything below is relative to the root
 ├── composer.json          # the single manifest (require, autoload, scripts)
-├── docker-compose.yml     # API :8080, frontend :7080 (HTTPS :7443), MySQL :3306
+├── docker-compose.yml     # API :8080, frontend :7080 (HTTPS :7443); includes docker-compose.database.yml
+├── docker-compose.database.yml # the database server (`gluo-database`; none for SQLite)
 ├── docker/                # Dockerfile (API) + Dockerfile-html (frontend)
 ├── frontend/              # optional React 19 + Vite 6 + Tailwind SPA (see Frontend note below)
 

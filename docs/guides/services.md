@@ -81,9 +81,9 @@ abstract class BaseService
         return $result;
     }
 
-    public function list(?int $page = 0, ?int $size = 20): array
+    public function list(?int $page = 0, ?int $size = 20, string|array|null $orderBy = null): array
     {
-        return $this->baseRepository->list($page ?? 0, $size ?? 20);
+        return $this->baseRepository->list($page ?? 0, $size ?? 20, $orderBy);
     }
 
     public function save(mixed $model): void

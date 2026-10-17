@@ -30,7 +30,7 @@ Gluo splits the problem the right way:
 # Create your project (the installer asks a few questions — see below)
 composer create-project byjg/gluo my-api ^7.0
 
-# Start containers (API, MySQL, and the frontend if you kept it)
+# Start containers (API, the database server, and the frontend if you kept it)
 cd my-api
 docker compose up -d
 
@@ -58,7 +58,8 @@ my-api/
 ├── tests/
 ├── frontend/             # optional Vite + React frontend (React 19 + Vite 6 + Tailwind)
 ├── docker/               # Dockerfile (API) + Dockerfile-html (frontend)
-├── docker-compose.yml    # API :8080, frontend :7080 (HTTPS :7443), MySQL :3306
+├── docker-compose.yml    # API :8080, frontend :7080 (HTTPS :7443); includes the next file
+├── docker-compose.database.yml # the database server (MySQL :3306, PostgreSQL :5432; none for SQLite)
 └── README.md             # quick start + link to the online documentation
 ```
 

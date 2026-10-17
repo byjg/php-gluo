@@ -37,8 +37,7 @@ $body     = $response->getBody()->getContents();    // raw JSON string
 $data     = json_decode($body, true);               // decoded array
 ```
 
-Note: `assertRequest()` still works (delegates to `sendRequest()`), but it's deprecated
-since 6.0 — prefer `sendRequest()`.
+Note: `assertRequest()`, the former name of `sendRequest()`, is removed in byjg/swagger-test 7.0.
 
 ## Login helper pattern
 

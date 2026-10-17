@@ -142,8 +142,16 @@ public function getNote(HttpResponse $response, HttpRequest $request): void
 #[RequireAuthenticated]
 public function listNote(HttpResponse $response, HttpRequest $request): void
 {
-    $models = Note::all((int)($request->queryString('page') ?? 0), (int)($request->queryString('size') ?? 50));
-    $response->write($models);
+    // Paginated (default is page 0, 50 per page) and sorted by the orderBy parameter
+    $page = (int)($request->queryString('page') ?? 0);
+    $size = (int)($request->queryString('size') ?? 50);
+
+    $query = Query::getInstance()
+        ->table(Note::tableName())
+        ->orderBy(OrderBy::fromQueryString($request->queryString('orderBy'), Note::class))
+        ->limit($page * $size, $size);
+
+    $response->write(Note::query($query));
 }
 ```
 

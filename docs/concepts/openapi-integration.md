@@ -25,7 +25,7 @@ Run the generator whenever you add or change annotations:
 APP_ENV=dev ./gluo openapi
 ```
 
-The composer script invokes `swagger-php` with those scan paths (see `getOpenApiScanPaths()` in `ByJG\Gluo\Builder\BaseScripts`). The output is written to `public/docs/openapi.json`.
+`./gluo openapi` invokes `swagger-php` with those scan paths (see `getOpenApiScanPaths()` in `ByJG\Gluo\Builder\BaseScripts`). The output is written to `public/docs/openapi.json`.
 
 ## The Generated File
 

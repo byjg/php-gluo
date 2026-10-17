@@ -216,8 +216,10 @@ If validation fails, the client receives a 400 error:
 
 ```json
 {
-    "error": "Bad Request",
-    "message": "Validation failed: field 'email' must be a valid email address"
+    "error": {
+        "type": "Error 400",
+        "message": "Validation failed: field 'email' must be a valid email address"
+    }
 }
 ```
 
@@ -320,16 +322,20 @@ See [JWT Advanced Guide](../guides/jwt-advanced.md) for customizing JWT claims.
 **403 Forbidden** (wrong role):
 ```json
 {
-    "error": "Forbidden",
-    "message": "Insufficient permissions"
+    "error": {
+        "type": "Error 403",
+        "message": "Insufficient privileges"
+    }
 }
 ```
 
 **401 Unauthorized** (no token):
 ```json
 {
-    "error": "Unauthorized",
-    "message": "Authentication required"
+    "error": {
+        "type": "Error 401",
+        "message": "Absent authorization token"
+    }
 }
 ```
 
@@ -520,8 +526,7 @@ try {
     // ValidateRequest attribute runs automatically
 } catch (Error400Exception $e) {
     // {
-    //     "error": "Bad Request",
-    //     "message": "Validation failed: ..."
+    //     "error": {"type": "Error 400", "message": "Validation failed: ..."}
     // }
 }
 ```
@@ -535,8 +540,7 @@ try {
     // RequireRole attribute runs automatically
 } catch (Error403Exception $e) {
     // {
-    //     "error": "Forbidden",
-    //     "message": "Insufficient permissions"
+    //     "error": {"type": "Error 403", "message": "Insufficient privileges"}
     // }
 }
 ```
@@ -556,25 +560,9 @@ public function processBefore(HttpResponse $response, HttpRequest $request): voi
 
 ### Global Error Handler
 
-Configure global error handling in `config/<env>/03-api.php`:
-
-```php
-use ByJG\RestServer\ErrorHandler\ErrorHandler;
-
-$errorHandler = new ErrorHandler();
-$errorHandler->addHandler(function(\Throwable $ex, $request, $response) {
-    // Custom error logging
-    error_log($ex->getMessage());
-
-    // Custom error response format
-    return [
-        'status' => 'error',
-        'code' => $ex->getCode(),
-        'message' => $ex->getMessage(),
-        'timestamp' => date('c')
-    ];
-});
-```
+The exceptions thrown by the attributes reach the `Server`'s error handler, configured on the
+`Server` binding in `config/<env>/03-api.php` (its logger, `withDetailedErrorHandler()`). See
+[Global Error Handling](../guides/error-handling.md#global-error-handling).
 
 ## Best Practices
 

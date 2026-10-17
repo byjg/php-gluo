@@ -20,8 +20,9 @@ my-api/
 ├── public/               # the API docroot: app.php, index.html, docs/
 ├── templates/            # email + scriptify templates
 ├── tests/
-├── builder/              # code generator + migration entry points
-├── phpunit.xml.dist
+├── builder/              # Scripts.php: overrides of the ./gluo built-in commands
+├── gluo                  # the command-line entry point (./gluo)
+├── phpunit.xml
 ├── psalm.xml
 │
 ├── frontend/             # the SPA — its own package.json, node_modules, build
@@ -29,7 +30,8 @@ my-api/
 │   └── public/           # Vite static passthrough (NOT a docroot)
 │
 ├── docker/               # Dockerfile (API) + Dockerfile-html (frontend)
-├── docker-compose.yml    # API :8080, frontend :7080 (HTTPS :7443), MySQL :3306
+├── docker-compose.yml    # API :8080, frontend :7080 (HTTPS :7443); includes the next file
+├── docker-compose.database.yml # the database server (MySQL :3306, PostgreSQL :5432; none for SQLite)
 └── README.md             # quick start + link to the online documentation
 ```
 

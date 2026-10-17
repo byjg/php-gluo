@@ -50,7 +50,7 @@ Add additional directories (e.g., `tests/Service`) as needed—PHPUnit's configu
 
 ```bash
 # Create or reset the testing database
-APP_ENV=test ./gluo migrate:reset --yes
+APP_ENV=test ./gluo migrate:reset
 
 # Run all tests using the composer script
 APP_ENV=test composer run test
@@ -214,7 +214,7 @@ The package base class exposes overridable hooks:
 
 ```php
 abstract protected function getOpenApiPath(): string;   // your openapi.json
-protected function getDatabaseClass(): string;           // default: MySqlDatabase::class
+protected function getDatabaseClass(): ?string;          // default: null, the scheme of DBDRIVER_CONNECTION picks MySQL, PostgreSQL or SQLite
 protected function getMigrationsPath(): string;          // default: <project>/db
 ```
 
@@ -327,11 +327,12 @@ public function testLoginInvalidCredentials()
 ```php
 public function testExpiredToken()
 {
-    $expiredToken = JwtWrapper::createToken([
+    $jwt = Config::get(JwtWrapper::class);
+    $expiredToken = $jwt->generateToken($jwt->createJwtData([
         'userid' => 1,
         'name' => 'Test User',
         'role' => 'user'
-    ], -3600); // Expired 1 hour ago
+    ], -3600)); // Expired 1 hour ago
 
     $this->expectException(Error401Exception::class);
 
@@ -634,9 +635,7 @@ public function testCreateProduct()
 ### 4. Use Data Providers for Similar Tests
 
 ```php
-/**
- * @dataProvider invalidProductDataProvider
- */
+#[DataProvider('invalidProductDataProvider')]   // PHPUnit\Framework\Attributes\DataProvider
 public function testCreateWithInvalidData($payload, $expectedMessage)
 {
     $this->expectException(Error400Exception::class);
@@ -646,7 +645,7 @@ public function testCreateWithInvalidData($payload, $expectedMessage)
     $productService->create($payload);
 }
 
-public function invalidProductDataProvider(): array
+public static function invalidProductDataProvider(): array
 {
     return [
         'missing name' => [

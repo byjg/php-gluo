@@ -41,7 +41,6 @@ APP_ENV=dev ./gluo migrate:update
 
 Expected output:
 ```text
-> Builder\Scripts::migrate
 > Environment: dev
 > Database: mysql://root:****@127.0.0.1/localdev
 
@@ -60,7 +59,6 @@ APP_ENV=dev ./gluo migrate:update --version=1
 The result should be:
 
 ```text
-> Builder\Scripts::migrate
 > Environment: dev
 > Database: mysql://root:****@127.0.0.1/localdev
 
@@ -80,7 +78,7 @@ Generate all necessary files for your new table:
 APP_ENV=dev ./gluo migrate:update
 # OR: ./gluo --env=dev migrate:update
 
-# Generate files (options: rest, model, test, repo, config, or all)
+# Generate files (codegen:all, or one of codegen:model, codegen:repository, codegen:service, codegen:controller, codegen:test)
 APP_ENV=dev ./gluo codegen:all --table example_crud --save
 # OR: ./gluo --env=dev codegen:all --table example_crud --save
 ```

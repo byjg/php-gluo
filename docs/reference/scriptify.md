@@ -338,22 +338,15 @@ sudo service queue-worker status
 
 ## Calling REST Endpoints
 
-Execute REST API endpoints directly from the command line.
-
-### Basic GET Request
-
-```bash
-scriptify endpoint GET http://localhost:8080/api/sample/1
-```
-
-### POST with Headers and Body
+`scriptify call` runs a GET request through the front controller, without a web server. The
+`--controller` path is relative to the current directory:
 
 ```bash
-scriptify endpoint POST http://localhost:8080/api/sample \
-    --header "Content-Type: application/json" \
-    --header "Authorization: Bearer token123" \
-    --body '{"name": "Test", "value": 123}'
+scriptify call /sample/ping --controller public/app.php
 ```
+
+Add `--http-get "key=value"` (repeatable) for query string parameters. Only GET requests are
+supported.
 
 ## Environment Variables
 
@@ -398,26 +391,17 @@ scriptify terminal myservice
 
 ## Configuration
 
-### Composer Terminal Command
+### The Terminal Command
 
-The `./gluo terminal` command is built in, so you can run it from the repository root:
+`./gluo terminal` is a built-in command (`composer terminal` is an alias of it). It runs
+Scriptify's terminal from the repository root with:
+- **`--preload`**: `templates/scriptify/scriptify.php`, when the file exists
+- **`--env APP_ENV=<env>`**: the environment of `--env` or `APP_ENV`, when one is set
 
-```json title="composer.json"
-{
-  "scripts": {
-    "terminal": "./vendor/bin/scriptify terminal --preload ./templates/scriptify/scriptify.php --env APP_ENV=$APP_ENV"
-  }
-}
-```
+For other options, run Scriptify directly:
 
-This configuration:
-- **`--preload`**: Loads helper functions from `templates/scriptify/scriptify.php`
-- **`--env APP_ENV=$APP_ENV`**: Passes the current APP_ENV to the terminal
-
-You can customize this command to add additional options:
-
-```json
-"terminal": "./vendor/bin/scriptify terminal --preload ./templates/scriptify/scriptify.php --env APP_ENV=$APP_ENV --env DEBUG=true"
+```bash
+./vendor/bin/scriptify terminal --preload ./templates/scriptify/scriptify.php --env APP_ENV=dev --env DEBUG=true
 ```
 
 ### Preload File Location

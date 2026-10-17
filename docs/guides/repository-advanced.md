@@ -409,7 +409,7 @@ class TaskRepository extends BaseRepository
 
 ### Querying by UUID
 
-`BaseRepository::get()` uses `HexUuidLiteral::create($itemId)` internally, so passing a UUID string “just works”:
+`BaseRepository::get()` passes the id to micro-orm's `Repository::get()`, which applies the primary key's update function (`FieldUuidAttribute` turns a UUID string into a `HexUuidLiteral`), so passing a UUID string “just works”:
 
 ```php
 $entity = $repository->get('550e8400-e29b-41d4-a716-446655440000');

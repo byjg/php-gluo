@@ -22,7 +22,7 @@ Advanced configuration topics including environment inheritance, config loading,
 Configuration is powered by [byjg/config](https://github.com/byjg/config):
 
 - **Environment Inheritance**: test and staging inherit from dev; prod inherits from staging
-- **Flat, numbered files**: `config/{env}/01-infrastructure.php` … `06-external.php`, loaded in filename order
+- **Flat, numbered files**: `config/{env}/01-infrastructure.php` … `07-controllers.php`, loaded in filename order
 - **`.env` params**: each environment has a `credentials.env`; `config/.env` provides local machine overrides
 - **Caching**: staging and prod cache the resolved container, set in `config/ConfigBootstrap.php` ([see below](#5-environment-specific-caching))
 
@@ -93,7 +93,8 @@ config/
     ├── 03-api.php            # Route list, middleware, HTTP handler
     ├── 04-repositories.php   # Repository DI bindings
     ├── 05-services.php       # Service DI bindings
-    └── 06-external.php       # Mail and other external services
+    ├── 06-external.php       # Mail and other external services
+    └── 07-controllers.php    # The Autowire rule for the controllers
 ```
 
 byjg/config loads, for the active environment (and its parents): every `*.php` file

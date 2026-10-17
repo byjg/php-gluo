@@ -149,13 +149,11 @@ so the full routing pipeline runs exactly as if an HTTP request arrived.
 
 ```bash
 php vendor/bin/scriptify call /product/1 \
-    --controller "public/index.php" \
-    --rootdir "/var/www/myapp"
+    --controller "public/app.php"
 
 # With query string parameters
 php vendor/bin/scriptify call /reports/daily \
-    --controller "public/index.php" \
-    --rootdir "/var/www/myapp" \
+    --controller "public/app.php" \
     --http-get "format=csv" \
     --http-get "date=2024-01-31"
 ```
@@ -163,8 +161,7 @@ php vendor/bin/scriptify call /reports/daily \
 | Option | Short | Purpose |
 |---|---|---|
 | (first argument) | — | The endpoint path, e.g. `/product/1` |
-| `--controller PATH` | `-c` | Entry-point PHP file, relative to rootdir (e.g. `public/index.php`) |
-| `--rootdir PATH` | `-r` | Project root directory |
+| `--controller PATH` | `-c` | Entry-point PHP file, relative to the current directory (`public/app.php`) |
 | `--http-get KEY=VALUE` | `-g` | Query string parameter (repeatable) |
 
 Your controller, middleware, and JWT handling all run normally. Only GET requests are
@@ -235,7 +232,7 @@ sudo ./gluo --env=prod install queue:consume
 | Install as a service | `sudo ./gluo --env=prod install [--template=crond] order:process` |
 | Remove the service | `sudo ./gluo uninstall order:process` |
 | List services | `php vendor/bin/scriptify services` |
-| Call a REST endpoint | `php vendor/bin/scriptify call /path --controller public/index.php --http-get "k=v"` |
+| Call a REST endpoint | `php vendor/bin/scriptify call /path --controller public/app.php --http-get "k=v"` |
 | Start/stop/restart | `sudo systemctl start\|stop\|restart <name>` |
 | View logs | `sudo journalctl -u <name> -f` |
 | REPL | `./gluo --env=dev terminal` |
