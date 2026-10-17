@@ -31,8 +31,13 @@ class PostCreateScript
     {
         $this->applyDialect($workdir, $dbConfig['schema'] ?? 'mysql');
 
-        $devConnection = self::buildConnectionString($dbConfig, $dbConfig['dev_database']);
-        $testConnection = self::buildConnectionString($dbConfig, $dbConfig['test_database']);
+        // The app in the rest container reaches the database by its service name (docker-compose.yml);
+        // the commands run on the host (./gluo, composer test) through the published port
+        // (credentials.env)
+        $containerConnection = self::buildConnectionString($dbConfig, $dbConfig['dev_database']);
+        $hostDbConfig = ['host' => '127.0.0.1'] + $dbConfig;
+        $devConnection = self::buildConnectionString($hostDbConfig, $dbConfig['dev_database']);
+        $testConnection = self::buildConnectionString($hostDbConfig, $dbConfig['test_database']);
 
         // ------------------------------------------------
         // Defining function to interactively walking through the directories
@@ -94,28 +99,27 @@ class PostCreateScript
             'config/staging/credentials.env',
             'config/prod/credentials.env',
             'docker-compose.yml',
+            'docker-compose.database.yml',
         ];
         foreach ($files as $file) {
             $contents = file_get_contents("$workdir/$file");
 
             // Common replacements for all files
             $contents = str_replace(
-                [
-                    'mysql://root:mysqlp455w0rd@mysql-container/mydb',
-                    'mysql://root:mysqlp455w0rd@mysql-container/localdev',
-                ],
+                'mysql://root:mysqlp455w0rd@gluo-database/localdev',
+                $containerConnection,
+                $contents
+            );
+            $contents = str_replace(
+                'mysql://root:mysqlp455w0rd@127.0.0.1/localdev',
                 $devConnection,
                 $contents
             );
             $contents = str_replace(
-                'mysql://root:mysqlp455w0rd@mysql-container/localtest',
+                'mysql://root:mysqlp455w0rd@127.0.0.1/localtest',
                 $testConnection,
                 $contents
             );
-
-            if ($file === 'docker-compose.yml') {
-                $contents = self::composeDatabase($contents, $dbConfig['schema'] ?? 'mysql');
-            }
 
             // staging and prod hold placeholders (CHANGE_ME), written as MySQL URIs: give them the
             // scheme of the database chosen
@@ -123,8 +127,16 @@ class PostCreateScript
                 $contents = self::placeholderConnection($contents, $dbConfig['schema'] ?? 'mysql');
             }
 
-            if (!empty($dbConfig['host'])) {
-                $contents = str_replace(['mysql-container', 'postgres-container'], $dbConfig['host'], $contents);
+            // The database server runs as the `gluo-database` service: a project that names its
+            // host otherwise gets the service under that name, so the host resolves in compose
+            if ($file === 'docker-compose.database.yml' && !empty($dbConfig['host'])) {
+                $contents = (string)preg_replace('/^  gluo-database:$/m', '  ' . $dbConfig['host'] . ':', $contents);
+            }
+
+            // A SQLite database is a file under db/, the same path in the rest container: it needs no
+            // connection of its own there
+            if ($file === 'docker-compose.yml' && ($dbConfig['schema'] ?? 'mysql') === 'sqlite') {
+                $contents = (string)preg_replace('/^(?:[ \t]*#[^\n]*\n)*[ \t]*- DBDRIVER_CONNECTION=[^\n]*\n/m', '', $contents);
             }
 
             if (!empty($dbConfig['password'])) {
@@ -132,7 +144,7 @@ class PostCreateScript
             }
             $contents = str_replace('resttest', $composerParts[1], $contents);
 
-            if ($file === 'docker-compose.yml' && !empty($dbConfig['password'])) {
+            if ($file === 'docker-compose.database.yml' && !empty($dbConfig['password'])) {
                 $contents = preg_replace(
                     '/(MYSQL_ROOT_PASSWORD:\s*)([^\s]+)/',
                     '$1' . $dbConfig['password'],
@@ -157,12 +169,17 @@ class PostCreateScript
             file_put_contents("$workdir/$file", $contents);
         }
 
+        // The tests force the test database on any server (tests/bootstrap.php)
+        $bootstrap = "$workdir/tests/bootstrap.php";
+        file_put_contents(
+            $bootstrap,
+            str_replace("'/localtest'", "'/" . $dbConfig['test_database'] . "'", (string)file_get_contents($bootstrap))
+        );
+
         // ------------------------------------------------
-        // Create .env.sample file with database connection example
-        // Build a localhost connection string for the developer's local machine
-        $localhostDbConfig = $dbConfig;
-        $localhostDbConfig['host'] = '127.0.0.1';
-        $localhostConnection = self::buildConnectionString($localhostDbConfig, $dbConfig['dev_database']);
+        // Create .env.sample file with database connection example (the host one, as in
+        // config/dev/credentials.env)
+        $localhostConnection = $devConnection;
 
         $envSampleContent = <<<ENV
 # IMPORTANT: This is NOT the main environment configuration file!
@@ -239,6 +256,8 @@ ENV;
             '.github/workflows/create-project.yml',
             '.github/workflows/frontend.yml',
             'builder/PostCreateScript.php',
+            'builder/DbDialect.php',
+            'tests/Builder/DbDialectTest.php',
             'tests/Builder/PostCreateScriptTest.php',
             'tests/Builder/SetupJsonTest.php',
             'tests/Builder/ContainerDetectionTest.php',
@@ -248,6 +267,10 @@ ENV;
                 unlink("$workdir/$file");
                 echo "Removed $file\n";
             }
+        }
+        // ... and what refers to them (the db:dialect command and its binding)
+        foreach (['src/Command/Commands.php', 'config/dev/05-services.php'] as $file) {
+            $this->stripPhpMarkers("$workdir/$file", 'Template');
         }
 
         // ------------------------------------------------
@@ -354,7 +377,7 @@ ENV;
             // rather than per-class bindings, so it names no example class and needs no
             // cleaning.
             foreach (['04-repositories', '05-services'] as $config) {
-                $this->stripPhpExampleMarkers("$workdir/config/dev/$config.php");
+                $this->stripPhpMarkers("$workdir/config/dev/$config.php", 'Example');
             }
 
             // Clean up index.html - remove example sections marked with <!-- Start Example --> and <!-- End Example -->
@@ -476,13 +499,14 @@ ENV;
     }
 
     /**
-     * Remove every `// Start Example` … `// End Example` block from a PHP file.
+     * Remove every `// Start <marker>` … `// End <marker>` block from a PHP file: `Example` for
+     * the example bindings, `Template` for what only this repository uses.
      *
      * Editing the real file in place beats rewriting it from a string literal here: there
      * is one source of truth, so a binding added to the config cannot silently go missing
      * from generated example-free projects.
      */
-    protected function stripPhpExampleMarkers(string $file): void
+    protected function stripPhpMarkers(string $file, string $marker): void
     {
         if (!file_exists($file)) {
             return;
@@ -490,7 +514,7 @@ ENV;
 
         $contents = file_get_contents($file);
         $stripped = preg_replace(
-            '/^[ \t]*\/\/\s*Start Example\b.*?^[ \t]*\/\/\s*End Example\b[^\n]*\n/ms',
+            '/^[ \t]*\/\/\s*Start ' . $marker . '\b.*?^[ \t]*\/\/\s*End ' . $marker . '\b[^\n]*\n/ms',
             '',
             $contents
         );
@@ -503,7 +527,7 @@ ENV;
         $stripped = preg_replace('/\n{3,}/', "\n\n", $stripped);
 
         file_put_contents($file, $stripped);
-        echo "  Cleaned: " . basename($file) . " - removed example bindings\n";
+        echo "  Cleaned: " . basename($file) . " - removed the " . strtolower($marker) . " blocks\n";
     }
 
     /**
@@ -574,108 +598,38 @@ ENV;
     }
 
     /**
-     * The PostgreSQL service and volume of docker-compose.yml, in place of the MySQL ones.
-     */
-    protected const POSTGRES_COMPOSE = [
-        'database-service' => <<<'YAML'
-  postgres-container:
-    image: postgres:17
-    container_name: postgres-container
-    environment:
-      POSTGRES_PASSWORD: mysqlp455w0rd
-      TZ: UTC
-    volumes:
-      - postgres-volume:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - net
-
-YAML,
-        'database-volume' => <<<'YAML'
-volumes:
-  postgres-volume:
-
-YAML,
-    ];
-
-    /**
-     * The database part of docker-compose.yml, between the database-service and database-volume
-     * markers: the MySQL server as it is, the PostgreSQL one in its place, or nothing for SQLite,
-     * whose databases are files in db/. The marker lines are removed.
-     */
-    protected static function composeDatabase(string $contents, string $schema): string
-    {
-        foreach (['database-service', 'database-volume'] as $marker) {
-            $contents = (string)preg_replace_callback(
-                '/[ \t]*#\s*>>>\s*' . $marker . '[^\n]*\n(.*?)[ \t]*#\s*<<<\s*' . $marker . '[^\n]*\n/s',
-                fn (array $match) => match ($schema) {
-                    'sqlite' => '',
-                    'postgres' => rtrim(self::POSTGRES_COMPOSE[$marker], "\n") . "\n",
-                    default => $match[1],
-                },
-                $contents
-            );
-        }
-        return $contents;
-    }
-
-    /**
-     * The host and user of the database service docker-compose.yml runs for $schema.
+     * The host and user of the `gluo-database` service docker-compose.database.yml runs for $schema.
      *
      * @return array{host: string, user: string}
      */
     protected static function defaultServer(string $schema): array
     {
-        return $schema === 'postgres'
-            ? ['host' => 'postgres-container', 'user' => 'postgres']
-            : ['host' => 'mysql-container', 'user' => 'root'];
+        return ['host' => 'gluo-database', 'user' => $schema === 'postgres' ? 'postgres' : 'root'];
     }
 
     /**
-     * Put the SQL of the chosen database in db/. The MySQL SQL is db/ itself; every other database
-     * has its own copy of each file in db/.dialects/<schema>/. db/.dialects/ is removed either way,
-     * so the project keeps exactly one db/base.sql and one db/migrations/.
+     * Write the database files of the chosen database (docker-compose.yml,
+     * docker-compose.database.yml, db/) from .db-dialects/, then remove .db-dialects/. The files
+     * are not versioned in this repository; in the project they are its own, so .gitignore
+     * stops listing them.
      *
      * @throws Exception
      */
     protected function applyDialect(string $workdir, string $schema): void
     {
-        $dialects = "$workdir/db/.dialects";
-        if (!is_dir($dialects)) {
-            return;
-        }
+        DbDialect::copy($workdir, $schema);
+        DbDialect::removeDir("$workdir/.db-dialects");
+        echo "Database: $schema\n";
 
-        if ($schema !== 'mysql') {
-            $dialect = "$dialects/$schema";
-            if (!is_dir($dialect)) {
-                throw new Exception("There is no SQL for the database '$schema' in db/.dialects/");
-            }
-            foreach (array_diff(scandir($dialect), ['.', '..']) as $item) {
-                $target = "$workdir/db/$item";
-                if (is_dir($target)) {
-                    self::removeDir($target);
-                } elseif (file_exists($target)) {
-                    unlink($target);
-                }
-                rename("$dialect/$item", $target);
-            }
-            echo "Database: db/ now holds the $schema SQL\n";
-        }
-
-        self::removeDir($dialects);
+        $gitignore = "$workdir/.gitignore";
+        $contents = (string)file_get_contents($gitignore);
+        $contents = (string)preg_replace('/^#\s*>>>\s*dialect\b.*?^#\s*<<<\s*dialect[^\n]*\n/ms', '', $contents);
+        file_put_contents($gitignore, $contents);
     }
 
     protected static function removeDir(string $dir): void
     {
-        foreach (scandir($dir) as $item) {
-            if ($item === '.' || $item === '..') {
-                continue;
-            }
-            $path = "$dir/$item";
-            is_dir($path) ? self::removeDir($path) : unlink($path);
-        }
-        rmdir($dir);
+        DbDialect::removeDir($dir);
     }
 
     /**
@@ -847,7 +801,7 @@ YAML,
         $currentPhpVersion = PHP_MAJOR_VERSION . "." .PHP_MINOR_VERSION;
         $defaultDbConfig = [
             'schema' => 'mysql',
-            'host' => 'mysql-container',
+            'host' => 'gluo-database',
             'user' => 'root',
             'password' => 'mysqlp455w0rd',
             'dev_database' => 'localdev',

@@ -65,7 +65,7 @@ load.sh byjg-gluo -- my-api --namespace=MyApp --name=mycompany/my-api
 load.sh byjg-gluo -- my-api \
   --namespace=MyApp \
   --name=mycompany/my-api \
-  --mysql-uri=mysql://root:secret@mysql-container/mydb \
+  --mysql-uri=mysql://root:secret@gluo-database/mydb \
   --install-examples=n \
   --version="^7.0" \
   --php-version=8.4 \
@@ -98,7 +98,7 @@ PHP Version [8.4]: 8.4
 Project namespace [MyRest]: Tutorial
 Composer name [me/myrest]:
 Database schema [mysql]:
-Database host [mysql-container]:
+Database host [gluo-database]:
 Database user [root]:
 Database password [mysqlp455w0rd]:
 Dev database name [localdev]:
@@ -137,9 +137,11 @@ Run PHP tooling from the repo root (`composer test`, `./gluo migrate:update`,
 - **Project namespace**: Your application's root namespace (must be CamelCase, e.g., `MyApp`, `Tutorial`)
 - **Composer name**: Package name in `vendor/package` format (e.g., `me/myrest`)
 - **Database schema**: `mysql`, `postgres` or `sqlite`. The project gets the SQL of that database in `db/`
-  (`db/base.sql` and `db/migrations/`) and its server in `docker-compose.yml` (none for SQLite).
-- **Database host**: Hostname or container name for the DB server: `mysql-container` or `postgres-container` by
-  default (not asked for SQLite)
+  (`db/base.sql` and `db/migrations/`) and its server in `docker-compose.database.yml`, which
+  `docker-compose.yml` includes (no server for SQLite).
+- **Database host**: Hostname of the DB server for the app in the `rest` container: `gluo-database` by default, the
+  name of the database service in `docker-compose.database.yml` (not asked for SQLite). The commands you run on
+  your machine reach the same server at `127.0.0.1`, through its published port: see [the connections](#database-connections) below
 - **Database user**: Username that will be injected in your `.env` files: `root` or `postgres` by default (not asked
   for SQLite)
 - **Database password**: Password that will be injected in your `.env` files (not asked for SQLite)
@@ -157,10 +159,19 @@ The two options combine into three shapes:
 | Yes | No | **Auth app shell** — API + the Vite app (login/reset/dashboard/profile only) |
 | No | No | **Pure API** — just the REST API and authentication |
 
-**Tip**: To access the MySQL container locally, add this to your `/etc/hosts` file:
-```
-127.0.0.1  mysql-container
-```
+### Database connections
+
+The database runs in Docker, and it is reached from two places:
+
+| From | Connection | Set in |
+|---|---|---|
+| The API, in the `rest` container | `…@gluo-database/localdev` (the service name) | `DBDRIVER_CONNECTION` of the `rest` service, `docker-compose.yml` |
+| Your machine: `./gluo`, `composer test` | `…@127.0.0.1/localdev`, `…@127.0.0.1/localtest` (the published port) | `config/dev/credentials.env`, `config/test/credentials.env` |
+
+Nothing has to be added to `/etc/hosts`. The tests always use the test database, wherever they run:
+`tests/bootstrap.php` keeps the server of a `DBDRIVER_CONNECTION` set in the environment (the `rest` container's)
+and replaces its database with the test one (a SQLite connection is ignored: the test file of `config/test`
+applies), so running them in the container cannot reach the dev database.
 
 ## Running the Project
 
@@ -175,16 +186,15 @@ docker compose -f docker-compose.yml up -d
 # Create a fresh database (warning: destroys existing data)
 APP_ENV=dev ./gluo migrate:reset --yes
 
-# Alternative if local PHP isn't configured:
-# export CONTAINER_NAME=myrest  # second part of your composer name
-# docker exec -it $CONTAINER_NAME ./gluo migrate:reset --yes
+# Alternative if local PHP isn't configured: run it in the rest container
+# docker compose exec rest ./gluo migrate:reset --yes
 ```
 
 Expected output:
 ```text
 > Builder\Scripts::migrate
 > Environment: dev
-> Database: mysql://root:****@mysql-container/localdev
+> Database: mysql://root:****@127.0.0.1/localdev
 
 Resetting database...
 Database reset successfully.
@@ -213,9 +223,11 @@ The project is ready! You can start by:
 ## Run Tests
 
 ```shell script
-APP_ENV=test composer run test
-# OR: docker exec -it $CONTAINER_NAME composer run test
+composer test
+# OR, without PHP on your machine: docker compose exec rest composer test
 ```
+
+Either way they run on the test database (see [the connections](#database-connections)).
 
 **Note**: If you chose not to install examples, the project will only include authentication tests. Example tests (Project/Task/Note, Sample) will not be present.
 

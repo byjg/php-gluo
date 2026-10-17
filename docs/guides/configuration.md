@@ -64,7 +64,7 @@ An environment only needs to define what differs from its parent: a key defined 
 ```
 config/
 ├── dev/
-│   └── credentials.env      # DBDRIVER_CONNECTION=mysql://...@mysql-container/localdev
+│   └── credentials.env      # DBDRIVER_CONNECTION=mysql://...@127.0.0.1/localdev
 ├── staging/
 │   └── credentials.env      # Override: staging database and secrets
 └── prod/
@@ -106,7 +106,7 @@ Values that vary per environment live in each environment's `credentials.env` an
 consumed in the PHP config files via `Param::get()`:
 
 ```ini title="config/dev/credentials.env"
-DBDRIVER_CONNECTION=mysql://root:mysqlp455w0rd@mysql-container/localdev
+DBDRIVER_CONNECTION=mysql://root:mysqlp455w0rd@127.0.0.1/localdev
 JWT_SECRET=ZGV2LS1qd3Qtc2VjcmV0...
 CORS_SERVERS=.*
 ```

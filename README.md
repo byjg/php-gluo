@@ -234,8 +234,14 @@ This project is open source. See [LICENSE](https://opensource.byjg.com/license/)
 
 ## Running Tests
 
+In this repository, `docker-compose.yml`, `docker-compose.database.yml`, `db/base.sql` and
+`db/migrations/` are not versioned: they are written from [`.db-dialects/`](.db-dialects/README.md)
+for one database. A created project gets them as its own files.
+
 ```bash
-docker compose up -d
+composer install
+./gluo --env=dev db:dialect mysql     # or postgres, sqlite
+docker compose up -d --wait
 composer test
 ```
 

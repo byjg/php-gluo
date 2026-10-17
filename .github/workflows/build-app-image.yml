@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mysql-container:
+      gluo-database:
         image: mysql:9.5
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: false
@@ -58,6 +58,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+
+      # db/ (copied into the image) is written from .db-dialects/, not versioned
+      - name: Write the MySQL database files
+        run: |
+          docker run --rm -v "$PWD":/srv -w /srv byjg/php:8.5-cli \
+            sh -c "composer install --no-interaction --no-progress && ./gluo --env=dev db:dialect mysql"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -108,6 +114,7 @@ jobs:
             docker run \
               -e APP_ENV=test \
               -e CI_ENV=github_actions \
+              -e DBDRIVER_CONNECTION=mysql://root:${{ env.DB_PASSWORD }}@gluo-database/${{ env.DB_DATABASE }} \
               -p 80:80 \
               --name tester \
               --rm -d \

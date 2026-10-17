@@ -43,7 +43,7 @@ Expected output:
 ```text
 > Builder\Scripts::migrate
 > Environment: dev
-> Database: mysql://root:****@mysql-container/localdev
+> Database: mysql://root:****@127.0.0.1/localdev
 
 Updating to version latest...
 Migration completed successfully.
@@ -62,7 +62,7 @@ The result should be:
 ```text
 > Builder\Scripts::migrate
 > Environment: dev
-> Database: mysql://root:****@mysql-container/localdev
+> Database: mysql://root:****@127.0.0.1/localdev
 
 Updating to version 1...
 Migration completed successfully.

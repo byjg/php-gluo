@@ -7,7 +7,7 @@ and open the template in the editor.
 
 <!-- see http://www.phpunit.de/wiki/Documentation -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         bootstrap="./vendor/autoload.php"
+         bootstrap="./tests/bootstrap.php"
          colors="true"
          testdox="true"
          displayDetailsOnTestsThatTriggerDeprecations="true"

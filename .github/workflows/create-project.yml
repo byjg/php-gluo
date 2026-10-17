@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         # Every combination on MySQL; on PostgreSQL and SQLite the full stack, whose examples
-        # run all the SQL that differs between the databases (db/.dialects/).
+        # run all the SQL that differs between the databases (.db-dialects/).
         include:
           - combo: full-stack
             install_frontend: true
@@ -131,9 +131,12 @@ jobs:
           test ! -f /tmp/my-api/builder/PostCreateScript.php
           # The installer does not create a git repository
           test ! -d /tmp/my-api/.git
-          # Only the SQL of the database chosen is left
+          # The files of the database chosen are the project's own; .db-dialects/ is gone
           test -f /tmp/my-api/db/base.sql
-          test ! -d /tmp/my-api/db/.dialects
+          test -f /tmp/my-api/docker-compose.database.yml
+          test ! -d /tmp/my-api/.db-dialects
+          test ! -f /tmp/my-api/builder/DbDialect.php
+          ! grep -q "docker-compose" /tmp/my-api/.gitignore
           if [ "${{ matrix.install_frontend }}" = "true" ]; then
             test -d /tmp/my-api/frontend
             grep -q "frontend:" /tmp/my-api/docker-compose.yml
@@ -145,6 +148,9 @@ jobs:
       - name: PHPUnit on the generated project
         working-directory: /tmp/my-api
         run: ./vendor/bin/phpunit
+        env:
+          # The job runs in a container: the database server is the CI service, not 127.0.0.1
+          DBDRIVER_CONNECTION: ${{ matrix.db_schema != 'sqlite' && format('{0}://{1}:mysqlp455w0rd@{2}/localtest', matrix.db_schema, matrix.db_user, matrix.db_host) || '' }}
 
       - name: Build the generated frontend
         if: matrix.install_frontend == true

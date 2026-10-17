@@ -9,6 +9,12 @@
 /tools/*/composer.lock
 src/*.db
 config/.env
+# >>> dialect: written by `./gluo db:dialect <database>` from .db-dialects/; a created project keeps them
+/docker-compose.yml
+/docker-compose.database.yml
+/db/base.sql
+/db/migrations/
+# <<< dialect
 # SQLite databases (db_schema sqlite), and the files SQLite writes next to them
 /db/*.sqlite
 /db/*.sqlite-journal

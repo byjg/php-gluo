@@ -2,6 +2,9 @@
 
 namespace RestReferenceArchitecture\Command;
 
+// Start Template
+use Builder\DbDialect;
+// End Template
 use ByJG\Scriptify\CommandProvider;
 
 /**
@@ -36,6 +39,9 @@ class Commands implements CommandProvider
     public function commands(): array
     {
         return [
+            // Start Template
+            'db:dialect' => DbDialect::class . '::apply',
+            // End Template
         ];
     }
 }

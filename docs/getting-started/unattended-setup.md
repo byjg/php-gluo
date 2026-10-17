@@ -134,7 +134,7 @@ SETUP_JSON=/etc/ci-configs/rest-setup.json composer create-project byjg/gluo pro
 | `namespace`        | string  | "MyRest"                                          | Project namespace (CamelCase)                   |
 | `composer_name`    | string  | "me/myrest"                                       | Composer package name (vendor/package)          |
 | `db_schema`        | string  | `mysql`                                           | One of: `mysql`, `postgres`, `sqlite`           |
-| `db_host`          | string  | `mysql-container` / `postgres-container`          | Database host/container (ignored for SQLite)    |
+| `db_host`          | string  | `gluo-database`                                   | Database host/service (ignored for SQLite)      |
 | `db_user`          | string  | `root` / `postgres`                               | Database username (ignored for SQLite)          |
 | `db_password`      | string  | `mysqlp455w0rd`                                   | Database password (ignored for SQLite)          |
 | `db_name_dev`      | string  | `localdev`                                        | Development database/schema name                |

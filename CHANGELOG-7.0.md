@@ -21,6 +21,25 @@
 
 ## Changes
 
+- **The database server is the `gluo-database` service, in `docker-compose.database.yml`.** It was
+  `mysql-container` (`postgres-container` for PostgreSQL) in `docker-compose.yml`, with fixed
+  `container_name`s (`resttest`, `mysql-container`) that made every project created from the
+  template claim the same names: a second project could not start while another one's containers
+  existed, even stopped. Now `docker-compose.yml` holds the API and the frontend and includes
+  `docker-compose.database.yml`, which holds the server of the database chosen (none for SQLite).
+  Compose names the containers after the project (`<project>-rest-1`). Use
+  `docker compose exec rest ...` instead of `docker exec resttest ...`.
+
+- **No `/etc/hosts` entry for the database.** `config/dev` and `config/test` connected to
+  `mysql-container`, which the commands run on the host (`./gluo`, `composer test`) only reached
+  with `127.0.0.1  mysql-container` in `/etc/hosts`. They now connect to `127.0.0.1`, the published
+  port, and the `rest` service sets `DBDRIVER_CONNECTION` to `gluo-database` for the app in the
+  container. The tests always use the test database: `tests/bootstrap.php` keeps the server of a
+  `DBDRIVER_CONNECTION` set in the environment and replaces its database with the test one (it
+  ignores a SQLite one: the test file of `config/test` applies), so they
+  run on the host, in the `rest` container (`docker compose exec rest composer test`) or in a CI job
+  that sets the variable, and never on the dev database.
+
 - **`composer create-project` no longer creates a git repository.** The installer ran `git init`
   and made an "Initial commit", so a project created inside an existing repository (a monorepo,
   a demo with several apps) got a nested `.git` to remove by hand. Run `git init` yourself when
@@ -90,17 +109,16 @@
 
 - A project created with `db_schema` `sqlite` or `postgres` did not work: only the connection
   string changed. Now:
-  - the project gets the SQL of its database. `db/base.sql` and `db/migrations/` are MySQL in the
-    template, and `db/.dialects/postgres/` and `db/.dialects/sqlite/` hold the same files for the
-    other two; the installer puts the chosen set in `db/` and removes `db/.dialects/`, so a project
-    keeps one `db/base.sql` and one `db/migrations/`;
-  - `docker-compose.yml` runs the server of the database chosen: MySQL, PostgreSQL
-    (`postgres-container`), or none for SQLite;
+  - the project gets the SQL and the server of its database. The template keeps them in
+    `.db-dialects/<mysql|postgres|sqlite>/` (`db/` and `docker-compose.yml`); the installer writes
+    the set chosen to `db/` and `docker-compose.database.yml` and removes `.db-dialects/`, so a
+    project keeps one `db/base.sql`, one `db/migrations/` and one database server (none for
+    SQLite);
   - a SQLite database is a file under `db/`, `sqlite://{__ROOT__}/db/<name>.sqlite`, which works on
     the host and in Docker (it was `sqlite:///<name>`, a file at the filesystem root), and
     `*.sqlite` is ignored by git;
   - the staging and prod placeholder connections use the scheme of the database chosen;
-  - the questions use the host and user of the database chosen (`postgres-container`, `postgres`),
+  - the questions use the user of the database chosen (`root`, `postgres`),
     and SQLite is not asked for a host, user or password.
 
   The installer offers `mysql`, `postgres` and `sqlite`. `sqlsrv` is no longer offered: a project
@@ -175,4 +193,9 @@ While 7.0 is unreleased these resolve to `7.0.x-dev` from each component's
 
 ## Housekeeping
 
+- In this repository, `docker-compose.yml`, `docker-compose.database.yml`, `db/base.sql` and
+  `db/migrations/` are no longer versioned: `./gluo --env=dev db:dialect <mysql|postgres|sqlite>`
+  writes them from `.db-dialects/`, the only place to change them. The command and
+  `.db-dialects/` are removed from a created project. The CI runs the command before the tests and
+  before building the image.
 - `phpunit.xml.dist` renamed to `phpunit.xml`.
