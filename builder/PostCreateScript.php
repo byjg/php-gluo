@@ -16,10 +16,10 @@ use RecursiveIteratorIterator;
  */
 class PostCreateScript
 {
-    public function execute($workdir, $namespace, $composerName, $phpVersion, array $dbConfig, $timezone, $installExamples, $installFrontend, $gitUserName, $gitUserEmail): void
+    public function execute($workdir, $namespace, $composerName, $phpVersion, array $dbConfig, $timezone, $installExamples, $installFrontend): void
     {
         $this->applyTemplate($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $installFrontend);
-        $this->finalize($gitUserName, $gitUserEmail);
+        $this->finalize();
     }
 
     /**
@@ -29,8 +29,15 @@ class PostCreateScript
      */
     public function applyTemplate(string $workdir, string $namespace, string $composerName, string $phpVersion, array $dbConfig, string $timezone, bool $installExamples, bool $installFrontend = true): void
     {
-        $devConnection = self::buildConnectionString($dbConfig, $dbConfig['dev_database']);
-        $testConnection = self::buildConnectionString($dbConfig, $dbConfig['test_database']);
+        $this->applyDialect($workdir, $dbConfig['schema'] ?? 'mysql');
+
+        // The app in the rest container reaches the database by its service name (docker-compose.yml);
+        // the commands run on the host (./gluo, composer test) through the published port
+        // (credentials.env)
+        $containerConnection = self::buildConnectionString($dbConfig, $dbConfig['dev_database']);
+        $hostDbConfig = ['host' => '127.0.0.1'] + $dbConfig;
+        $devConnection = self::buildConnectionString($hostDbConfig, $dbConfig['dev_database']);
+        $testConnection = self::buildConnectionString($hostDbConfig, $dbConfig['test_database']);
 
         // ------------------------------------------------
         // Defining function to interactively walking through the directories
@@ -58,12 +65,17 @@ class PostCreateScript
 
         // ------------------------------------------------
         // Replace the composer name in the single root manifest
-        // (quote-exact so the byjg/gluo-core requirement is untouched):
-        $rootComposer = file_get_contents($workdir . '/composer.json');
-        file_put_contents(
-            $workdir . '/composer.json',
-            str_replace('"byjg/gluo"', '"' . $composerName . '"', $rootComposer)
+        // (quote-exact so the byjg/gluo-core requirement is untouched), and the starter's own
+        // description ("Run composer create-project byjg/gluo ...") with a neutral one:
+        $rootComposer = (string)file_get_contents($workdir . '/composer.json');
+        $rootComposer = str_replace('"byjg/gluo"', '"' . $composerName . '"', $rootComposer);
+        $rootComposer = (string)preg_replace(
+            '/("description":\s*)"(?:[^"\\\\]|\\\\.)*"/',
+            '$1"A PHP REST API built with Gluo."',
+            $rootComposer,
+            1
         );
+        file_put_contents($workdir . '/composer.json', $rootComposer);
 
         // ------------------------------------------------
         // Replace Docker PHP Version
@@ -87,27 +99,44 @@ class PostCreateScript
             'config/staging/credentials.env',
             'config/prod/credentials.env',
             'docker-compose.yml',
+            'docker-compose.database.yml',
         ];
         foreach ($files as $file) {
             $contents = file_get_contents("$workdir/$file");
 
             // Common replacements for all files
             $contents = str_replace(
-                [
-                    'mysql://root:mysqlp455w0rd@mysql-container/mydb',
-                    'mysql://root:mysqlp455w0rd@mysql-container/localdev',
-                ],
+                'mysql://root:mysqlp455w0rd@gluo-database/localdev',
+                $containerConnection,
+                $contents
+            );
+            $contents = str_replace(
+                'mysql://root:mysqlp455w0rd@127.0.0.1/localdev',
                 $devConnection,
                 $contents
             );
             $contents = str_replace(
-                'mysql://root:mysqlp455w0rd@mysql-container/localtest',
+                'mysql://root:mysqlp455w0rd@127.0.0.1/localtest',
                 $testConnection,
                 $contents
             );
 
-            if (!empty($dbConfig['host'])) {
-                $contents = str_replace('mysql-container', $dbConfig['host'], $contents);
+            // staging and prod hold placeholders (CHANGE_ME), written as MySQL URIs: give them the
+            // scheme of the database chosen
+            if (preg_match('~^config/(staging|prod)/~', $file)) {
+                $contents = self::placeholderConnection($contents, $dbConfig['schema'] ?? 'mysql');
+            }
+
+            // The database server runs as the `gluo-database` service: a project that names its
+            // host otherwise gets the service under that name, so the host resolves in compose
+            if ($file === 'docker-compose.database.yml' && !empty($dbConfig['host'])) {
+                $contents = (string)preg_replace('/^  gluo-database:$/m', '  ' . $dbConfig['host'] . ':', $contents);
+            }
+
+            // A SQLite database is a file under db/, the same path in the rest container: it needs no
+            // connection of its own there
+            if ($file === 'docker-compose.yml' && ($dbConfig['schema'] ?? 'mysql') === 'sqlite') {
+                $contents = (string)preg_replace('/^(?:[ \t]*#[^\n]*\n)*[ \t]*- DBDRIVER_CONNECTION=[^\n]*\n/m', '', $contents);
             }
 
             if (!empty($dbConfig['password'])) {
@@ -115,7 +144,7 @@ class PostCreateScript
             }
             $contents = str_replace('resttest', $composerParts[1], $contents);
 
-            if ($file === 'docker-compose.yml' && !empty($dbConfig['password'])) {
+            if ($file === 'docker-compose.database.yml' && !empty($dbConfig['password'])) {
                 $contents = preg_replace(
                     '/(MYSQL_ROOT_PASSWORD:\s*)([^\s]+)/',
                     '$1' . $dbConfig['password'],
@@ -140,12 +169,17 @@ class PostCreateScript
             file_put_contents("$workdir/$file", $contents);
         }
 
+        // The tests force the test database on any server (tests/bootstrap.php)
+        $bootstrap = "$workdir/tests/bootstrap.php";
+        file_put_contents(
+            $bootstrap,
+            str_replace("'/localtest'", "'/" . $dbConfig['test_database'] . "'", (string)file_get_contents($bootstrap))
+        );
+
         // ------------------------------------------------
-        // Create .env.sample file with database connection example
-        // Build a localhost connection string for the developer's local machine
-        $localhostDbConfig = $dbConfig;
-        $localhostDbConfig['host'] = '127.0.0.1';
-        $localhostConnection = self::buildConnectionString($localhostDbConfig, $dbConfig['dev_database']);
+        // Create .env.sample file with database connection example (the host one, as in
+        // config/dev/credentials.env)
+        $localhostConnection = $devConnection;
 
         $envSampleContent = <<<ENV
 # IMPORTANT: This is NOT the main environment configuration file!
@@ -194,9 +228,13 @@ ENV;
                 // Replace reserved name
                 $contents = str_replace('RestReferenceArchitecture', $namespace, $contents);
 
-                // Replace the template package name, but never the framework dependency
+                // Replace the template package name, and only that exact name: a longer
+                // one that merely starts with it is left alone. That covers the framework
+                // dependency (byjg/gluo-core) and a project whose own name starts with
+                // byjg/gluo, which composer.json already carries by this point and would
+                // otherwise get its suffix appended a second time.
                 $contents = preg_replace(
-                    '~byjg/gluo(?!-core)~',
+                    '~byjg/gluo(?![\w-])~',
                     $composerName,
                     $contents
                 );
@@ -218,13 +256,39 @@ ENV;
             '.github/workflows/create-project.yml',
             '.github/workflows/frontend.yml',
             'builder/PostCreateScript.php',
+            'builder/DbDialect.php',
+            'tests/Builder/DbDialectTest.php',
             'tests/Builder/PostCreateScriptTest.php',
+            'tests/Builder/SetupJsonTest.php',
+            'tests/Builder/ContainerDetectionTest.php',
         ];
         foreach ($templateOnlyFiles as $file) {
             if (file_exists("$workdir/$file")) {
                 unlink("$workdir/$file");
                 echo "Removed $file\n";
             }
+        }
+        // ... and what refers to them (the db:dialect command and its binding)
+        foreach (['src/Command/Commands.php', 'config/dev/05-services.php'] as $file) {
+            $this->stripPhpMarkers("$workdir/$file", 'Template');
+        }
+
+        // ------------------------------------------------
+        // The documentation is published online, where it follows gluo-core updates; a
+        // copy in the project would be frozen at creation time. Drop docs/ and replace the
+        // template's README with a short one that links to the online documentation.
+        if (is_dir("$workdir/docs")) {
+            self::removeDir("$workdir/docs");
+            echo "Removed docs/\n";
+        }
+        rename("$workdir/builder/README.project.md", "$workdir/README.md");
+        echo "Created README.md\n";
+
+        // The changelogs are the history of this starter, not of the project being
+        // created, which starts its own.
+        foreach (glob("$workdir/CHANGELOG-*.md") ?: [] as $changelog) {
+            unlink($changelog);
+            echo "Removed " . basename($changelog) . "\n";
         }
 
         // Drop the create-project hook from composer.json (its class no longer exists).
@@ -313,7 +377,7 @@ ENV;
             // rather than per-class bindings, so it names no example class and needs no
             // cleaning.
             foreach (['04-repositories', '05-services'] as $config) {
-                $this->stripPhpExampleMarkers("$workdir/config/dev/$config.php");
+                $this->stripPhpMarkers("$workdir/config/dev/$config.php", 'Example');
             }
 
             // Clean up index.html - remove example sections marked with <!-- Start Example --> and <!-- End Example -->
@@ -345,7 +409,7 @@ ENV;
         // ------------------------------------------------
         // Remove the frontend entirely if not installing it. The compose service
         // block is marker-wrapped in docker-compose.yml and is always stripped;
-        // the frontend/ dir and its Dockerfile/docs are removed when present.
+        // the frontend/ dir and its Dockerfile are removed when present.
         if (!$installFrontend) {
             echo "Removing frontend...\n";
             $this->stripComposeFrontendService($workdir);
@@ -353,7 +417,7 @@ ENV;
                 self::removeDir("$workdir/frontend");
                 echo "  Removed: frontend/\n";
             }
-            foreach (['docker/Dockerfile-html', 'docker/static-html-entrypoint.sh', 'docs/guides/frontend.md'] as $file) {
+            foreach (['docker/Dockerfile-html', 'docker/static-html-entrypoint.sh'] as $file) {
                 if (file_exists("$workdir/$file")) {
                     unlink("$workdir/$file");
                     echo "  Removed: $file\n";
@@ -364,10 +428,13 @@ ENV;
     }
 
     /**
-     * Side effects after the template is applied: install dependencies,
-     * generate the OpenAPI docs and initialize the git repository.
+     * Side effects after the template is applied: regenerate the autoload map, generate the
+     * OpenAPI docs and install the frontend dependencies.
+     *
+     * It does not create a git repository: the project may be created inside one (a monorepo,
+     * a demo with several apps), where a nested .git would have to be removed by hand.
      */
-    protected function finalize(string $gitUserName, string $gitUserEmail): void
+    protected function finalize(): void
     {
         $workdir = getcwd();
 
@@ -396,17 +463,6 @@ ENV;
                     . "Composer ran). The API is unaffected. Run: cd frontend && npm install";
             }
         }
-
-        // Initialize a single git repository at the project root (spans the API + frontend/)
-        passthru("git init");
-        passthru("git branch -m main");
-
-        // Set git user config locally for this repository
-        passthru('git config user.name ' . escapeshellarg($gitUserName));
-        passthru('git config user.email ' . escapeshellarg($gitUserEmail));
-
-        passthru("git add .");
-        passthru("git commit -m 'Initial commit'");
 
         if ($warnings !== []) {
             echo "\n" . str_repeat('!', 72) . "\n";
@@ -443,13 +499,14 @@ ENV;
     }
 
     /**
-     * Remove every `// Start Example` … `// End Example` block from a PHP file.
+     * Remove every `// Start <marker>` … `// End <marker>` block from a PHP file: `Example` for
+     * the example bindings, `Template` for what only this repository uses.
      *
      * Editing the real file in place beats rewriting it from a string literal here: there
      * is one source of truth, so a binding added to the config cannot silently go missing
      * from generated example-free projects.
      */
-    protected function stripPhpExampleMarkers(string $file): void
+    protected function stripPhpMarkers(string $file, string $marker): void
     {
         if (!file_exists($file)) {
             return;
@@ -457,7 +514,7 @@ ENV;
 
         $contents = file_get_contents($file);
         $stripped = preg_replace(
-            '/^[ \t]*\/\/\s*Start Example\b.*?^[ \t]*\/\/\s*End Example\b[^\n]*\n/ms',
+            '/^[ \t]*\/\/\s*Start ' . $marker . '\b.*?^[ \t]*\/\/\s*End ' . $marker . '\b[^\n]*\n/ms',
             '',
             $contents
         );
@@ -470,7 +527,7 @@ ENV;
         $stripped = preg_replace('/\n{3,}/', "\n\n", $stripped);
 
         file_put_contents($file, $stripped);
-        echo "  Cleaned: " . basename($file) . " - removed example bindings\n";
+        echo "  Cleaned: " . basename($file) . " - removed the " . strtolower($marker) . " blocks\n";
     }
 
     /**
@@ -523,16 +580,56 @@ ENV;
         echo "  Cleaned: docker-compose.yml - removed frontend service\n";
     }
 
+    /**
+     * The placeholder DBDRIVER_CONNECTION of staging and prod, written as a MySQL URI, for
+     * $schema: "postgres://" for PostgreSQL, a file under db/ named after the database for SQLite.
+     */
+    protected static function placeholderConnection(string $contents, string $schema): string
+    {
+        return match ($schema) {
+            'postgres' => str_replace('DBDRIVER_CONNECTION=mysql://', 'DBDRIVER_CONNECTION=postgres://', $contents),
+            'sqlite' => (string)preg_replace_callback(
+                '~^DBDRIVER_CONNECTION=mysql://[^\n]*/([^/\n]+)$~m',
+                fn (array $match) => 'DBDRIVER_CONNECTION=' . self::buildConnectionString(['schema' => 'sqlite'], $match[1]),
+                $contents
+            ),
+            default => $contents,
+        };
+    }
+
+    /**
+     * The host and user of the `gluo-database` service docker-compose.database.yml runs for $schema.
+     *
+     * @return array{host: string, user: string}
+     */
+    protected static function defaultServer(string $schema): array
+    {
+        return ['host' => 'gluo-database', 'user' => $schema === 'postgres' ? 'postgres' : 'root'];
+    }
+
+    /**
+     * Write the database files of the chosen database (docker-compose.yml,
+     * docker-compose.database.yml, db/) from .db-dialects/, then remove .db-dialects/. The files
+     * are not versioned in this repository; in the project they are its own, so .gitignore
+     * stops listing them.
+     *
+     * @throws Exception
+     */
+    protected function applyDialect(string $workdir, string $schema): void
+    {
+        DbDialect::copy($workdir, $schema);
+        DbDialect::removeDir("$workdir/.db-dialects");
+        echo "Database: $schema\n";
+
+        $gitignore = "$workdir/.gitignore";
+        $contents = (string)file_get_contents($gitignore);
+        $contents = (string)preg_replace('/^#\s*>>>\s*dialect\b.*?^#\s*<<<\s*dialect[^\n]*\n/ms', '', $contents);
+        file_put_contents($gitignore, $contents);
+    }
+
     protected static function removeDir(string $dir): void
     {
-        foreach (scandir($dir) as $item) {
-            if ($item === '.' || $item === '..') {
-                continue;
-            }
-            $path = "$dir/$item";
-            is_dir($path) ? self::removeDir($path) : unlink($path);
-        }
-        rmdir($dir);
+        DbDialect::removeDir($dir);
     }
 
     /**
@@ -542,30 +639,74 @@ ENV;
      * @param string $workdir
      * @return array|null
      */
+    /**
+     * Whether this script runs inside a container: Docker creates /.dockerenv, and Podman
+     * /run/.containerenv.
+     *
+     * @param list<string> $markers
+     */
+    protected static function isInsideContainer(array $markers = ['/.dockerenv', '/run/.containerenv']): bool
+    {
+        foreach ($markers as $marker) {
+            if (file_exists($marker)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The answers for an unattended setup, from the first setup.json found: the file named by
+     * SETUP_JSON, the parent directory (where create-project was run), then ~/.gluo/setup.json.
+     *
+     * A setup.json that is found but cannot be read as JSON is an error, and so is SETUP_JSON
+     * naming a file that is not there: falling back to the questions would silently create a
+     * project with the defaults.
+     *
+     * @throws Exception
+     */
     protected static function loadConfigFromJson(string $workdir): ?array
     {
-        $locations = [
-            // 1. Environment variable (highest priority)
-            getenv('SETUP_JSON'),
+        $setupJson = getenv('SETUP_JSON');
+        if (!empty($setupJson)) {
+            if (!is_file($setupJson) || !is_readable($setupJson)) {
+                throw new Exception(
+                    "SETUP_JSON is '$setupJson', but that file cannot be read here. It has to be "
+                    . "visible where Composer runs: a Composer running in a container only sees the "
+                    . "directories mounted into it, usually just the current one."
+                );
+            }
+            return self::readConfigFile($setupJson);
+        }
 
-            // 2. Parent directory (where user ran composer create-project)
+        $locations = [
+            // Parent directory (where the user ran composer create-project)
             dirname($workdir) . '/setup.json',
 
-            // 3. User's home directory
+            // User's home directory
             (getenv('HOME') ?: getenv('USERPROFILE')) . '/.gluo/setup.json',
         ];
 
         foreach ($locations as $configFile) {
-            if (!empty($configFile) && file_exists($configFile)) {
-                $json = file_get_contents($configFile);
-                $config = json_decode($json, true);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    return $config;
-                }
+            if (is_file($configFile)) {
+                return self::readConfigFile($configFile);
             }
         }
 
         return null;
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected static function readConfigFile(string $configFile): array
+    {
+        $config = json_decode((string)file_get_contents($configFile), true);
+        if (!is_array($config)) {
+            $error = json_last_error() === JSON_ERROR_NONE ? 'it is not a JSON object' : json_last_error_msg();
+            throw new Exception("Cannot read the setup from '$configFile': $error");
+        }
+        return $config;
     }
 
     protected static function buildConnectionString(array $dbConfig, string $database): string
@@ -577,8 +718,9 @@ ENV;
         $database = ltrim($database, '/');
 
         if ($schema === 'sqlite') {
-            $path = $database ?: 'database.sqlite';
-            return 'sqlite:///' . $path;
+            // A file under db/ of the project. byjg/config replaces {__ROOT__} with the project
+            // root, so the same .env works on the host, in Docker and behind the web server.
+            return 'sqlite://{__ROOT__}/db/' . ($database ?: 'database') . '.sqlite';
         }
 
         $hostPart = $host !== '' ? $host : 'localhost';
@@ -625,17 +767,15 @@ ENV;
             throw new Exception('PHP is not installed or not available in PATH. Please install PHP before proceeding.');
         }
 
-        // Check if git is installed
-        $gitCheck = shell_exec('git --version 2>&1');
-        if (empty($gitCheck) || !str_contains($gitCheck, 'git version')) {
-            throw new Exception('Git is not installed or not available in PATH. Please install Git before proceeding.');
-        }
-
         // Check if docker is installed (warning only)
         $dockerCheck = shell_exec('docker --version 2>&1');
         $dockerInstalled = !empty($dockerCheck) && str_contains($dockerCheck, 'Docker version');
 
-        if (!$dockerInstalled) {
+        if (!$dockerInstalled && self::isInsideContainer()) {
+            // A Composer running in a container (a dockerised composer) has no Docker of its own,
+            // and cannot see the host's: saying that Docker is not installed would be wrong
+            $stdIo->write("<info>Composer is running inside a container: Docker on the host could not be checked.</info>");
+        } elseif (!$dockerInstalled) {
             $stdIo->write("");
             $stdIo->write("<warning>========================================================</warning>");
             $stdIo->write("<warning> WARNING: Docker is not installed</warning>");
@@ -658,14 +798,10 @@ ENV;
             }
         }
 
-        // Get current git user configuration
-        $gitUserName = trim(shell_exec('git config --global user.name 2>/dev/null') ?? '');
-        $gitUserEmail = trim(shell_exec('git config --global user.email 2>/dev/null') ?? '');
-
         $currentPhpVersion = PHP_MAJOR_VERSION . "." .PHP_MINOR_VERSION;
         $defaultDbConfig = [
             'schema' => 'mysql',
-            'host' => 'mysql-container',
+            'host' => 'gluo-database',
             'user' => 'root',
             'password' => 'mysqlp455w0rd',
             'dev_database' => 'localdev',
@@ -697,10 +833,10 @@ ENV;
 
         $validateDbSchema = function ($arg) {
             $value = strtolower(trim($arg));
-            if ($value === 'sqlsvr') {
-                $value = 'sqlsrv';
+            if ($value === 'pgsql' || $value === 'postgresql') {
+                $value = 'postgres';
             }
-            $validSchemas = ['mysql', 'sqlite', 'postgres', 'sqlsrv'];
+            $validSchemas = ['mysql', 'postgres', 'sqlite'];
             if (!in_array($value, $validSchemas, true)) {
                 throw new Exception('Database schema must be one of: ' . implode(', ', $validSchemas));
             }
@@ -749,17 +885,6 @@ ENV;
             return trim($arg);
         };
 
-        $validateEmail = function ($arg) {
-            $email = trim($arg);
-            if (empty($email)) {
-                throw new Exception('Email cannot be empty');
-            }
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                throw new Exception('Invalid email format');
-            }
-            return $email;
-        };
-
         $maxRetries = 5;
 
         if ($unattended) {
@@ -771,8 +896,6 @@ ENV;
             $stdIo->write("Project Directory: " . $workdir);
 
             // Get values with defaults
-            $userName = $config['git_user_name'] ?? $gitUserName ?: 'Your Name';
-            $userEmail = $config['git_user_email'] ?? $gitUserEmail ?: 'your.email@example.com';
             $phpVersion = $config['php_version'] ?? $currentPhpVersion;
             $namespace = $config['namespace'] ?? 'MyRest';
             $composerName = $config['composer_name'] ?? 'me/myrest';
@@ -803,22 +926,6 @@ ENV;
             }
 
             // Validate provided values (only if they were explicitly provided in JSON)
-            if (isset($config['git_user_name'])) {
-                try {
-                    $userName = $validateNonEmpty($userName);
-                } catch (Exception $e) {
-                    throw new Exception("Invalid git_user_name in setup.json: " . $e->getMessage());
-                }
-            }
-
-            if (isset($config['git_user_email'])) {
-                try {
-                    $userEmail = $validateEmail($userEmail);
-                } catch (Exception $e) {
-                    throw new Exception("Invalid git_user_email in setup.json: " . $e->getMessage());
-                }
-            }
-
             if (isset($config['php_version'])) {
                 try {
                     $phpVersion = $validatePHPVersion($phpVersion);
@@ -869,8 +976,16 @@ ENV;
                 $dbConfig['schema'] = $validateDbSchema($dbConfig['schema']);
             }
 
+            if ($dbConfig['schema'] !== 'sqlite' && !isset($config['mysql_connection'])) {
+                // The host and user of the database service docker-compose.yml runs for this schema
+                $dbConfig = array_merge($dbConfig, self::defaultServer($dbConfig['schema']));
+            }
+
             if ($dbConfig['schema'] === 'sqlite') {
+                // A file under db/: no server, no credentials
                 $dbConfig['host'] = '';
+                $dbConfig['user'] = '';
+                $dbConfig['password'] = '';
             } elseif (isset($config['db_host'])) {
                 try {
                     $dbConfig['host'] = $validateDbHost($config['db_host']);
@@ -881,7 +996,9 @@ ENV;
                 $dbConfig['host'] = $validateDbHost($dbConfig['host']);
             }
 
-            if (isset($config['db_user'])) {
+            if ($dbConfig['schema'] === 'sqlite') {
+                // nothing to ask for
+            } elseif (isset($config['db_user'])) {
                 try {
                     $dbConfig['user'] = $validateNonEmpty($config['db_user']);
                 } catch (Exception $e) {
@@ -891,7 +1008,9 @@ ENV;
                 $dbConfig['user'] = $validateNonEmpty($dbConfig['user']);
             }
 
-            if (isset($config['db_password'])) {
+            if ($dbConfig['schema'] === 'sqlite') {
+                // nothing to ask for
+            } elseif (isset($config['db_password'])) {
                 try {
                     $dbConfig['password'] = $validateNonEmpty($config['db_password']);
                 } catch (Exception $e) {
@@ -921,14 +1040,12 @@ ENV;
                 $dbConfig['test_database'] = $validateDbName($dbConfig['test_database']);
             }
 
-            $stdIo->write("Git user name: $userName");
-            $stdIo->write("Git user email: $userEmail");
             $stdIo->write("PHP Version: $phpVersion");
             $stdIo->write("Namespace: $namespace");
             $stdIo->write("Composer name: $composerName");
             $stdIo->write("Database schema: " . $dbConfig['schema']);
             $stdIo->write("Database host: " . ($dbConfig['schema'] === 'sqlite' ? '(not used)' : $dbConfig['host']));
-            $stdIo->write("Database user: " . $dbConfig['user']);
+            $stdIo->write("Database user: " . ($dbConfig['schema'] === 'sqlite' ? '(not used)' : $dbConfig['user']));
             $stdIo->write("Dev database: " . $dbConfig['dev_database']);
             $stdIo->write("Test database: " . $dbConfig['test_database']);
             $stdIo->write("Timezone: $timezone");
@@ -944,53 +1061,41 @@ ENV;
             $stdIo->write("");
             $stdIo->write("Project Directory: " . $workdir);
 
-            // Git configuration
-            $defaultGitName = !empty($gitUserName) ? $gitUserName : 'Your Name';
-            $defaultGitEmail = !empty($gitUserEmail) ? $gitUserEmail : 'your.email@example.com';
-
-            $userName = $stdIo->askAndValidate("Git user name [$defaultGitName]: ", $validateNonEmpty, $maxRetries, $defaultGitName);
-            $userEmail = $stdIo->askAndValidate("Git user email [$defaultGitEmail]: ", $validateEmail, $maxRetries, $defaultGitEmail);
-
-            // Show info about git configuration
-            if ($userName !== $gitUserName && !empty($gitUserName)) {
-                $stdIo->write("<info>Git user.name for this project will be set to: $userName</info>");
-            }
-            if ($userEmail !== $gitUserEmail && !empty($gitUserEmail)) {
-                $stdIo->write("<info>Git user.email for this project will be set to: $userEmail</info>");
-            }
-
             $phpVersion = $stdIo->askAndValidate("PHP Version [$currentPhpVersion]: ", $validatePHPVersion, $maxRetries, $currentPhpVersion);
             $namespace = $stdIo->askAndValidate('Project namespace [MyRest]: ', $validateNamespace, $maxRetries, 'MyRest');
             $composerName = $stdIo->askAndValidate('Composer name [me/myrest]: ', $validateComposer, $maxRetries, 'me/myrest');
             $dbSchema = $stdIo->askAndValidate(
-                'Database schema [mysql]: ',
+                'Database schema (mysql, postgres, sqlite) [mysql]: ',
                 $validateDbSchema,
                 $maxRetries,
                 $defaultDbConfig['schema']
             );
             if ($dbSchema === 'sqlite') {
                 $dbHost = '';
-                $stdIo->write("<info>SQLite selected - host will be ignored.</info>");
+                $dbUser = '';
+                $dbPassword = '';
+                $stdIo->write("<info>SQLite selected: the databases are files under db/, with no host or credentials.</info>");
             } else {
+                $server = self::defaultServer($dbSchema);
                 $dbHost = $stdIo->askAndValidate(
-                    "Database host [{$defaultDbConfig['host']}]: ",
+                    "Database host [{$server['host']}]: ",
                     $validateDbHost,
                     $maxRetries,
-                    $defaultDbConfig['host']
+                    $server['host']
+                );
+                $dbUser = $stdIo->askAndValidate(
+                    "Database user [{$server['user']}]: ",
+                    $validateNonEmpty,
+                    $maxRetries,
+                    $server['user']
+                );
+                $dbPassword = $stdIo->askAndValidate(
+                    "Database password [{$defaultDbConfig['password']}]: ",
+                    $validateNonEmpty,
+                    $maxRetries,
+                    $defaultDbConfig['password']
                 );
             }
-            $dbUser = $stdIo->askAndValidate(
-                "Database user [{$defaultDbConfig['user']}]: ",
-                $validateNonEmpty,
-                $maxRetries,
-                $defaultDbConfig['user']
-            );
-            $dbPassword = $stdIo->askAndValidate(
-                "Database password [{$defaultDbConfig['password']}]: ",
-                $validateNonEmpty,
-                $maxRetries,
-                $defaultDbConfig['password']
-            );
             $devDatabase = $stdIo->askAndValidate(
                 "Dev database name [{$defaultDbConfig['dev_database']}]: ",
                 $validateDbName,
@@ -1019,6 +1124,6 @@ ENV;
         }
 
         $script = new PostCreateScript();
-        $script->execute($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $installFrontend, $userName, $userEmail);
+        $script->execute($workdir, $namespace, $composerName, $phpVersion, $dbConfig, $timezone, $installExamples, $installFrontend);
     }
 }

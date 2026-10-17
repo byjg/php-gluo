@@ -422,16 +422,7 @@
                     {
                         "name": "orderBy",
                         "in": "query",
-                        "description": "Order by",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filter",
-                        "in": "query",
-                        "description": "Filter",
+                        "description": "Fields to sort by, separated by commas; add ' desc' after a field for descending order. Example: name desc,id",
                         "required": false,
                         "schema": {
                             "type": "string"
@@ -847,16 +838,7 @@
                     {
                         "name": "orderBy",
                         "in": "query",
-                        "description": "Order by",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filter",
-                        "in": "query",
-                        "description": "Filter",
+                        "description": "Fields to sort by, separated by commas; add ' desc' after a field for descending order. Example: name desc,id",
                         "required": false,
                         "schema": {
                             "type": "string"
@@ -1187,16 +1169,7 @@
                     {
                         "name": "orderBy",
                         "in": "query",
-                        "description": "Order by",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filter",
-                        "in": "query",
-                        "description": "Filter",
+                        "description": "Fields to sort by, separated by commas; add ' desc' after a field for descending order. Example: name desc,id",
                         "required": false,
                         "schema": {
                             "type": "string"

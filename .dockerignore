@@ -6,3 +6,7 @@
 vendor
 node_modules
 dist
+.db-dialects
+
+# A SQLite project keeps its local database in db/; the image takes db/ for the migrations only
+db/*.sqlite

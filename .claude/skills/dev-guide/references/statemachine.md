@@ -191,7 +191,7 @@ use ByJG\StateMachine\FiniteStateMachine;
 Retrieve it anywhere:
 
 ```php
-use ByJG\Config\Definition as Config;
+use ByJG\Config\Config;
 
 $machine = Config::get('OrderStateMachine');
 ```

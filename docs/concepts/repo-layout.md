@@ -29,8 +29,8 @@ my-api/
 │   └── public/           # Vite static passthrough (NOT a docroot)
 │
 ├── docker/               # Dockerfile (API) + Dockerfile-html (frontend)
-├── docker-compose.yml    # API :8080, frontend :7080, MySQL :3306
-└── docs/
+├── docker-compose.yml    # API :8080, frontend :7080 (HTTPS :7443), MySQL :3306
+└── README.md             # quick start + link to the online documentation
 ```
 
 ## Why the PHP app sits at the root
@@ -60,7 +60,7 @@ input belonging to the Vite project.
 
 ## Two containers, two front doors
 
-`docker-compose.yml` runs the API on **:8080** and the SPA on **:7080**. Each has its own
+`docker-compose.yml` runs the API on **:8080** and the SPA on **:7080** (HTTPS on **:7443**). Each has its own
 `index.html` — `public/index.html` is a landing page for the API, `frontend/index.html`
 is the SPA shell — and on the default two-container setup they never collide.
 

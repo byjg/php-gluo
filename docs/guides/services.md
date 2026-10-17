@@ -349,12 +349,12 @@ Generate a service using the code generator:
 
 ```bash
 # Generate service only
-APP_ENV=dev composer run codegen -- --table products service --save
-# OR: composer run codegen -- --env=dev --table products service --save
+APP_ENV=dev ./gluo codegen:service --table products --save
+# OR: ./gluo --env=dev codegen:service --table products --save
 
 # Generate service + repository + model
-APP_ENV=dev composer run codegen -- --table products all --save
-# OR: composer run codegen -- --env=dev --table products all --save
+APP_ENV=dev ./gluo codegen:all --table products --save
+# OR: ./gluo --env=dev codegen:all --table products --save
 ```
 
 The service will automatically:
@@ -654,7 +654,7 @@ Services are easy to unit test:
 ```php
 <?php
 
-namespace Test\Unit\Service;
+namespace Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
 use RestReferenceArchitecture\Service\ProductService;

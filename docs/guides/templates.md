@@ -76,7 +76,7 @@ and available in every template.
 {{ primaryKeys }}        # Array of primary key column names
 {{ nullableFields }}     # camelCase property names of nullable, non-PK columns
 {{ nonNullableFields }}  # camelCase property names of required columns
-{{ indexes }}            # Table indexes (each with camelColumnName)
+{{ indexes }}            # One entry per indexed column, primary key excluded (see below)
 {{ autoIncrement }}      # "yes" when the PK auto-increments, "no" otherwise
 {{ activerecord }}       # True in ActiveRecord mode
 {{ hasCreatedAt }}       # True when the table has a created_at column
@@ -86,7 +86,8 @@ and available in every template.
 
 ### Field Variables
 
-Each field in `{{ fields }}` mirrors the MySQL `EXPLAIN` output plus derived keys:
+Each field in `{{ fields }}` keeps the names of MySQL's `EXPLAIN` output, on every database the codegen
+reads (MySQL, SQLite, PostgreSQL, SQL Server, Oracle), plus derived keys:
 
 ```jinja
 {{ field.field }}           # Raw column name (e.g., is_active)
@@ -95,10 +96,24 @@ Each field in `{{ fields }}` mirrors the MySQL `EXPLAIN` output plus derived key
 {{ field.php_type }}        # PHP type (string, int, float)
 {{ field.openapi_type }}    # OpenAPI type (string, integer, number)
 {{ field.openapi_format }}  # OpenAPI format (string, int32, int64, double, date-time)
+{{ field.openapi_max_length }}  # Declared length of a char/varchar column (e.g., 120); 0 for any other type
 {{ field.null }}            # "YES" when NULL allowed, "NO" otherwise
-{{ field.key }}             # "PRI" for primary key columns
+{{ field.key }}             # "PRI" for primary key columns, empty otherwise
 {{ field.default }}         # Default value (or null)
-{{ field.extra }}           # e.g., auto_increment
+{{ field.extra }}           # "auto_increment" when the database fills in the value,
+                            # "VIRTUAL GENERATED" for a generated (computed) column, empty otherwise
+{{ field.parent_table }}    # The table a foreign-key column references, empty otherwise
+```
+
+### Index Variables
+
+Each entry in `{{ indexes }}` is one column of an index, so a two-column index gives two entries:
+
+```jinja
+{{ index.key_name }}         # Index name
+{{ index.column_name }}      # Raw column name
+{{ index.camelColumnName }}  # camelCase column name
+{{ index.non_unique }}       # 0 for a unique index, 1 otherwise
 ```
 
 Common tests, as used by the package templates themselves:
@@ -403,7 +418,7 @@ After modifying templates, test generation:
 
 ```bash
 # Generate with modified template
-composer codegen -- --env=dev --table=test_table all --save
+./gluo --env=dev codegen:all --table=test_table --save
 
 # Review generated code
 cat src/Model/TestTable.php

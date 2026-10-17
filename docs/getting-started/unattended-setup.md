@@ -31,6 +31,11 @@ SETUP_JSON=/path/to/custom-setup.json composer create-project byjg/gluo my-proje
 - CI/CD pipelines with specific configs
 - Temporary overrides for specific projects
 
+When `SETUP_JSON` is set, the file must exist where Composer runs, or the setup stops with an
+error. A Composer that runs in a container (a `composer` wrapper around `docker run`, for instance)
+only sees the directories mounted into it, usually just the current one: put the file there, or
+mount its directory.
+
 ### 2. Parent Directory
 
 The script looks in the directory where you run the `composer create-project` command:
@@ -75,8 +80,7 @@ Create your personal defaults once:
 mkdir -p ~/.gluo
 cat > ~/.gluo/setup.json << 'EOF'
 {
-  "git_user_name": "John Doe",
-  "git_user_email": "john.doe@example.com",
+  "timezone": "America/Toronto",
   "install_frontend": true,
   "install_examples": false
 }
@@ -112,8 +116,6 @@ composer create-project byjg/gluo my-project ^7.0
 # Store config anywhere
 cat > /etc/ci-configs/rest-setup.json << 'EOF'
 {
-  "git_user_name": "CI Bot",
-  "git_user_email": "ci@company.com",
   "namespace": "AutoDeployApp",
   "install_frontend": true,
   "install_examples": false
@@ -128,15 +130,13 @@ SETUP_JSON=/etc/ci-configs/rest-setup.json composer create-project byjg/gluo pro
 
 | Field              | Type    | Default                                           | Description                                     |
 |--------------------|---------|---------------------------------------------------|-------------------------------------------------|
-| `git_user_name`    | string  | Global git config or "Your Name"                  | Git user name for the project                   |
-| `git_user_email`   | string  | Global git config or "your.email@example.com"     | Git user email for the project                  |
 | `php_version`      | string  | Current PHP version                               | PHP version (8.3, 8.4, 8.5)                     |
 | `namespace`        | string  | "MyRest"                                          | Project namespace (CamelCase)                   |
 | `composer_name`    | string  | "me/myrest"                                       | Composer package name (vendor/package)          |
-| `db_schema`        | string  | `mysql`                                           | One of: `mysql`, `postgres`, `sqlsrv`, `sqlite` |
-| `db_host`          | string  | `mysql-container`                                 | Database host/container (ignored for SQLite)    |
-| `db_user`          | string  | `root`                                            | Database username                               |
-| `db_password`      | string  | `mysqlp455w0rd`                                   | Database password                               |
+| `db_schema`        | string  | `mysql`                                           | One of: `mysql`, `postgres`, `sqlite`           |
+| `db_host`          | string  | `gluo-database`                                   | Database host/service (ignored for SQLite)      |
+| `db_user`          | string  | `root` / `postgres`                               | Database username (ignored for SQLite)          |
+| `db_password`      | string  | `mysqlp455w0rd`                                   | Database password (ignored for SQLite)          |
 | `db_name_dev`      | string  | `localdev`                                        | Development database/schema name                |
 | `db_name_test`     | string  | `localtest`                                       | Test database/schema name                       |
 | `timezone`         | string  | "UTC"                                             | Server timezone                                 |
@@ -158,6 +158,11 @@ If a field is not provided in `setup.json`, the default value will be used. You 
 }
 ```
 
+## Errors
+
+A `setup.json` that is found but is not a valid JSON object stops the setup with an error naming
+the file, instead of falling back to the questions with the default answers.
+
 ## Priority Order
 
 When multiple `setup.json` files exist, the script uses the **first one found**:
@@ -171,6 +176,9 @@ When multiple `setup.json` files exist, the script uses the **first one found**:
 ## Docker Warning in Unattended Mode
 
 If Docker is not installed, the warning will be displayed, but the setup will continue automatically without waiting for user input.
+
+When Composer itself runs inside a container, it cannot see the host's Docker, so the setup prints
+a note that Docker could not be checked instead of the warning, and does not wait for input.
 
 ## Interactive Mode
 

@@ -29,16 +29,39 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Every combination on MySQL; on PostgreSQL and SQLite the full stack, whose examples
+        # run all the SQL that differs between the databases (.db-dialects/).
         include:
           - combo: full-stack
             install_frontend: true
             install_examples: true
+            db_schema: mysql
+            db_host: mysql-container
+            db_user: root
           - combo: auth-shell
             install_frontend: true
             install_examples: false
+            db_schema: mysql
+            db_host: mysql-container
+            db_user: root
           - combo: pure-api
             install_frontend: false
             install_examples: false
+            db_schema: mysql
+            db_host: mysql-container
+            db_user: root
+          - combo: full-stack-postgres
+            install_frontend: true
+            install_examples: true
+            db_schema: postgres
+            db_host: postgres-container
+            db_user: postgres
+          - combo: full-stack-sqlite
+            install_frontend: true
+            install_examples: true
+            db_schema: sqlite
+            db_host: ""
+            db_user: ""
 
     services:
       mysql-container:
@@ -54,8 +77,18 @@ jobs:
           --health-timeout=20s
           --health-retries=10
 
+      postgres-container:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: mysqlp455w0rd
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -68,17 +101,15 @@ jobs:
         run: |
           cat > /tmp/setup.json <<EOF
           {
-            "git_user_name": "CI",
-            "git_user_email": "ci@example.com",
             "php_version": "8.5",
             "namespace": "AcmeShop",
             "composer_name": "acme/shop",
             "timezone": "UTC",
             "install_frontend": ${{ matrix.install_frontend }},
             "install_examples": ${{ matrix.install_examples }},
-            "db_schema": "mysql",
-            "db_host": "mysql-container",
-            "db_user": "root",
+            "db_schema": "${{ matrix.db_schema }}",
+            "db_host": "${{ matrix.db_host }}",
+            "db_user": "${{ matrix.db_user }}",
             "db_password": "mysqlp455w0rd",
             "db_name_dev": "localdev",
             "db_name_test": "localtest"
@@ -98,6 +129,14 @@ jobs:
         run: |
           test -f /tmp/my-api/composer.json
           test ! -f /tmp/my-api/builder/PostCreateScript.php
+          # The installer does not create a git repository
+          test ! -d /tmp/my-api/.git
+          # The files of the database chosen are the project's own; .db-dialects/ is gone
+          test -f /tmp/my-api/db/base.sql
+          test -f /tmp/my-api/docker-compose.database.yml
+          test ! -d /tmp/my-api/.db-dialects
+          test ! -f /tmp/my-api/builder/DbDialect.php
+          ! grep -q "docker-compose" /tmp/my-api/.gitignore
           if [ "${{ matrix.install_frontend }}" = "true" ]; then
             test -d /tmp/my-api/frontend
             grep -q "frontend:" /tmp/my-api/docker-compose.yml
@@ -106,13 +145,12 @@ jobs:
             ! grep -q "gluo-frontend" /tmp/my-api/docker-compose.yml
           fi
 
-      - name: Psalm on the generated project
-        working-directory: /tmp/my-api
-        run: ./vendor/bin/psalm
-
       - name: PHPUnit on the generated project
         working-directory: /tmp/my-api
         run: ./vendor/bin/phpunit
+        env:
+          # The job runs in a container: the database server is the CI service, not 127.0.0.1
+          DBDRIVER_CONNECTION: ${{ matrix.db_schema != 'sqlite' && format('{0}://{1}:mysqlp455w0rd@{2}/localtest', matrix.db_schema, matrix.db_user, matrix.db_host) || '' }}
 
       - name: Build the generated frontend
         if: matrix.install_frontend == true

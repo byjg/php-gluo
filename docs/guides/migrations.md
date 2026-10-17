@@ -8,11 +8,11 @@ title: Database Migrations
 ## Usage
 
 ```bash
-APP_ENV=<environment> composer migrate -- <command> [options]
-composer migrate -- --env=<environment> <command> [options]
+APP_ENV=<environment> ./gluo migrate:<command> [options]
+./gluo --env=<environment> migrate:<command> [options]
 ```
 
-If you run `composer migrate` with no parameters or invalid parameters, the command will display usage information and available commands.
+Run `./gluo migrate:update --help` to display usage information and the available commands. `composer migrate -- <command>` still works as an alias for `./gluo migrate:<command>`.
 
 ### Environment
 
@@ -48,13 +48,13 @@ You can create a fresh new database using the command:
 
 ```bash
 # Using APP_ENV
-APP_ENV=dev composer migrate -- reset
+APP_ENV=dev ./gluo migrate:reset
 
 # Using --env parameter
-composer migrate -- --env=dev reset
+./gluo --env=dev migrate:reset
 
 # Reset and migrate to specific version
-composer migrate -- --env=dev reset --version=5
+./gluo --env=dev migrate:reset --version=5
 ```
 
 :::warning
@@ -67,13 +67,13 @@ You can update the database using the command:
 
 ```bash
 # Migrate to latest version
-APP_ENV=dev composer migrate -- up
+APP_ENV=dev ./gluo migrate:up
 
 # Migrate to specific version
-composer migrate -- --env=dev update --version=5
+./gluo --env=dev migrate:update --version=5
 
 # Migrate with verbose output
-APP_ENV=dev composer migrate -- up -vv
+APP_ENV=dev ./gluo migrate:up -vv
 ```
 
 The `up` command applies all pending migrations. The `update` command intelligently migrates up or down to reach the specified version.
@@ -84,10 +84,10 @@ You can rollback the database to a previous version:
 
 ```bash
 # Rollback to version 3
-APP_ENV=dev composer migrate -- down --version=3
+APP_ENV=dev ./gluo migrate:down --version=3
 
 # Rollback completely (to version 0)
-composer migrate -- --env=dev down --version=0
+./gluo --env=dev migrate:down --version=0
 ```
 
 ## Create a New Migration Version

@@ -251,13 +251,13 @@ Create or update the test file `tests/Controller/ExampleCrudTest.php`:
 ```php
 <?php
 
-namespace Test\Controller;
+namespace Tests\Controller;
 
 use ByJG\Config\Config;
 use RestReferenceArchitecture\Service\ExampleCrudService;
 use ByJG\Gluo\Util\FakeApiRequester;
-use Test\Controller\BaseApiTestCase;
-use Test\Controller\Credentials;
+use Tests\Controller\BaseApiTestCase;
+use Tests\Controller\Credentials;
 
 class ExampleCrudTest extends BaseApiTestCase
 {
@@ -314,7 +314,7 @@ The `assertRequest()` method automatically validates:
 Update the OpenAPI specification and run the tests:
 
 ```bash
-composer run openapi
+./gluo openapi
 APP_ENV=test composer run test
 ```
 
@@ -322,7 +322,7 @@ All tests should pass successfully!
 
 :::caution Regeneration is not optional
 Routing is read from `public/docs/openapi.json`, not from your PHP. Change a controller
-attribute without running `composer run openapi` and the endpoint returns **404 with no
-error message**. `composer test` runs `composer openapi:check` first, which warns when the
+attribute without running `./gluo openapi` and the endpoint returns **404 with no
+error message**. `composer test` runs `./gluo openapi:check` first, which warns when the
 spec is older than your controllers or models — you can also run it on its own.
 :::

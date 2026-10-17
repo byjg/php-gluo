@@ -83,7 +83,7 @@ use ByJG\AnyDataset\Core\IteratorFilter;
 use ByJG\AnyDataset\Core\Enum\Relation;
 
 $filter = new IteratorFilter();
-$filter->and('role', Relation::EQUAL, 'admin');
+$filter->and('role', Relation::Equal, 'admin');
 
 foreach ($ds->getIterator($filter) as $row) {
     echo $row->get('name');   // Alice
@@ -91,18 +91,18 @@ foreach ($ds->getIterator($filter) as $row) {
 ```
 
 **Available relations:**
-`EQUAL`, `NOT_EQUAL`, `LESS_THAN`, `GREATER_THAN`, `LESS_OR_EQUAL_THAN`,
-`GREATER_OR_EQUAL_THAN`, `STARTS_WITH`, `CONTAINS`, `IN`, `NOT_IN`,
-`IS_NULL`, `IS_NOT_NULL`
+`EQUAL`, `NotEqual`, `LessThan`, `GreaterThan`, `LessThanOrEqualTo`,
+`GreaterThanOrEqualTo`, `StartsWith`, `CONTAINS`, `IN`, `NotIn`,
+`IsNull`, `IsNotNull`
 
 ### Grouped conditions (AND/OR)
 
 ```php
 $filter = new IteratorFilter();
-$filter->startGroup('id', Relation::EQUAL, 1)
-       ->or('id', Relation::EQUAL, 2)
+$filter->startGroup('id', Relation::Equal, 1)
+       ->or('id', Relation::Equal, 2)
        ->endGroup()
-       ->and('role', Relation::EQUAL, 'user');
+       ->and('role', Relation::Equal, 'user');
 ```
 
 ### Row methods
@@ -347,10 +347,10 @@ use ByJG\AnyDataset\Text\Definition\TextTypeEnum;
 // pos 0-2: id (3 chars), pos 3-9: name (7), pos 10: enabled (1), pos 11-14: code (4)
 $ds = (new FixedTextFileDataset($content))
     ->withFieldDefinition([
-        new FixedTextDefinition('id',      0,  3, TextTypeEnum::NUMBER),
-        new FixedTextDefinition('name',    3,  7, TextTypeEnum::STRING),
-        new FixedTextDefinition('enabled', 10, 1, TextTypeEnum::STRING, ['S', 'N']),
-        new FixedTextDefinition('code',    11, 4, TextTypeEnum::NUMBER),
+        new FixedTextDefinition('id',      0,  3, TextTypeEnum::Number),
+        new FixedTextDefinition('name',    3,  7, TextTypeEnum::String),
+        new FixedTextDefinition('enabled', 10, 1, TextTypeEnum::String, ['S', 'N']),
+        new FixedTextDefinition('code',    11, 4, TextTypeEnum::Number),
     ]);
 
 foreach ($ds->getIterator() as $row) {
@@ -400,7 +400,7 @@ $fakeData = new AnyDataset([
 
 // Query it like a real dataset
 $filter = new IteratorFilter();
-$filter->and('price', Relation::GREATER_THAN, 10.0);
+$filter->and('price', Relation::GreaterThan, 10.0);
 $expensive = $fakeData->getIterator($filter)->toArray();
 // [['id'=>2,'name'=>'Gadget','price'=>24.99]]
 

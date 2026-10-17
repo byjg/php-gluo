@@ -86,7 +86,7 @@ MySQL
 git fetch && git pull && git merge origin/master
 composer update     # PHP deps live in vendor
 docker compose up -d
-composer migrate -- --env=dev reset   # creates schema from scratch
+./gluo --env=dev migrate:reset   # creates schema from scratch
 composer psalm                        # or: php85 vendor/bin/psalm
 composer test                         # or: vendor/bin/phpunit
 ```
@@ -96,7 +96,7 @@ composer test                         # or: vendor/bin/phpunit
 git fetch && git pull && git merge origin/master
 composer update
 docker compose up -d
-composer migrate -- --env=dev update  # applies only pending migrations
+./gluo --env=dev migrate:update  # applies only pending migrations
 composer psalm
 composer test
 ```
@@ -113,7 +113,7 @@ optional Vite + React frontend is a sibling package under `frontend/`.
 ```
 <repo root>/               # the PHP REST API — everything below is relative to the root
 ├── composer.json          # the single manifest (require, autoload, scripts)
-├── docker-compose.yml     # API :8080, frontend :7080, MySQL :3306
+├── docker-compose.yml     # API :8080, frontend :7080 (HTTPS :7443), MySQL :3306
 ├── docker/                # Dockerfile (API) + Dockerfile-html (frontend)
 ├── frontend/              # optional React 19 + Vite 6 + Tailwind SPA (see Frontend note below)
 
@@ -122,7 +122,6 @@ src/
 ├── Service/        # Business logic — wraps repositories (Repository pattern only)
 ├── Repository/     # Data access — queries and persistence
 ├── Model/          # Database models with ORM + OpenAPI attributes
-├── Generator/      # UuidSeedGenerator (UUID PK helper)
 └── OpenApiSpec.php # Root OpenAPI spec definition
 
 # Attributes (RequireAuthenticated, ...), traits (OaCreatedAt, ...), base
@@ -153,7 +152,7 @@ The example CRUD entities are `Project` (Repository, int PK, table `project`),
 
 > **Frontend (optional, `frontend/`).** A React 19 + Vite 6 + Tailwind SPA with login,
 > password-reset, dashboard, and profile screens wired to the API over JWT. Built by
-> `docker/Dockerfile-html` and served by byjg/static-httpserver on **:7080** (API on :8080).
+> `docker/Dockerfile-html` and served by byjg/static-httpserver on **:7080**, and over HTTPS on **:7443** (API on :8080).
 > Kept or removed by the *Install Frontend* toggle at create-project time. See
 > `docs/guides/frontend.md`. This skill covers the PHP side; the frontend is plain Vite.
 
@@ -182,13 +181,13 @@ The example CRUD entities are `Project` (Repository, int PK, table `project`),
 ### Option A: Codegen (recommended starting point)
 ```bash
 # 1. Write the migration (see below), then apply it:
-composer migrate -- --env=dev update
+./gluo --env=dev migrate:update
 
 # 2. Generate all classes:
-composer codegen -- --env=dev --table=product all --save
+./gluo --env=dev codegen:all --table=product --save
 
 # 3. Regenerate OpenAPI:
-composer run openapi
+./gluo openapi
 ```
 
 Codegen produces: model, repository, service, controller, and tests. Edit to add business logic.
@@ -213,7 +212,7 @@ CREATE TABLE product (
 
 `db/migrations/down/XXXX.sql`: `DROP TABLE product;`
 
-Apply: `composer migrate -- --env=dev update`
+Apply: `./gluo --env=dev migrate:update`
 
 #### 2. Model
 
@@ -241,7 +240,7 @@ class Product
 
 **Available traits:** `use OaCreatedAt;` / `use OaUpdatedAt;` / `use OaDeletedAt;`
 
-**UUID primary key:** use `#[TableMySqlUuidPKAttribute("product")]` and `#[FieldUuidAttribute(primaryKey: true)]`
+**UUID primary key:** use `#[TableUuidPKAttribute("product")]` and `#[FieldUuidAttribute(primaryKey: true)]`
 (see `src/Model/Task.php` for the complete UUID model pattern)
 
 #### 3. Repository
@@ -360,12 +359,12 @@ class ProductController
 #### 7. Regenerate OpenAPI
 
 ```bash
-composer run openapi
+./gluo openapi
 ```
 
 Always run this after adding or changing controller attributes. It updates `public/docs/openapi.json`
 which drives both routing and contract testing. Forgetting it makes the endpoint 404 with no error —
-`composer openapi:check` (run automatically by `composer test`) warns when the spec is older than
+`./gluo openapi:check` (run automatically by `composer test`) warns when the spec is older than
 anything in `src/Controller/` or `src/Model/`.
 
 `openapi.json` is the single source of truth: `OpenApiRouteList` reads it to build the route
@@ -502,7 +501,7 @@ Throw to return the right HTTP status:
 1. Read the existing code first (model, repository, service, controller, tests)
 2. Make changes at the appropriate layer
 3. Write a new migration if DB schema changes
-4. `composer run openapi` after any controller attribute changes
+4. `./gluo openapi` after any controller attribute changes
 5. `composer psalm` — fix type errors (or `php85 vendor/bin/psalm`)
 6. `composer test` — all tests must pass
 7. Update tests to reflect new behavior
@@ -515,21 +514,24 @@ Throw to return the right HTTP status:
 |---------|---------|
 | `docker compose up -d` | Start MySQL + PHP (+ frontend) containers |
 | `docker compose down` | Stop containers |
+| `./gluo list` | List the built-in and project commands (`--check` validates them) |
+| `./gluo <name> [args]` | Run a project command declared in `src/Command/Commands.php` |
+| `./gluo --env=prod install <name>` | Install a project command as a system service |
 | `composer update` | Update PHP dependencies (live in vendor) |
 | `composer psalm` | Run static analysis |
 | `php85 vendor/bin/psalm` | Psalm fallback (if default is buggy) |
 | `composer test` | Run test suite (phpunit) |
-| `composer run openapi` | Regenerate OpenAPI spec from attributes |
-| `composer openapi:check` | Warn if the spec is stale (auto-run by `composer test`) |
-| `composer migrate -- --env=dev update` | Apply pending migrations (normal dev) |
-| `composer migrate -- --env=dev reset` | Wipe and recreate DB (first install / CI) |
-| `composer codegen -- --env=dev --table=X all --save` | Scaffold full CRUD for table X |
+| `./gluo openapi` | Regenerate OpenAPI spec from attributes |
+| `./gluo openapi:check` | Warn if the spec is stale (auto-run by `composer test`) |
+| `./gluo --env=dev migrate:update` | Apply pending migrations (normal dev) |
+| `./gluo --env=dev migrate:reset` | Wipe and recreate DB (first install / CI) |
+| `./gluo --env=dev codegen:all --table=X --save` | Scaffold full CRUD for table X |
 
 ---
 
 ## After Every Change Checklist
 
-- [ ] `composer run openapi` — if any controller attributes changed
+- [ ] `./gluo openapi` — if any controller attributes changed
 - [ ] `composer psalm` — static analysis passes
 - [ ] `composer test` — all tests pass
 - [ ] Documentation in `docs/` reflects changes if relevant
@@ -554,5 +556,5 @@ Throw to return the right HTTP status:
 - `references/imageutil.md` — GD-based image manipulation: resize, crop, rotate, flip, watermark, text overlay, saving; install instructions
 - `references/statemachine.md` — Finite state machine: workflow transitions, autoTransitionFrom for classification, DI registration pattern
 - `references/messagequeue.md` — Message queues (RabbitMQ, Redis, mock): publish, consume, DLQ, ACK/NACK, DI wiring, test mock
-- `references/scriptify.md` — CLI scripts, cron jobs, and systemd services: run any class::method from the command line or install as a daemon
+- `references/scriptify.md` — Project commands (`./gluo <name>`, `src/Command/Commands.php`, DI-built) and `./gluo install` as a cron job or systemd service; `scriptify run` and `scriptify call` directly
 - `references/featureflags.md` — Feature flags: PHP attribute approach, DI registration, dispatcher-per-handler-class pattern, testing with clearFlags()

@@ -10,6 +10,8 @@ use ByJG\Config\Exception\KeyNotFoundException;
 use ByJG\Gluo\Attribute\RequireAuthenticated;
 use ByJG\Gluo\Attribute\RequireRole;
 use ByJG\Gluo\Attribute\ValidateRequest;
+use ByJG\Gluo\Util\OrderBy;
+use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
@@ -100,16 +102,7 @@ class NoteController
     )]
     #[OA\Parameter(
         name: "orderBy",
-        description: "Order by",
-        in: "query",
-        required: false,
-        schema: new OA\Schema(
-            type: "string",
-        )
-    )]
-    #[OA\Parameter(
-        name: "filter",
-        description: "Filter",
+        description: "Fields to sort by, separated by commas; add ' desc' after a field for descending order. Example: name desc,id",
         in: "query",
         required: false,
         schema: new OA\Schema(
@@ -129,9 +122,16 @@ class NoteController
     #[RequireAuthenticated]
     public function listNote(HttpResponse $response, HttpRequest $request): void
     {
-        // Get all records with pagination (default is page 0, limit 50)
-        $models = Note::all((int)($request->queryString('page') ?? 0), (int)($request->queryString('size') ?? 50));
-        $response->write($models);
+        // Paginated (default is page 0, 50 per page) and sorted by the orderBy parameter
+        $page = (int)($request->queryString('page') ?? 0);
+        $size = (int)($request->queryString('size') ?? 50);
+
+        $query = Query::getInstance()
+            ->table(Note::tableName())
+            ->orderBy(OrderBy::fromQueryString($request->queryString('orderBy'), Note::class))
+            ->limit($page * $size, $size);
+
+        $response->write(Note::query($query));
     }
 
     /**

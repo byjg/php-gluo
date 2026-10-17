@@ -5,7 +5,7 @@
   "namespace": "MyRest",
   "composer_name": "me/myrest",
   "db_schema": "mysql",
-  "db_host": "mysql-container",
+  "db_host": "gluo-database",
   "db_user": "root",
   "db_password": "mysqlp455w0rd",
   "db_name_dev": "localdev",

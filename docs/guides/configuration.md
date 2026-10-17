@@ -24,7 +24,7 @@ Configuration is powered by [byjg/config](https://github.com/byjg/config):
 - **Environment Inheritance**: test and staging inherit from dev; prod inherits from staging
 - **Flat, numbered files**: `config/{env}/01-infrastructure.php` … `06-external.php`, loaded in filename order
 - **`.env` params**: each environment has a `credentials.env`; `config/.env` provides local machine overrides
-- **Caching**: staging and prod cache the resolved container between requests
+- **Caching**: staging and prod cache the resolved container, set in `config/ConfigBootstrap.php` ([see below](#5-environment-specific-caching))
 
 **Location**: `config/`
 
@@ -37,8 +37,8 @@ The environments and their inheritance are defined in
 ```
 Development (dev)
 ├── Test (test)            # Inherits from dev
-└── Staging (staging)      # Inherits from dev, cached
-    └── Production (prod)  # Inherits from staging (then dev), cached
+└── Staging (staging)      # Inherits from dev, cached (config/ConfigBootstrap.php)
+    └── Production (prod)  # Inherits from staging (then dev), cached (config/ConfigBootstrap.php)
 ```
 
 ### How Inheritance Works
@@ -51,11 +51,9 @@ $dev = Environment::create('dev');
 $test = Environment::create('test')
     ->inheritFrom($dev);
 $staging = Environment::create('staging')
-    ->inheritFrom($dev)
-    ->withCache(new FileSystemCacheEngine());
+    ->inheritFrom($dev);
 $prod = Environment::create('prod')
-    ->inheritFrom($staging, $dev)
-    ->withCache(new FileSystemCacheEngine());
+    ->inheritFrom($staging, $dev);
 ```
 
 An environment only needs to define what differs from its parent: a key defined in
@@ -66,7 +64,7 @@ An environment only needs to define what differs from its parent: a key defined 
 ```
 config/
 ├── dev/
-│   └── credentials.env      # DBDRIVER_CONNECTION=mysql://...@mysql-container/localdev
+│   └── credentials.env      # DBDRIVER_CONNECTION=mysql://...@127.0.0.1/localdev
 ├── staging/
 │   └── credentials.env      # Override: staging database and secrets
 └── prod/
@@ -108,7 +106,7 @@ Values that vary per environment live in each environment's `credentials.env` an
 consumed in the PHP config files via `Param::get()`:
 
 ```ini title="config/dev/credentials.env"
-DBDRIVER_CONNECTION=mysql://root:mysqlp455w0rd@mysql-container/localdev
+DBDRIVER_CONNECTION=mysql://root:mysqlp455w0rd@127.0.0.1/localdev
 JWT_SECRET=ZGV2LS1qd3Qtc2VjcmV0...
 CORS_SERVERS=.*
 ```
@@ -168,22 +166,35 @@ or in a secrets manager — not committed to `credentials.env`.
 
 **File**: `config/ConfigBootstrap.php`
 
-The project bootstrap is intentionally tiny — the environment set, inheritance, and
-caching live in gluo-core, and improvements arrive with `composer update`:
+The project bootstrap is intentionally small — the environment set and inheritance live
+in gluo-core, and improvements arrive with `composer update`. The project only decides
+where to cache the resolved container:
 
 ```php
 <?php
 
+use ByJG\Cache\Psr16\FileSystemCacheEngine;
+use ByJG\Config\Definition;
 use ByJG\Gluo\Config\BaseConfigBootstrap;
 
 return new class extends BaseConfigBootstrap {
+    #[\Override]
+    protected function configureDefinition(Definition $definition): void
+    {
+        parent::configureDefinition($definition);
+
+        // Cache the resolved container in the system temp dir: each new container starts empty
+        $definition->getConfigObject('staging')->withCache(new FileSystemCacheEngine());
+        $definition->getConfigObject('prod')->withCache(new FileSystemCacheEngine());
+    }
 };
 ```
 
 ### Customizing the Definition
 
 Override `configureDefinition()` to add OS environment variables, extra config
-directories, or custom environments:
+directories, custom environments, or a config cache
+([Environment-Specific Caching](#5-environment-specific-caching)):
 
 ```php
 return new class extends BaseConfigBootstrap {
@@ -248,9 +259,26 @@ database (01), services (05) build on repositories.
 
 ### 5. Environment-Specific Caching
 
-`staging` and `prod` already cache the resolved definition with
-`FileSystemCacheEngine` (see `BaseConfigBootstrap`). After changing config in those
-environments, clear the cached container (the cache lives in the system temp dir).
+Caching the resolved container saves reading the config files on every request. gluo-core
+doesn't set it, because where the cache lives depends on how you deploy: the project sets it
+in `config/ConfigBootstrap.php` ([Configuration Bootstrap](#configuration-bootstrap)), and
+the template caches `staging` and `prod` with `FileSystemCacheEngine` in the system temp dir.
+
+`withCache()` accepts any PSR-16 cache, but it must be a ready-made instance: the cache is
+read before any config file is loaded, so it can't come from the DI container
+(`Param::get(BaseCacheEngine::class)` would need the container it is meant to cache). The cached container belongs to one release, so it
+must not outlive the deploy:
+
+- **Per container** (`FileSystemCacheEngine` in the system temp dir, a memcached sidecar in
+  the same pod): each deploy starts with an empty cache. This is the safe choice.
+- **Shared or persistent** (a memcached/Redis service, a persistent volume): the new release
+  would load the previous release's container. Clear the cache on every deploy, or give each
+  release its own keys (e.g. memcached's `OPT_PREFIX_KEY` set to the release version).
+
+The same applies to the route cache (`OpenApiRouteList::withCache()` in `03-api.php`), which
+uses the `BaseCacheEngine` binding.
+
+After changing config in an environment with a cache, clear it (or redeploy).
 
 ## Related Documentation
 

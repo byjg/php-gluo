@@ -1,0 +1,18 @@
+services:
+  gluo-database:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: mysqlp455w0rd
+      TZ: UTC
+    volumes:
+      - mysql-volume:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - net
+
+volumes:
+  mysql-volume:
+
+networks:
+  net:

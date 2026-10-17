@@ -1,0 +1,18 @@
+services:
+  gluo-database:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: mysqlp455w0rd
+      TZ: UTC
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - net
+
+volumes:
+  postgres-volume:
+
+networks:
+  net:

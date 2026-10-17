@@ -22,7 +22,7 @@ The project uses [`zircote/swagger-php`](https://zircote.github.io/swagger-php/g
 Run the generator whenever you add or change annotations:
 
 ```bash
-APP_ENV=dev composer run openapi
+APP_ENV=dev ./gluo openapi
 ```
 
 The composer script invokes `swagger-php` with those scan paths (see `getOpenApiScanPaths()` in `ByJG\Gluo\Builder\BaseScripts`). The output is written to `public/docs/openapi.json`.
@@ -52,13 +52,13 @@ See [Testing](../guides/testing.md) for practical examples.
 ## Keeping the Spec in Sync
 
 :::tip Keep docs in sync
-Whenever you change PHP attribute annotations in `src/`, rerun `APP_ENV=dev composer run openapi`. The regenerated `public/docs/openapi.json` is what `OpenApiRouteList` reads at runtime and what the tests validate against.
+Whenever you change PHP attribute annotations in `src/`, rerun `APP_ENV=dev ./gluo openapi`. The regenerated `public/docs/openapi.json` is what `OpenApiRouteList` reads at runtime and what the tests validate against.
 :::
 
 A common workflow:
 
 1. Add or update `#[OA\Get]`, `#[OA\Post]`, etc. attributes in a controller.
-2. Run `APP_ENV=dev composer run openapi` to regenerate the spec.
+2. Run `APP_ENV=dev ./gluo openapi` to regenerate the spec.
 3. Run `APP_ENV=test composer run test` to verify the new endpoint passes contract tests.
 4. Commit both the updated controller and the regenerated `openapi.json`.
 

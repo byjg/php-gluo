@@ -116,9 +116,9 @@ The only time you pass `--env` explicitly on the command line is for **dev tooli
 accepts it as its own flag — migrations, codegen, and similar scripts:
 
 ```bash
-composer migrate -- --env=dev update     # apply migrations in dev DB
-composer migrate -- --env=test reset     # recreate test DB from scratch
-composer codegen -- --env=dev --table=product all --save
+./gluo --env=dev migrate:update     # apply migrations in dev DB
+./gluo --env=test migrate:reset     # recreate test DB from scratch
+./gluo --env=dev codegen:all --table=product --save
 ```
 
 These `--env` flags are handled by the tool itself and are separate from `APP_ENV`.

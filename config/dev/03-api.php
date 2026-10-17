@@ -24,7 +24,7 @@ return [
         ->toSingleton(),
 
     Schema::class => DI::bind(Schema::class)
-        ->withFactoryMethod('getInstance', [file_get_contents(__DIR__ . '/../../public/docs/openapi.json')])
+        ->withFactoryMethod('fromFile', [__DIR__ . '/../../public/docs/openapi.json'])
         ->toSingleton(),
 
     // Middleware Configuration

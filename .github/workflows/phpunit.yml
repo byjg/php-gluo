@@ -18,7 +18,7 @@ jobs:
       options: --user root --privileged
 
     services:
-      mysql-container:
+      gluo-database:
         image: mysql:8.0.20
         env:
           MYSQL_ROOT_PASSWORD: mysqlp455w0rd
@@ -34,14 +34,20 @@ jobs:
     strategy:
       matrix:
         php-version:
+          - "8.6"
           - "8.5"
           - "8.4"
           - "8.3"
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: composer install
+      # docker-compose*.yml and db/ are written from .db-dialects/, not versioned
+      - run: ./gluo --env=dev db:dialect mysql
       - run: composer test
+        env:
+          # The job runs in a container: the database server is the service, not 127.0.0.1
+          DBDRIVER_CONNECTION: mysql://root:mysqlp455w0rd@gluo-database/localtest
 
   Psalm:
     name: Psalm Static Analyzer
@@ -50,12 +56,12 @@ jobs:
       # for github/codeql-action/upload-sarif to upload SARIF results
       security-events: write
     container:
-      image: byjg/php:8.4-cli
+      image: byjg/php:8.5-cli
       options: --user root --privileged
 
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Composer
         run: composer install
@@ -63,7 +69,7 @@ jobs:
       - name: Psalm
         # Note: Ignoring error code 2, which just signals that some
         # flaws were found, not that Psalm itself failed to run.
-        run: ./vendor/bin/psalm
+        run: ./vendor/bin/psalm.phar
           --show-info=true
           --report=psalm-results.sarif || [ $? = 2 ]
 
@@ -80,8 +86,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - run: npm install

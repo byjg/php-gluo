@@ -101,7 +101,7 @@ ALTER TABLE `users`
     DROP COLUMN `department`;
 ```
 
-Apply: `composer migrate -- --env=dev update`
+Apply: `./gluo --env=dev migrate:update`
 
 ### 2. Extend the User model
 

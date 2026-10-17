@@ -6,13 +6,13 @@ Tests are in-process (no real HTTP, no Docker port binding). `FakeApiRequester` 
 requests through the same `JwtMiddleware` + `OpenApiRouteList` as production, so they
 test the full stack including auth attribute processing and OpenAPI contract validation.
 
-**Base class:** `Test\Controller\BaseApiTestCase` — a thin subclass of `ByJG\Gluo\Testing\BaseApiTestCase` overriding only `getOpenApiPath()`; the gluo base provides the PHPUnit TestCase + OpenApiValidation ancestry, database reset, and the `getDatabaseClass()`/`getMigrationsPath()` hooks
+**Base class:** `Tests\Controller\BaseApiTestCase` — a thin subclass of `ByJG\Gluo\Testing\BaseApiTestCase` overriding only `getOpenApiPath()`; the gluo base provides the PHPUnit TestCase + OpenApiValidation ancestry, database reset, and the `getDatabaseClass()`/`getMigrationsPath()` hooks
 **Request class:** `ByJG\Gluo\Util\FakeApiRequester`
 
 ## Test class setup
 
 ```php
-namespace Test\Controller;
+namespace Tests\Controller;
 
 use ByJG\RestServer\Exception\Error401Exception;
 use ByJG\Gluo\Util\FakeApiRequester;
