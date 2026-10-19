@@ -247,7 +247,7 @@ configuration, and it exits with 1 unless every command is `OK`.
 | `NO_ENV` | Neither `--env` nor `APP_ENV` is set | `migrate:*`, `codegen:*` |
 | `CONFIG_ERROR` | The configuration fails to load for the environment | `migrate:*`, `codegen:*` |
 | `NO_DB_CONFIG` | `DBDRIVER_CONNECTION` is not defined | `migrate:*`, `codegen:*` |
-| `DB_UNREACHABLE` | The database connection fails (the password is masked in the message) | `migrate:*`, `codegen:*` |
+| `DB_UNREACHABLE` | The database connection fails (the password is masked in the message: always inside a connection URL, elsewhere when it has 4 or more characters) | `migrate:*`, `codegen:*` |
 | `MISSING_EXTENSION` | A required PHP extension is not loaded (`readline`) | `terminal` |
 
 | Project status | Meaning |
