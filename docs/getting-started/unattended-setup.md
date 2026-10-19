@@ -130,7 +130,7 @@ SETUP_JSON=/etc/ci-configs/rest-setup.json composer create-project byjg/gluo pro
 
 | Field              | Type    | Default                                           | Description                                     |
 |--------------------|---------|---------------------------------------------------|-------------------------------------------------|
-| `php_version`      | string  | Current PHP version                               | PHP version (8.3, 8.4, 8.5)                     |
+| `php_version`      | string  | Current PHP version                               | PHP version (8.3, 8.4, 8.5, 8.6)                |
 | `namespace`        | string  | "MyRest"                                          | Project namespace (CamelCase)                   |
 | `composer_name`    | string  | "me/myrest"                                       | Composer package name (vendor/package)          |
 | `db_schema`        | string  | `mysql`                                           | One of: `mysql`, `postgres`, `sqlite`           |

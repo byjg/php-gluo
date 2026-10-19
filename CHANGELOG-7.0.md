@@ -161,11 +161,16 @@
   `uuid_to_bin(uuid())`, so every insert into `users` or `task` failed on any other database.
   They now use `TableUuidPKAttribute`, which generates a version 7 UUID in PHP. A project created
   from an earlier template keeps working on MySQL; replace the attribute to run it elsewhere.
+- The installer accepted only PHP 8.3, 8.4 and 8.5, although the project supports 8.6. It now
+  accepts `8.6` too (interactive prompt and `php_version` in `setup.json`).
 
 ## Requirements
 
 - PHP 8.3, 8.4, 8.5 and 8.6 are now supported: `"php": ">=8.3 <8.7"`.
   The previous `<8.6` upper bound excluded PHP 8.6, since `<8.6` is exclusive.
+- The Docker image is based on `byjg/php:8.5-fpm-nginx-2026.10` (was `2026.06`). The installer
+  replaces the PHP version in that tag, and `2026.06` was never published for 8.6; `2026.10`
+  exists for 8.3, 8.4, 8.5 and 8.6.
 
 ### ByJG dependencies
 

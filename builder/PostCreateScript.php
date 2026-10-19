@@ -261,6 +261,7 @@ ENV;
             'tests/Builder/PostCreateScriptTest.php',
             'tests/Builder/SetupJsonTest.php',
             'tests/Builder/ContainerDetectionTest.php',
+            'tests/Builder/PhpVersionTest.php',
         ];
         foreach ($templateOnlyFiles as $file) {
             if (file_exists("$workdir/$file")) {
@@ -640,6 +641,20 @@ ENV;
      * @return array|null
      */
     /**
+     * The PHP version of the new project: one the byjg/php images of docker/Dockerfile are built for.
+     *
+     * @throws Exception
+     */
+    protected static function validatePHPVersion(string $version): string
+    {
+        $validPHPVersions = ['8.3', '8.4', '8.5', '8.6'];
+        if (in_array($version, $validPHPVersions, true)) {
+            return $version;
+        }
+        throw new Exception('Only the PHP versions ' . implode(', ', $validPHPVersions) . ' are supported');
+    }
+
+    /**
      * Whether this script runs inside a container: Docker creates /.dockerenv, and Podman
      * /run/.containerenv.
      *
@@ -809,13 +824,7 @@ ENV;
         ];
         $dbConfig = $defaultDbConfig;
 
-        $validatePHPVersion = function ($arg) {
-            $validPHPVersions = ['8.3', '8.4', '8.5'];
-            if (in_array($arg, $validPHPVersions)) {
-                return $arg;
-            }
-            throw new Exception('Only the PHP versions ' . implode(', ', $validPHPVersions) . ' are supported');
-        };
+        $validatePHPVersion = fn($arg) => self::validatePHPVersion((string)$arg);
 
         $validateNamespace = function ($arg) {
             if (empty($arg) || !preg_match('/^[A-Z][a-zA-Z0-9]*$/', $arg)) {

@@ -1,4 +1,4 @@
-FROM byjg/php:8.5-fpm-nginx-2026.06
+FROM byjg/php:8.5-fpm-nginx-2026.10
 
 # Refer to the documentation to setup the environment variables
 # https://github.com/byjg/docker-php/blob/master/docs/environment.md

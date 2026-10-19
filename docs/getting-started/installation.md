@@ -131,7 +131,7 @@ Run PHP tooling from the repo root (`composer test`, `./gluo migrate:update`,
 
 #### Configuration Options
 
-- **PHP Version**: The PHP version for your Docker container (8.3, 8.4, 8.5)
+- **PHP Version**: The PHP version for your Docker container (8.3, 8.4, 8.5, 8.6)
 - **Project namespace**: Your application's root namespace (must be CamelCase, e.g., `MyApp`, `Tutorial`)
 - **Composer name**: Package name in `vendor/package` format (e.g., `me/myrest`)
 - **Database schema**: `mysql`, `postgres` or `sqlite`. The project gets the SQL of that database in `db/`

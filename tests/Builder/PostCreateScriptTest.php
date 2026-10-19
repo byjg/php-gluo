@@ -3,6 +3,7 @@
 namespace Tests\Builder;
 
 use Builder\PostCreateScript;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -76,7 +77,7 @@ class PostCreateScriptTest extends TestCase
         }
     }
 
-    protected function applyTemplate(bool $installExamples, bool $installFrontend = true, string $composerName = 'acme/shop', array $dbConfig = []): void
+    protected function applyTemplate(bool $installExamples, bool $installFrontend = true, string $composerName = 'acme/shop', array $dbConfig = [], string $phpVersion = '8.4'): void
     {
         $script = new PostCreateScript();
         ob_start();
@@ -85,7 +86,7 @@ class PostCreateScriptTest extends TestCase
                 $this->workdir,
                 'AcmeShop',
                 $composerName,
-                '8.4',
+                $phpVersion,
                 $dbConfig + [
                     'schema' => 'mysql',
                     'host' => 'db-host',
@@ -343,14 +344,25 @@ class PostCreateScriptTest extends TestCase
         $this->assertStringNotContainsString('container_name', $compose);
     }
 
-    public function testDockerfileVersionAndTimezone(): void
+    public static function phpVersionProvider(): array
     {
-        $this->applyTemplate(true);
+        return [
+            '8.3' => ['8.3', '83'],
+            '8.4' => ['8.4', '84'],
+            '8.5' => ['8.5', '85'],
+            '8.6' => ['8.6', '86'],
+        ];
+    }
+
+    #[DataProvider('phpVersionProvider')]
+    public function testDockerfileVersionAndTimezone(string $phpVersion, string $phpVersionSimple): void
+    {
+        $this->applyTemplate(true, phpVersion: $phpVersion);
 
         $dockerfile = file_get_contents($this->workdir . '/docker/Dockerfile');
         $this->assertStringContainsString('ENV TZ=America/Sao_Paulo', $dockerfile);
-        $this->assertStringContainsString('php:8.4-fpm', $dockerfile);
-        $this->assertStringNotContainsString('php85', $dockerfile);
+        $this->assertMatchesRegularExpression('/^FROM byjg\/php:' . preg_quote($phpVersion, '/') . '-fpm-nginx-\d{4}\.\d{2}$/m', $dockerfile);
+        $this->assertStringContainsString("/etc/php$phpVersionSimple/conf.d", $dockerfile);
     }
 
     public function testConnectionStringsAndCredentials(): void
@@ -406,6 +418,7 @@ class PostCreateScriptTest extends TestCase
             'tests/Builder/PostCreateScriptTest.php',
             'tests/Builder/SetupJsonTest.php',
             'tests/Builder/ContainerDetectionTest.php',
+            'tests/Builder/PhpVersionTest.php',
         ];
         foreach ($templateOnlyFiles as $file) {
             $this->assertFileExists($this->workdir . '/' . $file);
