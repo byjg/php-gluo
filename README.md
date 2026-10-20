@@ -236,7 +236,7 @@ This project is open source. See [LICENSE](https://opensource.byjg.com/license/)
 ## Running Tests
 
 In this repository, `docker-compose.yml`, `docker-compose.database.yml`, `db/base.sql` and
-`db/migrations/` are not versioned: they are written from [`.db-dialects/`](.db-dialects/README.md)
+`db/migrations/` are not versioned: they are written from [`.db-dialects/`](https://github.com/byjg/php-gluo/tree/master/.db-dialects)
 for one database. A created project gets them as its own files.
 
 ```bash
