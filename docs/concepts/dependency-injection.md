@@ -51,7 +51,7 @@ return [
     BaseCacheEngine::class => DI::bind(NoCacheEngine::class)->toSingleton(),
 
     DbDriverInterface::class => DI::bind(Factory::class)
-        ->withFactoryMethod("getDbRelationalInstance", [Param::get('DBDRIVER_CONNECTION')])
+        ->withFactoryMethod("getDbInstance", [Param::get('DBDRIVER_CONNECTION')])
         ->toSingleton(),
 ];
 ```
@@ -208,7 +208,7 @@ Mix environment parameters and other dependencies.
 
 ```php
 DbDriverInterface::class => DI::bind(Factory::class)
-    ->withFactoryMethod("getDbRelationalInstance", [
+    ->withFactoryMethod("getDbInstance", [
         Param::get('DBDRIVER_CONNECTION')
     ])
     ->toSingleton(),
