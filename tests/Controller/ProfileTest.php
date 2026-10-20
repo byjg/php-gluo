@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Controller;
+namespace Tests\Controller;
 
 use ByJG\ApiTools\Exception\NotMatchedException;
 use ByJG\Gluo\Util\FakeApiRequester;

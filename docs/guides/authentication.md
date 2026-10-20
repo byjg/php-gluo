@@ -9,7 +9,9 @@ Authentication, password management, and JWT issuance are powered by [`byjg/auth
 
 ## Database Schema
 
-Two tables ship with the reference architecture:
+Two tables ship with the reference architecture, in `db/base.sql`. This is the MySQL version; a project created for
+PostgreSQL or SQLite has the same tables in that database's SQL (a `uuid` or `blob` user id, and a trigger in place of
+`ON UPDATE CURRENT_TIMESTAMP`):
 
 ```sql
 CREATE TABLE `users` (
@@ -123,10 +125,10 @@ JWT_SECRET=ZGV2LS1qd3Qtc2VjcmV0LWtleS1mb3ItbG9jYWwtZGV2ZWxvcG1lbnQtb25seS1wYWQtQ
 `JWT_SECRET` must be a **base64-encoded** string whose decoded value is at least **64 bytes** (required by HS512).
 `composer create-project` generates a fresh secret for every environment automatically.
 
-To regenerate manually, use `composer terminal`:
+To regenerate manually, use `./gluo terminal`:
 
 ```bash
-APP_ENV=dev composer terminal
+APP_ENV=dev ./gluo terminal
 php> \ByJG\JwtWrapper\JwtWrapper::generateSecret(64)
 # => 'OFbOmC2VxlgQHNrBLa/wyj7/fFkgPnLpckbXMVuIU7Sqb3RTztNx3xzEYaoeA31JUpvBjkD7FRKBFGQ0+fnTig=='
 ```
@@ -135,7 +137,7 @@ Copy the output and replace `JWT_SECRET` in the appropriate `credentials.env`.
 :::
 
 :::caution Never commit secrets
-Each environment gets its own `config/<env>/credentials.env` — keep this file out of version control (it is already listed in `.gitignore`).
+Each environment gets its own `config/<env>/credentials.env`, and it is versioned (it is not in `.gitignore`). Keep real secrets out of it: put local ones in `config/.env`, which is in `.gitignore`, and production ones in OS environment variables (see [Configuration](configuration.md#credentials-management)).
 :::
 
 ```php title="config/dev/02-security.php"
@@ -155,7 +157,7 @@ return [
 ];
 ```
 
-See the caution above — never commit `credentials.env`.
+See the caution above — never commit real secrets in `credentials.env`.
 
 ### Available Endpoints
 
@@ -177,6 +179,21 @@ transparently calls `POST /refreshtoken` when the token is close to expiring. Se
 [Frontend guide](frontend.md).
 
 The password reset flow sends emails through `ByJG\Mail\Wrapper\MailWrapperInterface`. Customize the sender/template in `config/dev/06-external.php`, which defines the `MAIL_ENVELOPE` factory.
+
+To change the subject or the template of the reset email, override these hooks in
+`src/Controller/LoginController.php`:
+
+```php
+protected function getResetEmailSubject(): string
+{
+    return 'Acme - Password Reset';   // default: 'Password Reset'
+}
+
+protected function getResetEmailTemplate(): string
+{
+    return 'email_code.html';          // a file in templates/emails/
+}
+```
 
 ## Testing Authentication
 

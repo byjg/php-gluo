@@ -1,8 +1,9 @@
 <?php
 
-namespace Test\Builder;
+namespace Tests\Builder;
 
 use Builder\PostCreateScript;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -10,7 +11,7 @@ use RecursiveIteratorIterator;
 /**
  * Tests the create-project file transformation (applyTemplate) against a
  * copy of the real project tree (repo root, spanning the API + frontend/). The
- * side-effect part (composer update, npm install, git init) is in finalize()
+ * side-effect part (composer dump-autoload, openapi, npm install) is in finalize()
  * and is exercised end-to-end by the create-project CI job.
  */
 class PostCreateScriptTest extends TestCase
@@ -25,7 +26,7 @@ class PostCreateScriptTest extends TestCase
         // repo root is two levels up from tests/Builder/
         $projectRoot = realpath(__DIR__ . '/../..');
         // Sentinels that must exist for the full-tree tests to be meaningful.
-        foreach (['docker-compose.yml', 'docker', '.github', 'composer.json'] as $item) {
+        foreach (['.db-dialects', 'docker', '.github', 'composer.json'] as $item) {
             if (!file_exists("$projectRoot/$item")) {
                 // The app image (build-app-image workflow) ships only the runtime subset
                 // of the repo; these tests need the full checkout and run in phpunit.yml
@@ -36,6 +37,13 @@ class PostCreateScriptTest extends TestCase
 
         $this->workdir = sys_get_temp_dir() . '/create-project-' . uniqid();
         $this->copyRepo($projectRoot, $this->workdir);
+
+        // What `./gluo db:dialect` wrote in this checkout is not versioned: create-project starts
+        // without it, from .db-dialects/ alone
+        foreach (['docker-compose.yml', 'docker-compose.database.yml'] as $file) {
+            @unlink("$this->workdir/$file");
+        }
+        shell_exec('rm -rf ' . escapeshellarg("$this->workdir/db"));
     }
 
     protected function tearDown(): void
@@ -69,7 +77,7 @@ class PostCreateScriptTest extends TestCase
         }
     }
 
-    protected function applyTemplate(bool $installExamples, bool $installFrontend = true): void
+    protected function applyTemplate(bool $installExamples, bool $installFrontend = true, string $composerName = 'acme/shop', array $dbConfig = [], string $phpVersion = '8.4'): void
     {
         $script = new PostCreateScript();
         ob_start();
@@ -77,9 +85,9 @@ class PostCreateScriptTest extends TestCase
             $script->applyTemplate(
                 $this->workdir,
                 'AcmeShop',
-                'acme/shop',
-                '8.4',
-                [
+                $composerName,
+                $phpVersion,
+                $dbConfig + [
                     'schema' => 'mysql',
                     'host' => 'db-host',
                     'user' => 'root',
@@ -126,6 +134,178 @@ class PostCreateScriptTest extends TestCase
         $this->assertStringContainsString('use ByJG\Gluo\Model\BaseUser;', $user);
     }
 
+    /**
+     * "byjg/gluo" is rewritten to the project's name wherever the template names itself. A
+     * comment about the framework names byjg/gluo-core, which the rewrite leaves alone; one that
+     * said "byjg/gluo" ended up naming the project ("BaseUser (acme/shop)").
+     */
+    public function testTheProjectNameOnlyReplacesTheStarterName(): void
+    {
+        $this->applyTemplate(true);
+
+        $found = $this->findFilesContaining('acme/shop');
+        sort($found);
+        $this->assertSame(['README.md', 'composer.json'], $found);
+
+        $this->assertStringContainsString(
+            'BaseUser (byjg/gluo-core)',
+            file_get_contents($this->workdir . '/src/Model/User.php')
+        );
+        $this->assertStringContainsString(
+            'BaseLoginController (byjg/gluo-core)',
+            file_get_contents($this->workdir . '/src/Controller/LoginController.php')
+        );
+    }
+
+    /**
+     * @return list<string> the files under $dir, relative to it
+     */
+    protected static function filesUnder(string $dir): array
+    {
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS));
+        foreach ($iterator as $item) {
+            $files[] = substr($item->getPathname(), strlen($dir) + 1);
+        }
+        sort($files);
+        return $files;
+    }
+
+    /**
+     * Every database has its own copy of every SQL file, in .db-dialects/<schema>/db/: a migration
+     * added for one database and not for the others would only fail when a project is created.
+     */
+    public function testEveryDialectHasTheSameDbFiles(): void
+    {
+        $dialects = realpath(__DIR__ . '/../../.db-dialects');
+        foreach (['postgres', 'sqlite'] as $dialect) {
+            $this->assertSame(self::filesUnder("$dialects/mysql/db"), self::filesUnder("$dialects/$dialect/db"), ".db-dialects/$dialect/db");
+        }
+    }
+
+    /**
+     * @return array<string, mixed> docker-compose.database.yml of the generated project, parsed
+     */
+    protected function composeDatabase(): array
+    {
+        $compose = \Symfony\Component\Yaml\Yaml::parseFile($this->workdir . '/docker-compose.yml');
+        $this->assertSame(['docker-compose.database.yml'], $compose['include']);
+        $this->assertSame(['rest', 'frontend'], array_keys($compose['services']));
+
+        return \Symfony\Component\Yaml\Yaml::parseFile($this->workdir . '/docker-compose.database.yml');
+    }
+
+    /**
+     * The connection the app in the rest container uses: the database service, where the
+     * credentials.env of the host commands have 127.0.0.1.
+     */
+    protected function containerConnection(): string
+    {
+        $compose = \Symfony\Component\Yaml\Yaml::parseFile($this->workdir . '/docker-compose.yml');
+        foreach ($compose['services']['rest']['environment'] as $variable) {
+            if (str_starts_with($variable, 'DBDRIVER_CONNECTION=')) {
+                return substr($variable, strlen('DBDRIVER_CONNECTION='));
+            }
+        }
+        return '';
+    }
+
+    protected function envValue(string $env, string $key): string
+    {
+        preg_match('/^' . $key . '=(.*)$/m', (string)file_get_contents($this->workdir . "/config/$env/credentials.env"), $match);
+        return $match[1] ?? '';
+    }
+
+    /**
+     * The files of the database chosen are the project's own: .db-dialects/ and the command that
+     * writes them from it are gone, and .gitignore no longer leaves the files out.
+     */
+    protected function assertTheDialectIsFinal(): void
+    {
+        $this->assertDirectoryDoesNotExist($this->workdir . '/.db-dialects');
+        $this->assertFileDoesNotExist($this->workdir . '/builder/DbDialect.php');
+        $this->assertStringNotContainsString('DbDialect', (string)file_get_contents($this->workdir . '/src/Command/Commands.php'));
+        $this->assertStringNotContainsString('DbDialect', (string)file_get_contents($this->workdir . '/config/dev/05-services.php'));
+
+        $gitignore = (string)file_get_contents($this->workdir . '/.gitignore');
+        $this->assertStringNotContainsString('docker-compose', $gitignore);
+        $this->assertStringNotContainsString('/db/base.sql', $gitignore);
+        $this->assertStringContainsString('/db/*.sqlite', $gitignore);
+    }
+
+    public function testAMysqlProjectGetsTheMysqlSqlAndServer(): void
+    {
+        $base = (string)file_get_contents($this->workdir . '/.db-dialects/mysql/db/base.sql');
+        $this->applyTemplate(true);
+
+        $this->assertTheDialectIsFinal();
+        $this->assertSame($base, file_get_contents($this->workdir . '/db/base.sql'));
+        $compose = $this->composeDatabase();
+        $this->assertSame(['db-host'], array_keys($compose['services']));
+        $this->assertSame('mysql:8.0', $compose['services']['db-host']['image']);
+        $this->assertSame('secret123', $compose['services']['db-host']['environment']['MYSQL_ROOT_PASSWORD']);
+        $this->assertSame(['mysql-volume'], array_keys($compose['volumes']));
+        $this->assertSame('mysql://root:secret123@127.0.0.1/shopdev', $this->envValue('dev', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('mysql://root:secret123@db-host/shopdev', $this->containerConnection());
+        // The tests force the test database of the project
+        $this->assertStringContainsString("withPath('/shoptest')", (string)file_get_contents($this->workdir . '/tests/bootstrap.php'));
+    }
+
+    public function testTheDatabaseServiceKeepsItsNameWithTheDefaultHost(): void
+    {
+        $this->applyTemplate(true, true, 'acme/shop', ['host' => 'gluo-database']);
+
+        $this->assertSame(['gluo-database'], array_keys($this->composeDatabase()['services']));
+        $this->assertSame('mysql://root:secret123@gluo-database/shopdev', $this->containerConnection());
+        $this->assertSame('mysql://root:secret123@127.0.0.1/shopdev', $this->envValue('dev', 'DBDRIVER_CONNECTION'));
+    }
+
+    public function testAPostgresProjectGetsThePostgresSqlAndServer(): void
+    {
+        $base = (string)file_get_contents($this->workdir . '/.db-dialects/postgres/db/base.sql');
+        $migration = (string)file_get_contents($this->workdir . '/.db-dialects/postgres/db/migrations/up/00001-create-table-examples.sql');
+        $this->applyTemplate(true, true, 'acme/shop', ['schema' => 'postgres', 'host' => 'pg-host', 'user' => 'postgres']);
+
+        $this->assertTheDialectIsFinal();
+        $this->assertSame($base, file_get_contents($this->workdir . '/db/base.sql'));
+        $this->assertSame($migration, file_get_contents($this->workdir . '/db/migrations/up/00001-create-table-examples.sql'));
+
+        $compose = $this->composeDatabase();
+        $this->assertSame(['pg-host'], array_keys($compose['services']));
+        $this->assertSame('postgres:17', $compose['services']['pg-host']['image']);
+        $this->assertArrayNotHasKey('container_name', $compose['services']['pg-host']);
+        $this->assertSame('secret123', $compose['services']['pg-host']['environment']['POSTGRES_PASSWORD']);
+        $this->assertSame(['postgres-volume'], array_keys($compose['volumes']));
+
+        $this->assertSame('postgres://postgres:secret123@pg-host/shopdev', $this->containerConnection());
+        $this->assertSame('postgres://postgres:secret123@127.0.0.1/shopdev', $this->envValue('dev', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('postgres://postgres:secret123@127.0.0.1/shoptest', $this->envValue('test', 'DBDRIVER_CONNECTION'));
+        $this->assertStringStartsWith('postgres://', $this->envValue('staging', 'DBDRIVER_CONNECTION'));
+        $this->assertStringStartsWith('postgres://', $this->envValue('prod', 'DBDRIVER_CONNECTION'));
+    }
+
+    public function testASqliteProjectHasNoServerAndKeepsItsDatabasesUnderDb(): void
+    {
+        $base = (string)file_get_contents($this->workdir . '/.db-dialects/sqlite/db/base.sql');
+        $this->applyTemplate(false, true, 'acme/shop', ['schema' => 'sqlite', 'host' => '', 'user' => '', 'password' => '']);
+
+        $this->assertTheDialectIsFinal();
+        $this->assertSame($base, file_get_contents($this->workdir . '/db/base.sql'));
+        // Without the examples, their migration is removed from the SQLite set as well
+        $this->assertFileDoesNotExist($this->workdir . '/db/migrations/up/00001-create-table-examples.sql');
+
+        $compose = $this->composeDatabase();
+        $this->assertSame([], $compose['services']);
+        $this->assertArrayNotHasKey('volumes', $compose);
+
+        // The same file in the container: no connection of its own there
+        $this->assertSame('', $this->containerConnection());
+        $this->assertSame('sqlite://{__ROOT__}/db/shopdev.sqlite', $this->envValue('dev', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('sqlite://{__ROOT__}/db/shoptest.sqlite', $this->envValue('test', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('sqlite://{__ROOT__}/db/mydb_staging.sqlite', $this->envValue('staging', 'DBDRIVER_CONNECTION'));
+        $this->assertSame('sqlite://{__ROOT__}/db/mydb_prod.sqlite', $this->envValue('prod', 'DBDRIVER_CONNECTION'));
+    }
+
     public function testComposerJsonRenamed(): void
     {
         $this->applyTemplate(true);
@@ -135,16 +315,54 @@ class PostCreateScriptTest extends TestCase
         $this->assertStringNotContainsString('"byjg/gluo"', $root);
         // the framework dependency must survive the rename
         $this->assertStringContainsString('"byjg/gluo-core"', $root);
+        // the starter's own description is not the project's
+        $this->assertSame('A PHP REST API built with Gluo.', json_decode($root, true)['description']);
     }
 
-    public function testDockerfileVersionAndTimezone(): void
+    /**
+     * A project name that starts with the template's own name must not be expanded twice
+     * ("byjg/gluo-shop" becoming "byjg/gluo-shop-shop").
+     */
+    public function testComposerNameStartingWithTheTemplateNameIsNotDoubled(): void
     {
-        $this->applyTemplate(true);
+        $this->applyTemplate(true, composerName: 'byjg/gluo-shop');
+
+        $root = json_decode(file_get_contents($this->workdir . '/composer.json'), true);
+        $this->assertSame('byjg/gluo-shop', $root['name']);
+        $this->assertArrayHasKey('byjg/gluo-core', $root['require']);
+
+        // The search below has to be able to find something, or an empty result proves
+        // nothing: the new name is in the files that are meant to carry it.
+        $withNewName = $this->findFilesContaining('byjg/gluo-shop');
+        $this->assertContains('composer.json', $withNewName);
+        $this->assertContains('README.md', $withNewName);
+
+        // No file anywhere carries the doubled name.
+        $this->assertSame([], $this->findFilesContaining('gluo-shop-shop'));
+        $compose = file_get_contents($this->workdir . '/docker-compose.yml');
+        $this->assertStringContainsString('image: gluo-shop:dev', $compose);
+        $this->assertStringNotContainsString('container_name', $compose);
+    }
+
+    public static function phpVersionProvider(): array
+    {
+        return [
+            '8.3' => ['8.3', '83'],
+            '8.4' => ['8.4', '84'],
+            '8.5' => ['8.5', '85'],
+            '8.6' => ['8.6', '86'],
+        ];
+    }
+
+    #[DataProvider('phpVersionProvider')]
+    public function testDockerfileVersionAndTimezone(string $phpVersion, string $phpVersionSimple): void
+    {
+        $this->applyTemplate(true, phpVersion: $phpVersion);
 
         $dockerfile = file_get_contents($this->workdir . '/docker/Dockerfile');
         $this->assertStringContainsString('ENV TZ=America/Sao_Paulo', $dockerfile);
-        $this->assertStringContainsString('php:8.4-fpm', $dockerfile);
-        $this->assertStringNotContainsString('php85', $dockerfile);
+        $this->assertMatchesRegularExpression('/^FROM byjg\/php:' . preg_quote($phpVersion, '/') . '-fpm-nginx-\d{4}\.\d{2}$/m', $dockerfile);
+        $this->assertStringContainsString("/etc/php$phpVersionSimple/conf.d", $dockerfile);
     }
 
     public function testConnectionStringsAndCredentials(): void
@@ -152,14 +370,15 @@ class PostCreateScriptTest extends TestCase
         $this->applyTemplate(true);
 
         $dev = file_get_contents($this->workdir . '/config/dev/credentials.env');
-        $this->assertStringContainsString('DBDRIVER_CONNECTION=mysql://root:secret123@db-host/shopdev', $dev);
+        $this->assertStringContainsString('DBDRIVER_CONNECTION=mysql://root:secret123@127.0.0.1/shopdev', $dev);
 
         $test = file_get_contents($this->workdir . '/config/test/credentials.env');
-        $this->assertStringContainsString('DBDRIVER_CONNECTION=mysql://root:secret123@db-host/shoptest', $test);
+        $this->assertStringContainsString('DBDRIVER_CONNECTION=mysql://root:secret123@127.0.0.1/shoptest', $test);
 
         $compose = file_get_contents($this->workdir . '/docker-compose.yml');
-        $this->assertStringContainsString('MYSQL_ROOT_PASSWORD: secret123', $compose);
         $this->assertStringNotContainsString('resttest', $compose);
+        $database = file_get_contents($this->workdir . '/docker-compose.database.yml');
+        $this->assertStringContainsString('MYSQL_ROOT_PASSWORD: secret123', $database);
     }
 
     public function testJwtSecretsAreRegeneratedAndUniquePerEnvironment(): void
@@ -197,10 +416,14 @@ class PostCreateScriptTest extends TestCase
             '.github/workflows/create-project.yml',
             'builder/PostCreateScript.php',
             'tests/Builder/PostCreateScriptTest.php',
+            'tests/Builder/SetupJsonTest.php',
+            'tests/Builder/ContainerDetectionTest.php',
+            'tests/Builder/PhpVersionTest.php',
         ];
         foreach ($templateOnlyFiles as $file) {
             $this->assertFileExists($this->workdir . '/' . $file);
         }
+        $this->assertNotEmpty(glob($this->workdir . '/CHANGELOG-*.md'), 'The starter ships changelogs for this test to be meaningful');
 
         $this->applyTemplate(true);
 
@@ -208,9 +431,37 @@ class PostCreateScriptTest extends TestCase
             $this->assertFileDoesNotExist($this->workdir . '/' . $file);
         }
 
+        // A test of the installer would fail in the project, which has no PostCreateScript
+        $installerTests = array_filter(
+            $this->findFilesContaining('PostCreateScript'),
+            fn (string $file) => str_starts_with($file, 'tests/')
+        );
+        $this->assertSame([], array_values($installerTests));
+
+        // The starter's changelogs are its own history, not the new project's.
+        $this->assertSame([], glob($this->workdir . '/CHANGELOG*'));
+
         $composer = file_get_contents($this->workdir . '/composer.json');
         $this->assertStringNotContainsString('post-create-project-cmd', $composer);
         $this->assertNotNull(json_decode($composer), 'composer.json must remain valid JSON');
+    }
+
+    public function testDocsReplacedByReadmeLinkingToOnlineDocs(): void
+    {
+        $this->assertDirectoryExists($this->workdir . '/docs');
+        $this->assertFileExists($this->workdir . '/builder/README.project.md');
+
+        $this->applyTemplate(true);
+
+        $this->assertDirectoryDoesNotExist($this->workdir . '/docs');
+        $this->assertFileDoesNotExist($this->workdir . '/builder/README.project.md');
+
+        $readme = file_get_contents($this->workdir . '/README.md');
+        $this->assertStringStartsWith("# acme/shop\n", $readme);
+        $this->assertStringContainsString('under the `AcmeShop` namespace', $readme);
+        $this->assertStringContainsString('https://opensource.byjg.com/docs/php/gluo/', $readme);
+        $this->assertStringContainsString('`byjg/gluo-core`', $readme);
+        $this->assertStringNotContainsString('RestReferenceArchitecture', $readme);
     }
 
     /**
@@ -345,6 +596,6 @@ class PostCreateScriptTest extends TestCase
         $this->assertStringNotContainsString('Dockerfile-html', $compose);
         // the rest + db services must survive
         $this->assertStringContainsString('rest:', $compose);
-        $this->assertStringContainsString('image: mysql:', $compose);
+        $this->assertStringContainsString('image: mysql:', (string)file_get_contents($this->workdir . '/docker-compose.database.yml'));
     }
 }

@@ -10,6 +10,7 @@ use ByJG\Config\Exception\KeyNotFoundException;
 use ByJG\Gluo\Attribute\RequireAuthenticated;
 use ByJG\Gluo\Attribute\RequireRole;
 use ByJG\Gluo\Attribute\ValidateRequest;
+use ByJG\Gluo\Util\OrderBy;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
@@ -21,6 +22,7 @@ use ByJG\RestServer\HttpRequest;
 use ByJG\RestServer\HttpResponse;
 use OpenApi\Attributes as OA;
 use ReflectionException;
+use RestReferenceArchitecture\Model\Task;
 use RestReferenceArchitecture\Model\User;
 use RestReferenceArchitecture\Service\TaskService;
 
@@ -119,16 +121,7 @@ class TaskController
     )]
     #[OA\Parameter(
         name: "orderBy",
-        description: "Order by",
-        in: "query",
-        required: false,
-        schema: new OA\Schema(
-            type: "string",
-        )
-    )]
-    #[OA\Parameter(
-        name: "filter",
-        description: "Filter",
+        description: "Fields to sort by, separated by commas; add ' desc' after a field for descending order. Example: name desc,id",
         in: "query",
         required: false,
         schema: new OA\Schema(
@@ -148,7 +141,11 @@ class TaskController
     #[RequireAuthenticated]
     public function listTask(HttpResponse $response, HttpRequest $request): void
     {
-        $result = $this->taskService->list((int)($request->queryString('page') ?? 0), (int)($request->queryString('size') ?? 50));
+        $result = $this->taskService->list(
+            (int)($request->queryString('page') ?? 0),
+            (int)($request->queryString('size') ?? 50),
+            OrderBy::fromQueryString($request->queryString('orderBy'), Task::class)
+        );
         $response->write($result);
     }
 

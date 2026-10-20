@@ -47,11 +47,11 @@ sequenceDiagram
 The web server (nginx/Apache/built-in) directs all requests to `public/app.php`. This file:
 
 1. Loads the Composer autoloader.
-2. Calls `Config::init()` (or lets it auto-initialize on first use) using the `APP_ENV` environment variable.
+2. Gets the `Server` and the `OpenApiRouteList` from `Config::get()`; byjg/config initializes itself on that first use, from the `APP_ENV` environment variable.
 
 ### 2. Config Bootstrap
 
-`config/ConfigBootstrap.php` defines the environment hierarchy (`dev → test`, `dev → staging → prod`). The DI container is built lazily from the numbered config files (`01-infrastructure.php` … `06-external.php`) inside the active environment's folder.
+`config/ConfigBootstrap.php` defines the environment hierarchy (`dev → test`, `dev → staging → prod`). The DI container is built lazily from the numbered config files (`01-infrastructure.php` … `07-controllers.php`) inside the active environment's folder.
 
 ### 3. Route Loading — `OpenApiRouteList`
 
@@ -74,7 +74,7 @@ PHP attribute annotations on the target controller method are evaluated in this 
 
 ### 6. Controller Method Execution
 
-The matched controller method runs with `HttpRequest` and `HttpResponse` injected. Controllers are intentionally thin — 3–4 lines — and delegate all business logic to a Service retrieved from the DI container via `Config::get(ServiceClass::class)`.
+The matched controller method runs with `HttpRequest` and `HttpResponse` injected. Controllers are intentionally thin — 3–4 lines — and delegate all business logic to a Service injected in their constructor (the controller is built by the DI container, see `config/dev/07-controllers.php`).
 
 ### 7. Response Serialization
 

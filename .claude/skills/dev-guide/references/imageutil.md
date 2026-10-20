@@ -60,9 +60,9 @@ $img->rotate(45);   // arbitrary angle; fills corners with background color
 ```php
 use ByJG\ImageUtil\Enum\Flip;
 
-$img->flip(Flip::HORIZONTAL);
-$img->flip(Flip::VERTICAL);
-$img->flip(Flip::BOTH);
+$img->flip(Flip::Horizontal);
+$img->flip(Flip::Vertical);
+$img->flip(Flip::Both);
 ```
 
 ---
@@ -78,15 +78,15 @@ $stamp = ImageUtil::fromFile('/assets/watermark.png');
 
 $img->stampImage(
     $stamp,
-    StampPosition::BOTTOM_RIGHT,  // position
+    StampPosition::BottomRight,  // position
     10,                           // x padding from edge
     10,                           // y padding from edge
     70                            // opacity (0-100)
 );
 ```
 
-**`StampPosition` options:** `TOP_LEFT`, `TOP_CENTER`, `TOP_RIGHT`, `CENTER_LEFT`, `CENTER`,
-`CENTER_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_CENTER`, `BOTTOM_RIGHT`
+**`StampPosition` options:** `TopLeft`, `Top`, `TopRight`, `Left`, `Center`,
+`Right`, `BottomLeft`, `Bottom`, `BottomRight`, `Random`
 
 ---
 
@@ -103,7 +103,7 @@ $img->writeText(
     '/path/to/font.ttf',     // TrueType font path
     300,                     // max width (0 = no wrap)
     Color::fromHex('#ff0000'),
-    TextAlignment::LEFT      // LEFT, CENTER, RIGHT
+    TextAlignment::Left      // LEFT, CENTER, RIGHT
 );
 ```
 
@@ -170,7 +170,7 @@ $stamp = ImageUtil::fromFile('/assets/logo.png');
 
 $img = ImageUtil::fromFile($productImagePath);
 $img->resizeAspectRatio(800, 600, Color::fromHex('#ffffff'))
-    ->stampImage($stamp, StampPosition::BOTTOM_RIGHT, 15, 15, 60)
+    ->stampImage($stamp, StampPosition::BottomRight, 15, 15, 60)
     ->save($outputPath, 85);
 ```
 
@@ -178,8 +178,8 @@ $img->resizeAspectRatio(800, 600, Color::fromHex('#ffffff'))
 
 ```php
 $img = ImageUtil::empty(1200, 630, FileType::PNG, Color::fromHex('#1a1a2e'));
-$img->writeText($title, [60, 300], 48, 0, '/fonts/Bold.ttf', 1080, Color::fromHex('#ffffff'), TextAlignment::LEFT)
-    ->writeText($subtitle, [60, 380], 24, 0, '/fonts/Regular.ttf', 1080, Color::fromHex('#aaaaaa'), TextAlignment::LEFT)
+$img->writeText($title, [60, 300], 48, 0, '/fonts/Bold.ttf', 1080, Color::fromHex('#ffffff'), TextAlignment::Left)
+    ->writeText($subtitle, [60, 380], 24, 0, '/fonts/Regular.ttf', 1080, Color::fromHex('#aaaaaa'), TextAlignment::Left)
     ->save('/tmp/social-card.png');
 ```
 
@@ -196,9 +196,9 @@ $img->writeText($title, [60, 300], 48, 0, '/fonts/Bold.ttf', 1080, Color::fromHe
 | Square thumbnail | `->resizeSquare($size, $bgColor)` |
 | Crop | `->crop($x1, $y1, $x2, $y2)` |
 | Rotate | `->rotate($degrees)` |
-| Flip | `->flip(Flip::HORIZONTAL)` |
-| Watermark | `->stampImage($stamp, StampPosition::BOTTOM_RIGHT, $px, $py, $opacity)` |
-| Write text | `->writeText($text, [$x,$y], $size, $angle, $font, $maxW, $color, TextAlignment::LEFT)` |
+| Flip | `->flip(Flip::Horizontal)` |
+| Watermark | `->stampImage($stamp, StampPosition::BottomRight, $px, $py, $opacity)` |
+| Write text | `->writeText($text, [$x,$y], $size, $angle, $font, $maxW, $color, TextAlignment::Left)` |
 | Save | `->save($path, $quality)` |
 | Output to browser | `->show()` |
 | Color from hex | `Color::fromHex('#rrggbb')` |

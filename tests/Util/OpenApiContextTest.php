@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Util;
+namespace Tests\Util;
 
 use ByJG\ApiTools\Base\Schema;
 use ByJG\Gluo\Util\OpenApiContext;

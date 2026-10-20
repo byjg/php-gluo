@@ -29,9 +29,9 @@ alter table example_crud
 ## Run the migration
 
 ```shell
-APP_ENV=dev composer run migrate -- update
+APP_ENV=dev ./gluo migrate:update
 # OR
-composer run migrate -- --env=dev update
+./gluo --env=dev migrate:update
 ```
 
 
@@ -119,7 +119,7 @@ protected function getSampleData($array = false)
 ## Update the OpenAPI
 
 ```shell
-composer run openapi
+./gluo openapi
 ```
 
 ## Run the tests

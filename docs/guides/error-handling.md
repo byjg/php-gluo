@@ -110,7 +110,7 @@ public function validateToken(string $token): User
     }
 
     try {
-        $decoded = JwtWrapper::decode($token);
+        $decoded = Config::get(JwtWrapper::class)->extractData($token);
     } catch (\Exception $e) {
         throw new Error401Exception('Invalid or expired token');
     }
@@ -249,27 +249,41 @@ public function processPayment(int $orderId): void
 
 ## Error Response Format
 
-All exceptions are automatically converted to JSON responses:
+All exceptions are automatically converted to JSON responses (the `error` schema of
+`openapi.json`). `type` is the exception's class name, split into words:
 
 ### Standard Error Response
 
 ```json
 {
-    "error": "Bad Request",
-    "message": "Product name is required"
+    "error": {
+        "type": "Error 400",
+        "message": "Product name is required"
+    }
 }
 ```
 
 ### Error Response with Details
 
+The last constructor argument of every `Error*Exception` is a `$meta` array, written to the
+response as `meta`:
+
+```php
+throw new Error422Exception('Multiple validation errors occurred', meta: [
+    'name' => 'Product name is required',
+    'price' => 'Price must be a positive number',
+]);
+```
+
 ```json
 {
-    "error": "Validation Failed",
-    "message": "Multiple validation errors occurred",
-    "details": {
-        "name": "Product name is required",
-        "price": "Price must be a positive number",
-        "category": "Invalid category selected"
+    "error": {
+        "type": "Error 422",
+        "message": "Multiple validation errors occurred",
+        "meta": {
+            "name": "Product name is required",
+            "price": "Price must be a positive number"
+        }
     }
 }
 ```
@@ -374,21 +388,12 @@ class ValidationException extends Error422Exception
     {
         $this->errors = $errors;
         $message = "Validation failed: " . implode(', ', array_keys($errors));
-        parent::__construct($message);
+        parent::__construct($message, meta: $errors);   // the errors are written as "meta"
     }
 
     public function getErrors(): array
     {
         return $this->errors;
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'error' => 'Validation Failed',
-            'message' => $this->getMessage(),
-            'details' => $this->errors
-        ];
     }
 }
 ```
@@ -453,8 +458,10 @@ public function createProduct(HttpResponse $response, HttpRequest $request): voi
 
 ```json
 {
-    "error": "Bad Request",
-    "message": "Validation failed: property 'name' must be at least 3 characters"
+    "error": {
+        "type": "Error 400",
+        "message": "Validation failed: property 'name' must be at least 3 characters"
+    }
 }
 ```
 
@@ -512,74 +519,25 @@ class ProductService extends BaseService
 
 ## Global Error Handling
 
-### Custom Error Handler
-
-Configure in `config/<env>/03-api.php`:
-
-```php
-use ByJG\RestServer\ErrorHandler\ErrorHandler;
-use ByJG\RestServer\HttpResponse;
-
-$errorHandler = new ErrorHandler();
-
-// Log all errors
-$errorHandler->addHandler(function(\Throwable $ex, $request, HttpResponse $response) {
-    error_log(sprintf(
-        "[%s] %s: %s in %s:%d",
-        date('Y-m-d H:i:s'),
-        get_class($ex),
-        $ex->getMessage(),
-        $ex->getFile(),
-        $ex->getLine()
-    ));
-
-    // Let default handler format the response
-    return null;
-});
-
-// Customize error response format
-$errorHandler->addHandler(function(\Throwable $ex, $request, HttpResponse $response) {
-    $statusCode = $ex->getCode() >= 400 && $ex->getCode() < 600
-        ? $ex->getCode()
-        : 500;
-
-    return [
-        'success' => false,
-        'error' => [
-            'code' => $statusCode,
-            'message' => $ex->getMessage(),
-            'type' => (new \ReflectionClass($ex))->getShortName(),
-            'timestamp' => date('c')
-        ]
-    ];
-});
-
-return [
-    'errorHandler' => fn() => $errorHandler
-];
-```
-
-### Environment-Specific Error Details
+The `Server` registers `ByJG\RestServer\ErrorHandler`, which turns every uncaught exception
+into the response above, with the status code of the `Error*Exception` (500 for any other
+exception). It is configured on the `Server` binding in `config/<env>/03-api.php`:
 
 ```php
-$errorHandler->addHandler(function(\Throwable $ex, $request, HttpResponse $response) {
-    $isDevelopment = Config::get('environment') === 'dev';
-
-    $error = [
-        'error' => $ex->getMessage(),
-        'code' => $ex->getCode()
-    ];
-
-    // Include stack trace in development
-    if ($isDevelopment) {
-        $error['file'] = $ex->getFile();
-        $error['line'] = $ex->getLine();
-        $error['trace'] = $ex->getTraceAsString();
-    }
-
-    return $error;
-});
+Server::class => DI::bind(Server::class)
+    ->withConstructorArgs([
+        Param::get(LoggerInterface::class)   // the logger the error handler writes to
+    ])
+    // ...
+    // ->withMethodCall("withDetailedErrorHandler", [])   // add file, line and trace to the response
+    ->toSingleton(),
 ```
+
+- **Logging**: bind `LoggerInterface` (in `config/<env>/01-infrastructure.php`, `NullLogger`
+  by default) to a PSR-3 logger.
+- **Error details**: `withDetailedErrorHandler()` adds `file`, `line` and `trace` to the
+  `error` object. Enable it in `dev` only.
+- **Your own handler**: `withErrorHandlerDisabled()` stops the `Server` from registering it.
 
 ## Error Logging
 

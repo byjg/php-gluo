@@ -251,13 +251,13 @@ Create or update the test file `tests/Controller/ExampleCrudTest.php`:
 ```php
 <?php
 
-namespace Test\Controller;
+namespace Tests\Controller;
 
 use ByJG\Config\Config;
 use RestReferenceArchitecture\Service\ExampleCrudService;
 use ByJG\Gluo\Util\FakeApiRequester;
-use Test\Controller\BaseApiTestCase;
-use Test\Controller\Credentials;
+use Tests\Controller\BaseApiTestCase;
+use Tests\Controller\Credentials;
 
 class ExampleCrudTest extends BaseApiTestCase
 {
@@ -265,7 +265,7 @@ class ExampleCrudTest extends BaseApiTestCase
     {
         // Authenticate to get a valid token (if the endpoint requires auth)
         $authResult = json_decode(
-            $this->assertRequest(Credentials::requestLogin(Credentials::getAdminUser()))
+            $this->sendRequest(Credentials::requestLogin(Credentials::getAdminUser()))
                 ->getBody()
                 ->getContents(),
             true
@@ -281,18 +281,18 @@ class ExampleCrudTest extends BaseApiTestCase
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
             ->withPath("/example/crud/status")
-            ->withBody([
+            ->withRequestBody(json_encode([
                 'id' => $recordId,
                 'status' => $newStatus
-            ])
+            ]))
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $authResult['token']
             ])
-            ->assertResponseCode(200);
+            ->expectStatus(200);
 
         // Execute the request
-        // assertRequest automatically validates response against OpenAPI spec
-        $this->assertRequest($request);
+        // sendRequest automatically validates response against OpenAPI spec
+        $this->sendRequest($request);
 
         // Verify the database was updated correctly
         $service = Config::get(ExampleCrudService::class);
@@ -303,7 +303,7 @@ class ExampleCrudTest extends BaseApiTestCase
 ```
 
 :::tip Automatic Validation
-The `assertRequest()` method automatically validates:
+The `sendRequest()` method automatically validates:
 - Response status code matches OpenAPI specification
 - Response body structure matches OpenAPI schema
 - No need for manual assertions on response format!
@@ -314,7 +314,7 @@ The `assertRequest()` method automatically validates:
 Update the OpenAPI specification and run the tests:
 
 ```bash
-composer run openapi
+./gluo openapi
 APP_ENV=test composer run test
 ```
 
@@ -322,7 +322,7 @@ All tests should pass successfully!
 
 :::caution Regeneration is not optional
 Routing is read from `public/docs/openapi.json`, not from your PHP. Change a controller
-attribute without running `composer run openapi` and the endpoint returns **404 with no
-error message**. `composer test` runs `composer openapi:check` first, which warns when the
+attribute without running `./gluo openapi` and the endpoint returns **404 with no
+error message**. `composer test` runs `./gluo openapi:check` first, which warns when the
 spec is older than your controllers or models — you can also run it on its own.
 :::

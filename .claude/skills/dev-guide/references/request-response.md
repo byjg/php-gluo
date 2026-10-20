@@ -5,7 +5,7 @@
 ```
 src/ PHP attributes
     │
-    ▼  composer run openapi
+    ▼  ./gluo openapi
 public/docs/openapi.json   ←── single source of truth for routing + validation
     │
     ├──► OpenApiRouteList   routes URL+method → Controller::method
@@ -14,7 +14,7 @@ public/docs/openapi.json   ←── single source of truth for routing + valida
 ```
 
 `openapi.json` is generated from the PHP attributes in `src/`. **You never hand-edit it.**
-Run `composer run openapi` after any controller attribute change — routing AND validation
+Run `./gluo openapi` after any controller attribute change — routing AND validation
 both break if the file is stale.
 
 ---
@@ -32,7 +32,7 @@ operationId: "RestReferenceArchitecture\\Controller\\ProjectController::getProje
 `OpenApiRouteList` reads `openapi.json` at startup, builds the route table from `operationId`,
 and registers the correct output processor per route (derived from the `responses.200.content`
 keys). No manual route registration is needed — adding an `#[OA\Get(...)]` attribute and
-running `composer run openapi` is sufficient.
+running `./gluo openapi` is sufficient.
 
 ### How operationId is set
 
@@ -294,7 +294,7 @@ Both are needed — the OA attribute for documentation/contract, the PHP attribu
 
 ```
 1. Developer adds/changes OA attributes on a controller method
-   └── composer run openapi
+   └── ./gluo openapi
        └── scans src/, writes public/docs/openapi.json
 
 2. App startup

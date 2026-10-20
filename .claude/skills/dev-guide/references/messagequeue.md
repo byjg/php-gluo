@@ -113,7 +113,7 @@ $dlqPipe = Config::get('DLQ_EMAIL_TRANSACTIONAL_QUEUE');
 ## Publishing a message
 
 ```php
-use ByJG\Config\Definition as Config;
+use ByJG\Config\Config;
 use ByJG\MessageQueueClient\Connector\ConnectorInterface;
 use ByJG\MessageQueueClient\Message;
 use ByJG\MessageQueueClient\Envelope;
@@ -155,12 +155,12 @@ abstract class QueueHandlerBase implements ConsumerClientInterface
 
     public function getConnector(): ConnectorInterface
     {
-        return Config::container()->get(ConnectorInterface::class);
+        return Config::get(ConnectorInterface::class);
     }
 
     public function getLogger(): LoggerInterface
     {
-        return Config::container()->get(LoggerInterface::class);
+        return Config::get(LoggerInterface::class);
     }
 
     public function getLogOutputStart(Message $message): string
@@ -199,14 +199,14 @@ class EmailTransactionalConsumer extends QueueHandlerBase
 {
     public function getPipe(): Pipe
     {
-        return Config::container()->get('EMAIL_TRANSACTIONAL_QUEUE');
+        return Config::get('EMAIL_TRANSACTIONAL_QUEUE');
     }
 
     public function processMessage(Message $message): void
     {
         $data = json_decode($message->getBody(), true);
         // send the email — throw on failure (ConsumerClientTrait catches and NACKs)
-        $mailer = Config::container()->get(MailWrapperInterface::class);
+        $mailer = Config::get(MailWrapperInterface::class);
         $mailer->send(/* ... */);
     }
 }

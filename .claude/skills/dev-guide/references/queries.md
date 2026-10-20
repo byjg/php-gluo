@@ -312,7 +312,7 @@ $this->repository->save($model);
 Models using UUID PK have type `string|LiteralInterface|null` for the id field.
 
 ```php
-// Create (ORM generates the UUID automatically via TableMySqlUuidPKAttribute):
+// Create (ORM generates the UUID automatically via TableUuidPKAttribute):
 $model = new Task();
 $model->setProjectId(1);
 $model->setTitle('Draft the proposal');
@@ -373,11 +373,12 @@ $models = $query->toArray();
 ```
 
 ### filter() — legacy IteratorFilter (use where() instead for new code)
+
 ```php
 use ByJG\AnyDataset\Core\IteratorFilter;
 use ByJG\AnyDataset\Core\Enum\Relation;
 
-$filter = (new IteratorFilter())->and('body', Relation::EQUAL, 'foo');
+$filter = (new IteratorFilter())->and('body', Relation::Equal, 'foo');
 $models = Note::filter($filter, page: 0, limit: 50);
 ```
 

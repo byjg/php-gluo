@@ -1,0 +1,2 @@
+# SQLite needs no server: its databases are files in db/.
+services: {}

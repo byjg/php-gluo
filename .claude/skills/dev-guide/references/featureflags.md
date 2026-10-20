@@ -122,7 +122,7 @@ class NotificationHandlers
 ## Using in a controller
 
 ```php
-use ByJG\Config\Definition as Config;
+use ByJG\Config\Config;
 use ByJG\FeatureFlag\FeatureFlags;
 
 class CheckoutRest

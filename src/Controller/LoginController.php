@@ -11,7 +11,7 @@ use OpenApi\Attributes as OA;
 use Override;
 
 /**
- * The business logic lives in BaseLoginController (byjg/gluo).
+ * The business logic lives in BaseLoginController (byjg/gluo-core).
  * This class owns the API contract: OpenAPI attributes and route bindings.
  */
 class LoginController extends BaseLoginController

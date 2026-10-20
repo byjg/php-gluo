@@ -1,7 +1,11 @@
+# The database server is in docker-compose.database.yml (none for SQLite, whose databases
+# are files in db/). The API reaches it by its service name: `gluo-database`.
+include:
+  - docker-compose.database.yml
+
 services:
   rest:
     image: resttest:dev
-    container_name: resttest
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -17,6 +21,9 @@ services:
       - .:/srv/
     environment:
       - APP_ENV=dev
+      # In the container the database is the gluo-database service; config/dev/credentials.env
+      # has 127.0.0.1, for the commands run on the host. The tests keep their own database.
+      - DBDRIVER_CONNECTION=mysql://root:mysqlp455w0rd@gluo-database/localdev
       - PHP_FPM_SERVER=0.0.0.0:9000
       - VERBOSE=true
     networks:
@@ -35,26 +42,12 @@ services:
       API_BASE_URL: "http://localhost:8080"
     ports:
       - "7080:8080"
+      # HTTPS: byjg/static-httpserver also listens on 8443 with a self-signed
+      # certificate it generates at start. Mount cert.pem/key.pem at /certs to use your own.
+      - "7443:8443"
     networks:
       - net
   # <<< frontend-service
 
-  mysql-container:
-    image: mysql:8.0
-    container_name: mysql-container
-    environment:
-      MYSQL_ROOT_PASSWORD: mysqlp455w0rd
-      TZ: UTC
-    volumes:
-      - mysql-volume:/var/lib/mysql
-    ports:
-      - "3306:3306"
-    networks:
-      - net
-
-volumes:
-  mysql-volume:
-
 networks:
   net:
-

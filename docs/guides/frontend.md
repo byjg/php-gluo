@@ -94,6 +94,33 @@ in SPA mode. The SPA is published on **http://localhost:7080** (the API stays on
 > `VITE_API_BASE_URL` is baked in at **build** time. For a production image, build with the
 > real API URL (e.g. `--build-arg` or an `.env` committed to your deploy pipeline).
 
+### HTTPS
+
+The same container also serves the SPA over HTTPS, published on
+**https://localhost:7443**. `byjg/static-httpserver` generates a self-signed certificate
+when it starts, so nothing has to be configured; the browser shows its usual warning for
+a certificate it does not know.
+
+```bash
+curl -k https://localhost:7443/
+```
+
+To use your own certificate, mount a directory with `cert.pem` and `key.pem` at `/certs`:
+
+```yaml
+  frontend:
+    volumes:
+      - ./certs:/certs:ro
+```
+
+See the [static-httpserver TLS guide](https://opensource.byjg.com/docs/devops/docker-static-httpserver/tls)
+for other file names (Let's Encrypt's `fullchain.pem` / `privkey.pem`) and for terminating
+TLS in front of the API.
+
+Only the frontend is served over HTTPS. The API stays on `http://localhost:8080`, and that
+is the address the SPA calls (`API_BASE_URL`). In production, put the API behind HTTPS as
+well and set `API_BASE_URL` to its `https://` address.
+
 ## Removing the example screens
 
 The Projects/Tasks/Notes pages under `src/pages/examples/` are removed when

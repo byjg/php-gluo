@@ -359,7 +359,7 @@ CREATE TABLE products (
 The code generator automatically adds timestamp fields:
 
 ```bash
-composer codegen -- --env=dev --table=products model --save
+./gluo --env=dev codegen:model --table=products --save
 ```
 
 Generates:
@@ -614,7 +614,7 @@ class Product
 
 ### OpenAPI Generation Error
 
-**Problem**: Error when running `composer run openapi` on traits
+**Problem**: Error when running `./gluo openapi` on traits
 
 **Solution**: This is expected if traits are not used in any model. The error only occurs when traits exist but aren't used. Once you use a trait in a model, OpenAPI generation works correctly.
 

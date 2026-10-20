@@ -24,7 +24,7 @@ Scriptify allows you to:
 Start an interactive PHP shell with your project loaded:
 
 ```bash
-composer terminal
+./gluo terminal
 ```
 
 This gives you immediate access to test your code with preloaded helpers:
@@ -62,17 +62,17 @@ The interactive terminal provides a REPL (Read-Eval-Print Loop) environment with
 ### Starting the Terminal
 
 ```bash
-# Using composer shortcut (recommended - includes preload and environment)
-composer terminal
+# Using ./gluo (recommended - includes preload and environment)
+./gluo terminal
 
 # Or directly
 ./vendor/bin/scriptify terminal
 
 # With custom environment
-APP_ENV=prod composer terminal
+APP_ENV=prod ./gluo terminal
 ```
 
-The `composer terminal` command automatically:
+The `./gluo terminal` command automatically:
 - Loads your project's autoloader
 - Sets up the environment from `APP_ENV` variable
 - Preloads helper functions from `templates/scriptify/scriptify.php`
@@ -212,6 +212,19 @@ scriptify terminal --env DEBUG=true --env LOG_LEVEL=verbose
 
 Execute any public method of your classes directly from the command line.
 
+:::tip Prefer project commands
+Give the method a short name in `src/Command/Commands.php` and run it as
+`./gluo user:cleanup 30`, or map a whole class to expose all its public methods: see
+[Project commands](gluo-cli.md#project-commands). The launcher runs it through Scriptify
+with the Gluo container, so the class gets its constructor dependencies, and
+`./gluo install` makes it a service.
+:::
+
+With the default `--bootstrap` (`vendor/autoload.php`), `scriptify run` builds the class
+with `new`. A `--bootstrap` file that returns a PSR-11 container has the class built by
+it, and then the container must hold the class. The project does not ship such a file:
+a project command does the same through `./gluo`, with the Gluo container.
+
 ### Basic Usage
 
 ```bash
@@ -325,22 +338,15 @@ sudo service queue-worker status
 
 ## Calling REST Endpoints
 
-Execute REST API endpoints directly from the command line.
-
-### Basic GET Request
-
-```bash
-scriptify endpoint GET http://localhost:8080/api/sample/1
-```
-
-### POST with Headers and Body
+`scriptify call` runs a GET request through the front controller, without a web server. The
+`--controller` path is relative to the current directory:
 
 ```bash
-scriptify endpoint POST http://localhost:8080/api/sample \
-    --header "Content-Type: application/json" \
-    --header "Authorization: Bearer token123" \
-    --body '{"name": "Test", "value": 123}'
+scriptify call /sample/ping --controller public/app.php
 ```
+
+Add `--http-get "key=value"` (repeatable) for query string parameters. Only GET requests are
+supported.
 
 ## Environment Variables
 
@@ -385,26 +391,17 @@ scriptify terminal myservice
 
 ## Configuration
 
-### Composer Terminal Command
+### The Terminal Command
 
-The project is pre-configured with a `composer terminal` command in `composer.json`, so you can run it from the repository root:
+`./gluo terminal` is a built-in command (`composer terminal` is an alias of it). It runs
+Scriptify's terminal from the repository root with:
+- **`--preload`**: `templates/scriptify/scriptify.php`, when the file exists
+- **`--env APP_ENV=<env>`**: the environment of `--env` or `APP_ENV`, when one is set
 
-```json title="composer.json"
-{
-  "scripts": {
-    "terminal": "./vendor/bin/scriptify terminal --preload ./templates/scriptify/scriptify.php --env APP_ENV=$APP_ENV"
-  }
-}
-```
+For other options, run Scriptify directly:
 
-This configuration:
-- **`--preload`**: Loads helper functions from `templates/scriptify/scriptify.php`
-- **`--env APP_ENV=$APP_ENV`**: Passes the current APP_ENV to the terminal
-
-You can customize this command to add additional options:
-
-```json
-"terminal": "./vendor/bin/scriptify terminal --preload ./templates/scriptify/scriptify.php --env APP_ENV=$APP_ENV --env DEBUG=true"
+```bash
+./vendor/bin/scriptify terminal --preload ./templates/scriptify/scriptify.php --env APP_ENV=dev --env DEBUG=true
 ```
 
 ### Preload File Location

@@ -32,7 +32,7 @@ So adding or changing an endpoint is a two-step operation:
 ```bash
 # 1. edit the controller attributes
 # 2. rebuild the routing table
-composer openapi
+./gluo openapi
 ```
 
 Skip step 2 and the endpoint returns **404 with no error** — the route simply does not
@@ -40,7 +40,7 @@ exist yet. To catch this, `composer test` runs a freshness check first, and you 
 it any time:
 
 ```bash
-composer openapi:check
+./gluo openapi:check
 ```
 
 It warns (never blocks) when the spec is older than anything in `src/Controller/` or
@@ -90,7 +90,7 @@ ProjectService::class => DI::bind(ProjectService::class)
 ```
 
 So there is no `services.yaml`-style autowiring for the layers where a choice exists, and
-no per-class boilerplate for the layer where none does. `composer codegen` writes the
+no per-class boilerplate for the layer where none does. `./gluo codegen:all` writes the
 service and repository entries for what it generates.
 
 `config/test/` inherits `config/dev/`, so you register once for both.
@@ -119,7 +119,7 @@ No `return response()->json(...)`, no `return new JsonResponse(...)`, no render 
 The code generator reads your **existing table** and writes the PHP:
 
 ```bash
-composer codegen -- --env=dev --table=product all --save
+./gluo --env=dev codegen:all --table=product --save
 ```
 
 That emits the model, repository, service, controller, functional test and DI bindings.
@@ -139,7 +139,7 @@ db/migrations/down/00001-rollback-products.sql
 
 | Laravel | Symfony | Drupal | Gluo |
 |---|---|---|---|
-| `routes/api.php` | `#[Route]` | `*.routing.yml` | `#[OA\Get]` + `composer openapi` |
+| `routes/api.php` | `#[Route]` | `*.routing.yml` | `#[OA\Get]` + `./gluo openapi` |
 | `app/Models` | `src/Entity` | Entity API | `src/Model` + `#[TableAttribute]` |
 | `app/Http/Controllers` | `src/Controller` | Controller plugin | `src/Controller` |
 | Eloquent | Doctrine ORM | Entity/Field API | `byjg/micro-orm` |
@@ -150,18 +150,18 @@ db/migrations/down/00001-rollback-products.sql
 | `app()->make()` | autowiring | `\Drupal::service()` | constructor injection (bindings declared explicitly) |
 | Gate / Policy | `#[IsGranted]` | `_permission` route key | `#[RequireRole]` |
 | FormRequest | Validator + DTO | Form API | `#[ValidateRequest]` + OpenAPI schema |
-| `php artisan tinker` | — | `drush php` | `composer terminal` |
+| `php artisan tinker` | — | `drush php` | `./gluo terminal` |
 
 ## Commands
 
 | Laravel | Symfony | Gluo |
 |---|---|---|
 | `php artisan serve` | `symfony serve` | `docker compose up -d` |
-| `php artisan migrate` | `doctrine:migrations:migrate` | `composer migrate -- --env=dev update` |
-| `php artisan migrate:fresh` | `doctrine:schema:drop --force` | `composer migrate -- --env=dev reset` |
-| `php artisan make:model -mcr` | `make:entity` / `make:crud` | `composer codegen -- --table=x all --save` |
+| `php artisan migrate` | `doctrine:migrations:migrate` | `./gluo --env=dev migrate:update` |
+| `php artisan migrate:fresh` | `doctrine:schema:drop --force` | `./gluo --env=dev migrate:reset` |
+| `php artisan make:model -mcr` | `make:entity` / `make:crud` | `./gluo codegen:all --table=x --save` |
 | `php artisan test` | `bin/phpunit` | `composer test` |
-| — | `cache:clear` | `composer openapi` |
+| — | `cache:clear` | `./gluo openapi` |
 | Pint / PHPStan | PHPStan | `composer psalm` |
 
 ## Where you are already at home

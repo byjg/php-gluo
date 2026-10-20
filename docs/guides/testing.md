@@ -50,7 +50,7 @@ Add additional directories (e.g., `tests/Service`) as needed—PHPUnit's configu
 
 ```bash
 # Create or reset the testing database
-APP_ENV=test composer migrate -- reset --yes
+APP_ENV=test ./gluo migrate:reset
 
 # Run all tests using the composer script
 APP_ENV=test composer run test
@@ -189,7 +189,7 @@ public function testPingResponse()
 
 ### BaseApiTestCase
 
-All API tests should extend `Test\Controller\BaseApiTestCase`. The heavy
+All API tests should extend `Tests\Controller\BaseApiTestCase`. The heavy
 lifting (schema loading, OpenAPI validation, database reset, PSR-7 request
 factory) lives in `ByJG\Gluo\Testing\BaseApiTestCase` (byjg/gluo-core);
 your local class only points it at your project:
@@ -197,7 +197,7 @@ your local class only points it at your project:
 **Location**: `tests/Controller/BaseApiTestCase.php`
 
 ```php title="tests/Controller/BaseApiTestCase.php"
-namespace Test\Controller;
+namespace Tests\Controller;
 
 use ByJG\Gluo\Testing\BaseApiTestCase as GluoBaseApiTestCase;
 
@@ -214,7 +214,7 @@ The package base class exposes overridable hooks:
 
 ```php
 abstract protected function getOpenApiPath(): string;   // your openapi.json
-protected function getDatabaseClass(): string;           // default: MySqlDatabase::class
+protected function getDatabaseClass(): ?string;          // default: null, the scheme of DBDRIVER_CONNECTION picks MySQL, PostgreSQL or SQLite
 protected function getMigrationsPath(): string;          // default: <project>/db
 ```
 
@@ -236,7 +236,7 @@ $this->resetDb();
 ```php
 <?php
 
-namespace Test\Controller;
+namespace Tests\Controller;
 
 use ByJG\Gluo\Util\FakeApiRequester;
 
@@ -262,7 +262,7 @@ class SampleTest extends BaseApiTestCase
 **Location**: `tests/Controller/Credentials.php`
 
 ```php
-use Test\Controller\Credentials;
+use Tests\Controller\Credentials;
 
 // Admin user
 $adminCreds = Credentials::getAdminUser();
@@ -327,11 +327,12 @@ public function testLoginInvalidCredentials()
 ```php
 public function testExpiredToken()
 {
-    $expiredToken = JwtWrapper::createToken([
+    $jwt = Config::get(JwtWrapper::class);
+    $expiredToken = $jwt->generateToken($jwt->createJwtData([
         'userid' => 1,
         'name' => 'Test User',
         'role' => 'user'
-    ], -3600); // Expired 1 hour ago
+    ], -3600)); // Expired 1 hour ago
 
     $this->expectException(Error401Exception::class);
 
@@ -488,7 +489,7 @@ public function testList()
 ```php
 <?php
 
-namespace Test\Unit\Service;
+namespace Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
 use RestReferenceArchitecture\Service\ProductService;
@@ -634,9 +635,7 @@ public function testCreateProduct()
 ### 4. Use Data Providers for Similar Tests
 
 ```php
-/**
- * @dataProvider invalidProductDataProvider
- */
+#[DataProvider('invalidProductDataProvider')]   // PHPUnit\Framework\Attributes\DataProvider
 public function testCreateWithInvalidData($payload, $expectedMessage)
 {
     $this->expectException(Error400Exception::class);
@@ -646,7 +645,7 @@ public function testCreateWithInvalidData($payload, $expectedMessage)
     $productService->create($payload);
 }
 
-public function invalidProductDataProvider(): array
+public static function invalidProductDataProvider(): array
 {
     return [
         'missing name' => [

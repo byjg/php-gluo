@@ -1,13 +1,19 @@
+---
+sidebar_key: gluo
+tags: [php, http, openapi]
+---
+
 # Gluo — PHP REST API Starter
 
+**Gluo** (Esperanto for *glue*) is a **production-ready PHP REST API starter**: create a project you fully own, powered by an updatable framework core — so you focus on business logic, not infrastructure.
+
 [![Sponsor](https://img.shields.io/badge/Sponsor-%23ea4aaa?logo=githubsponsors&logoColor=white&labelColor=0d1117)](https://github.com/sponsors/byjg)
-[![Build Status](https://github.com/byjg/php-gluo/actions/workflows/build-app-image.yml/badge.svg?branch=master)](https://github.com/byjg/php-gluo/actions/workflows/build-app-image.yml)
-[![Opensource ByJG](https://img.shields.io/badge/opensource-byjg-success.svg)](http://opensource.byjg.com)
+[![Build Status](https://github.com/byjg/php-gluo/actions/workflows/phpunit.yml/badge.svg?branch=master)](https://github.com/byjg/php-gluo/actions/workflows/phpunit.yml)
+[![Opensource ByJG](https://img.shields.io/badge/opensource-byjg-success.svg)](https://opensource.byjg.com)
+[![Install MCP Server](https://img.shields.io/badge/Install-MCP_Server-8A2BE2?logo=modelcontextprotocol&logoColor=white)](https://opensource.byjg.com/docs/ai/mcpserver-byjg-docs/)
 [![GitHub source](https://img.shields.io/badge/Github-source-informational?logo=github)](https://github.com/byjg/php-gluo)
 [![GitHub license](https://img.shields.io/github/license/byjg/php-gluo.svg)](https://opensource.byjg.com/license/)
 [![GitHub release](https://img.shields.io/github/release/byjg/php-gluo.svg)](https://github.com/byjg/php-gluo/releases)
-
-**Gluo** (Esperanto for *glue*) is a **production-ready PHP REST API starter**: create a project you fully own, powered by an updatable framework core — so you focus on business logic, not infrastructure.
 
 ## Why Use This?
 
@@ -24,18 +30,18 @@ Gluo splits the problem the right way:
 # Create your project (the installer asks a few questions — see below)
 composer create-project byjg/gluo my-api ^7.0
 
-# Start containers (API, MySQL, and the frontend if you kept it)
+# Start containers (API, the database server, and the frontend if you kept it)
 cd my-api
 docker compose up -d
 
 # Run migrations
-composer migrate -- --env=dev reset
+./gluo --env=dev migrate:reset
 
 # Your API is ready!
 curl http://localhost:8080/sample/ping
 ```
 
-Commands like `composer migrate`, `composer test`, `composer codegen`, `composer openapi`,
+Commands like `./gluo migrate:update`, `./gluo codegen:all`, `./gluo openapi`, `composer test`,
 and `composer psalm` run from the repository root — there is a single `composer.json`, and
 the repository root *is* the PHP application root.
 
@@ -52,8 +58,9 @@ my-api/
 ├── tests/
 ├── frontend/             # optional Vite + React frontend (React 19 + Vite 6 + Tailwind)
 ├── docker/               # Dockerfile (API) + Dockerfile-html (frontend)
-├── docker-compose.yml    # API :8080, frontend :7080, MySQL :3306
-└── docs/
+├── docker-compose.yml    # API :8080, frontend :7080 (HTTPS :7443); includes the next file
+├── docker-compose.database.yml # the database server (MySQL :3306, PostgreSQL :5432; none for SQLite)
+└── README.md             # quick start + link to the online documentation
 ```
 
 The `create-project` installer offers two toggles:
@@ -70,6 +77,7 @@ The `create-project` installer offers two toggles:
 | **Frontend: No**   | Pure API with example endpoints      | Pure API, clean slate           |
 
 When the frontend is enabled, `docker compose up -d` serves it at **http://localhost:7080**
+and, with a self-signed certificate, at **https://localhost:7443**
 (via [byjg/static-httpserver](https://github.com/byjg/docker-static-httpserver)) while the API
 answers on **http://localhost:8080**. See the **[Frontend guide →](docs/guides/frontend.md)**.
 
@@ -112,7 +120,7 @@ mindmap
 
 ```bash
 # Generate a complete CRUD API from a single table (run from the repo root)
-composer codegen -- --env=dev --table=project all --save
+./gluo --env=dev codegen:all --table=project --save
 ```
 
 ## Documentation
@@ -150,6 +158,7 @@ composer codegen -- --env=dev --table=project all --save
 - **[Code Generator](docs/reference/code-generator.md)** – Automate models, repositories, services, controllers, and tests.
 - **[Attributes](docs/reference/attributes.md)** – `RequireAuthenticated`, `RequireRole`, `ValidateRequest`, and custom attributes.
 - **[Traits](docs/reference/traits.md)** – Timestamp and soft-delete helpers for models.
+- **[The gluo Command](docs/reference/gluo-cli.md)** – `./gluo`: migrations, codegen, OpenAPI, and your own project commands.
 - **[Scriptify](docs/reference/scriptify.md)** – REPL, CLI runner, and service manager utilities.
 - **[Components](docs/reference/components.md)** – Full PHP component dependency graph.
 
@@ -167,13 +176,13 @@ CREATE TABLE products (
 EOF
 
 # 2. Run migration
-composer migrate -- --env=dev update
+./gluo --env=dev migrate:update
 
 # 3. Generate all code
-composer codegen -- --env=dev --table=products all --save
+./gluo --env=dev codegen:all --table=products --save
 
 # 4. Generate the OpenAPI spec so routing is active
-composer run openapi
+./gluo openapi
 
 # 5. Log in and capture the token
 TOKEN=$(curl -s -X POST http://localhost:8080/login \
@@ -206,7 +215,7 @@ You just created a complete CRUD API with:
 - 📖 **[Full Documentation](docs/getting-started/installation.md)**
 - 🐛 **[Report Issues](https://github.com/byjg/php-gluo/issues)**
 - 💡 **[Request Features](https://github.com/byjg/php-gluo/issues)**
-- 🌐 **[ByJG Open Source](http://opensource.byjg.com)**
+- 🌐 **[ByJG Open Source](https://opensource.byjg.com)**
 
 ## Your Code vs. the Framework
 
@@ -218,12 +227,27 @@ The starter generates a project that is fully yours — `src/`, `config/`, `db/`
 
 ## License
 
-This project is open source. See [LICENSE](https://opensource.byjg.com/opensource/licensing.html) for details.
+This project is open source. See [LICENSE](https://opensource.byjg.com/license/) for details.
 
 ## Dependencies
 
 **📚 [Complete Component Dependency Graph →](docs/reference/components.md)**
 
+## Running Tests
+
+In this repository, `docker-compose.yml`, `docker-compose.database.yml`, `db/base.sql` and
+`db/migrations/` are not versioned: they are written from [`.db-dialects/`](.db-dialects/README.md)
+for one database. A created project gets them as its own files.
+
+```bash
+composer install
+./gluo --env=dev db:dialect mysql     # or postgres, sqlite
+docker compose up -d --wait
+composer test
+```
+
+See the [testing guide](docs/guides/testing.md) for writing tests for your own endpoints.
+
 ---
 
-**[Open source ByJG](http://opensource.byjg.com)**
+[Open source ByJG](https://opensource.byjg.com)

@@ -79,7 +79,7 @@ class ProjectRepository extends BaseRepository
 
 ## Filtering and Ordering
 
-`BaseRepository::list()` and `listQuery()` both accept `orderBy` and `filter` parameters. In a REST controller these are typically forwarded straight from HTTP query string parameters.
+`BaseRepository::list()` and `listQuery()` both accept `orderBy` and `filter` parameters. Both end up in the SQL as written, so they are for values your code builds, never for text that comes from a request.
 
 ### `orderBy`
 
@@ -106,28 +106,53 @@ $filter = [
 $repository->list(page: 0, size: 20, filter: $filter);
 ```
 
-### Passing query params from a REST controller
+### Ordering from a query string
 
-`ProjectController` exposes `orderBy` and `filter` as optional query string parameters and passes them directly to the service (which forwards them to the repository):
+The generated list endpoints accept `?orderBy=`, and `ProjectController` shows how:
 
 ```php
 #[OA\Parameter(name: "orderBy", in: "query", required: false, schema: new OA\Schema(type: "string"))]
-#[OA\Parameter(name: "filter",  in: "query", required: false, schema: new OA\Schema(type: "string"))]
 public function listProject(HttpResponse $response, HttpRequest $request): void
 {
-    $service = Config::get(ProjectService::class);
-    $result = $service->list(
-        page:    (int) ($request->queryString('page')    ?? 0),
-        size:    (int) ($request->queryString('size')    ?? 20),
-        orderBy: $request->queryString('orderBy'),
-        filter:  $request->queryString('filter'),
+    $result = $this->projectService->list(
+        (int)($request->queryString('page') ?? 0),
+        (int)($request->queryString('size') ?? 50),
+        OrderBy::fromQueryString($request->queryString('orderBy'), Project::class)
     );
     $response->write($result);
 }
 ```
 
-:::info
-The `filter` query param expects JSON-encoded tuples when sent over HTTP. Validate and sanitize the value before passing it to the repository in production code.
+`ByJG\Gluo\Util\OrderBy::fromQueryString()` is what makes the client's value safe to use.
+It accepts one or more fields separated by commas, each optionally followed by `asc` or
+`desc`, and returns the `ORDER BY` terms with the column names the model declares:
+
+| Request | Result |
+|---|---|
+| `?orderBy=name` | `['name']` |
+| `?orderBy=createdAt desc,name` | `['created_at DESC', 'name']` |
+| `?orderBy=password` | 400: unknown field |
+| `?orderBy=name; drop table project` | 400: invalid |
+
+A field can be named by its property (`createdAt`) or by its column (`created_at`), and
+only fields of the model are accepted. Nothing from the request reaches the SQL.
+
+An ActiveRecord controller does the same with a query:
+
+```php
+$query = Query::getInstance()
+    ->table(Note::tableName())
+    ->orderBy(OrderBy::fromQueryString($request->queryString('orderBy'), Note::class))
+    ->limit($page * $size, $size);
+
+$response->write(Note::query($query));
+```
+
+:::warning
+There is no equivalent for `filter`. The generated endpoints do not accept one, because a
+filter needs a format of its own. To filter by a request value, add a named query
+parameter to the endpoint and build the condition yourself, with the value bound as a
+parameter: `['status = :status', ['status' => $request->queryString('status')]]`.
 :::
 
 ## Advanced Querying
@@ -336,16 +361,16 @@ Use this helper when you need a UUID string outside of ORM inserts (e.g., buildi
 
 ### Attribute-Based Binary Columns
 
-Use `TableMySqlUuidPKAttribute` and `FieldUuidAttribute` to keep repositories tiny while persisting binary UUIDs:
+Use `TableUuidPKAttribute` and `FieldUuidAttribute` to keep repositories tiny while persisting binary UUIDs:
 
 ```php
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
-use ByJG\MicroOrm\Attributes\TableMySqlUuidPKAttribute;
+use ByJG\MicroOrm\Attributes\TableUuidPKAttribute;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\MicroOrm\Literal\Literal;
 
-#[TableMySqlUuidPKAttribute("task")]
+#[TableUuidPKAttribute("task")]
 class Task
 {
     #[FieldUuidAttribute(primaryKey: true)]
@@ -365,7 +390,7 @@ class Task
 }
 ```
 
-`TableMySqlUuidPKAttribute` generates a UUID literal automatically when inserting rows, while `FieldUuidAttribute` handles binary ⇄ string conversion on selects/updates.
+`TableUuidPKAttribute` generates a UUID (version 7, in PHP) automatically when inserting rows, unless the model already has one, while `FieldUuidAttribute` handles binary ⇄ string conversion on selects/updates.
 
 The repository stays simple:
 
@@ -384,7 +409,7 @@ class TaskRepository extends BaseRepository
 
 ### Querying by UUID
 
-`BaseRepository::get()` uses `HexUuidLiteral::create($itemId)` internally, so passing a UUID string “just works”:
+`BaseRepository::get()` passes the id to micro-orm's `Repository::get()`, which applies the primary key's update function (`FieldUuidAttribute` turns a UUID string into a `HexUuidLiteral`), so passing a UUID string “just works”:
 
 ```php
 $entity = $repository->get('550e8400-e29b-41d4-a716-446655440000');
