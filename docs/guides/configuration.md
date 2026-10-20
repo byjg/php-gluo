@@ -119,7 +119,7 @@ use ByJG\Config\Param;
 
 return [
     DbDriverInterface::class => DI::bind(Factory::class)
-        ->withFactoryMethod("getDbRelationalInstance", [Param::get('DBDRIVER_CONNECTION')])
+        ->withFactoryMethod("getDbInstance", [Param::get('DBDRIVER_CONNECTION')])
         ->toSingleton(),
 ];
 ```
@@ -233,7 +233,7 @@ feature, not an omission.
 return [
     // A value resolved at injection time
     DbDriverInterface::class => DI::bind(Factory::class)
-        ->withFactoryMethod("getDbRelationalInstance", [Param::get('DBDRIVER_CONNECTION')])
+        ->withFactoryMethod("getDbInstance", [Param::get('DBDRIVER_CONNECTION')])
         ->toSingleton(),
 
     // A service with injected constructor

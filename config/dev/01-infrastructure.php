@@ -20,7 +20,7 @@ return [
 
     // Database Configuration
     DbDriverInterface::class => DI::bind(Factory::class)
-        ->withFactoryMethod("getDbRelationalInstance", [Param::get('DBDRIVER_CONNECTION')])
+        ->withFactoryMethod("getDbInstance", [Param::get('DBDRIVER_CONNECTION')])
         ->toSingleton(),
 
     DatabaseExecutor::class => DI::bind(DatabaseExecutor::class)
