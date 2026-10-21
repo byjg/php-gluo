@@ -13,11 +13,6 @@ class OpenApiContextTest extends TestCase
 {
     private HttpRequest $request;
 
-    protected function setUp(): void
-    {
-        $this->request = $this->createStub(HttpRequest::class);
-    }
-
     private function schema(string $fixture): Schema
     {
         return Schema::fromFile(__DIR__ . '/' . $fixture);
@@ -30,15 +25,20 @@ class OpenApiContextTest extends TestCase
         string $payload = '',
         array  $post = []
     ): void {
-        $this->request->method('getRequestPath')->willReturn($path);
-        $this->request->method('serverString')->willReturnMap([
-            ['REQUEST_METHOD', null, $method],
-        ]);
-        $this->request->method('getHeader')->willReturnMap([
-            ['Content-Type', $contentType],
-        ]);
-        $this->request->method('payload')->willReturn($payload);
-        $this->request->method('body')->willReturn($post);
+        // A real request, as PHP fills it; only the raw body is given, because payload() reads php://input
+        $server = ['REQUEST_METHOD' => $method, 'REQUEST_URI' => $path, 'CONTENT_TYPE' => $contentType];
+        $this->request = new class ($payload, $post, $server) extends HttpRequest {
+            public function __construct(private string $rawBody, array $post, array $server)
+            {
+                parent::__construct([], $post, $server, [], []);
+            }
+
+            #[\Override]
+            public function payload(): string
+            {
+                return $this->rawBody;
+            }
+        };
     }
 
     // =========================================================================
