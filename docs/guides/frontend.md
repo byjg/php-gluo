@@ -18,7 +18,7 @@ leaving a pure API project.
 
 ```
 frontend/
-├── package.json  vite.config.js  tailwind.config.js
+├── package.json  vite.config.js  postcss.config.js
 ├── .env.example                     # VITE_API_BASE_URL (build-time)
 ├── public/config.js                 # runtime API_BASE_URL (replaced in-container)
 └── src/

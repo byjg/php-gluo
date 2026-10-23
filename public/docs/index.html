@@ -2,21 +2,108 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <title>OpenAPI Viewer</title>
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.7.2/swagger-ui.css" >
-    <link rel="icon" type="image/png" href="./favicon-32x32.png" sizes="32x32" />
-    <style>
-      .topbar {
-        display: none;
-      }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>API Reference</title>
+    <link rel="icon" type="image/svg+xml" href="../gluo-icon.svg" />
   </head>
 
   <body>
-    <div id="swagger-ui"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.7.2/swagger-ui-bundle.js"> </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.7.2/swagger-ui-standalone-preset.js"> </script>
-    <script src="./require.js"> </script>
-    <script src="./openapi.js"> </script>
+    <div id="app"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.73.1/dist/browser/standalone.js"></script>
+    <script>
+      // Scalar has no byjg/webrequest client, so each operation gets one as an x-codeSamples entry.
+      // No `servers` in the spec: requests go to this page's origin, the API serving /docs.
+      const baseUrl = window.location.origin;
+
+      function resolve(spec, schema) {
+        while (schema && schema.$ref) {
+          schema = schema.$ref.replace('#/', '').split('/').reduce((node, key) => node[key], spec);
+        }
+        return schema || {};
+      }
+
+      // Example value for a schema: only the required fields, so computed ones are left out
+      function exampleFor(spec, schema) {
+        schema = resolve(spec, schema);
+        if (schema.example !== undefined) return schema.example;
+        if (schema.enum) return schema.enum[0];
+        if (schema.type === 'array') return [];
+        if (schema.type === 'integer' || schema.type === 'number') return 0;
+        if (schema.type === 'boolean') return false;
+        if (schema.type === 'object' || schema.properties) {
+          const props = schema.properties || {};
+          const keys = schema.required?.length ? schema.required : Object.keys(props);
+          return Object.fromEntries(keys.map((key) => [key, exampleFor(spec, props[key])]));
+        }
+        return '';
+      }
+
+      function toPhp(value, indent) {
+        const pad = ' '.repeat(indent);
+        if (Array.isArray(value)) return '[' + value.map((v) => toPhp(v, indent)).join(', ') + ']';
+        if (value === null) return 'null';
+        if (typeof value === 'object') {
+          const lines = Object.entries(value).map(([k, v]) => `${pad}    ${toPhp(k, 0)} => ${toPhp(v, indent + 4)},`);
+          return lines.length ? `[\n${lines.join('\n')}\n${pad}]` : '[]';
+        }
+        if (typeof value === 'string') return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+        return String(value);
+      }
+
+      function webRequestSample(spec, path, method, operation) {
+        const enumCase = method.charAt(0).toUpperCase() + method.slice(1);
+        const uri = `Uri::getInstance(${toPhp(baseUrl + path, 0)})`;
+        const jsonSchema = operation.requestBody?.content?.['application/json']?.schema;
+        const uses = ['ByJG\\Util\\Uri', 'ByJG\\WebRequest\\HttpClient'];
+        let request;
+
+        if (jsonSchema) {
+          uses.push('ByJG\\WebRequest\\Helper\\RequestJson', 'ByJG\\WebRequest\\HttpMethod');
+          request = `    RequestJson::build(${uri}, HttpMethod::${enumCase}, ${toPhp(exampleFor(spec, jsonSchema), 4)})`;
+        } else {
+          uses.push('ByJG\\WebRequest\\Psr7\\Request');
+          request = `    Request::getInstance(${uri})`;
+          if (method !== 'get') {
+            uses.push('ByJG\\WebRequest\\HttpMethod');
+            request += `\n        ->withMethod(HttpMethod::${enumCase})`;
+          }
+        }
+        if ((operation.security ?? spec.security ?? []).length) {
+          // A JSON body ends in `])`, so the header chains on the same line
+          request += `${jsonSchema ? '' : '\n        '}->withHeader('Authorization', 'Bearer <token>')`;
+        }
+
+        return uses.sort().map((use) => `use ${use};`).join('\n')
+          + `\n\n$response = HttpClient::getInstance()->sendRequest(\n${request}\n);\n`;
+      }
+
+      // no-cache: revalidate, so a regenerated spec shows without a hard reload
+      fetch('./openapi.json', { cache: 'no-cache' })
+        .then((response) => response.json())
+        .then((spec) => {
+          for (const [path, operations] of Object.entries(spec.paths)) {
+            for (const [method, operation] of Object.entries(operations)) {
+              operation['x-codeSamples'] = [
+                { lang: 'php', label: 'byjg/webrequest', source: webRequestSample(spec, path, method, operation) },
+              ];
+            }
+          }
+
+          Scalar.createApiReference('#app', {
+            content: spec,
+            authentication: {
+              preferredSecurityScheme: 'jwt-token',
+            },
+            agent: {
+              disabled: true,
+            },
+            mcp: {
+              disabled: true,
+            },
+            showDeveloperTools: 'never',
+            hideClientButton: true,
+          });
+        });
+    </script>
   </body>
 </html>

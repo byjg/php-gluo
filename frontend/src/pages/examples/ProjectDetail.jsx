@@ -330,7 +330,7 @@ export default function ProjectDetail() {
             <select
               value={taskForm.status}
               onChange={(e) => updateTaskForm('status', e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
             >
               {STATUSES.map((status) => (
                 <option key={status} value={status}>

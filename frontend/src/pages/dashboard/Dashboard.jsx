@@ -13,7 +13,7 @@ export default function Dashboard() {
     // {/* >>> examples */}
     { to: '/projects', label: 'Projects', desc: 'Browse the example CRUD', icon: FolderKanban },
     // {/* <<< examples */}
-    { to: `${BASE_URL}/docs/`, label: 'API Docs', desc: 'Swagger UI', icon: BookOpen, external: true },
+    { to: `${BASE_URL}/docs/`, label: 'API Docs', desc: 'API reference', icon: BookOpen, external: true },
   ];
 
   return (

@@ -5,6 +5,10 @@ tags: [php, http, openapi]
 
 # Gluo — PHP REST API Starter
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/byjg/php-gluo/master/docs/gluo-icon.svg" alt="Gluo logo" width="180" />
+</p>
+
 **Gluo** (Esperanto for *glue*) is a **production-ready PHP REST API starter**: create a project you fully own, powered by an updatable framework core — so you focus on business logic, not infrastructure.
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-%23ea4aaa?logo=githubsponsors&logoColor=white&labelColor=0d1117)](https://github.com/sponsors/byjg)
@@ -110,7 +114,7 @@ mindmap
 - 🚀 **Code generator** — one command scaffolds Model, Repository, Service, REST controller, and tests from any database table
 - 🏗️ **Two patterns** — choose Repository (DI + Service layer) or ActiveRecord per entity; mix them in the same project
 - 🔐 **Auth out of the box** — JWT login, token refresh, password reset, and role-based access control (RBAC) included
-- 📖 **OpenAPI-first** — routes are driven by `openapi.json`; Swagger UI, contract testing, and docs stay in sync automatically
+- 📖 **OpenAPI-first** — routes are driven by `openapi.json`; the API reference (Scalar), contract testing, and docs stay in sync automatically
 - 🗄️ **Database migrations** — versioned up/down SQL migrations with a one-command runner and ORM integration
 - 🧪 **In-process testing** — `FakeApiRequester` runs the full API stack inside PHPUnit, no web server needed
 - 🎨 **Optional React frontend** — a Vite + React 19 + Tailwind SPA in `frontend/` with login, password-reset, dashboard, and profile screens already wired to the API over JWT
@@ -150,7 +154,7 @@ mindmap
 
 ### Concepts
 - **[Architecture](docs/concepts/architecture.md)** – Architectural decisions: when to use Repository vs ActiveRecord.
-- **[OpenAPI Integration](docs/concepts/openapi-integration.md)** – How swagger-php, the spec file, and Swagger UI fit together.
+- **[OpenAPI Integration](docs/concepts/openapi-integration.md)** – How swagger-php, the spec file, and the API reference fit together.
 - **[Dependency Injection](docs/concepts/dependency-injection.md)** – PSR-11 container, environment hierarchy, and DI binding patterns.
 - **[Request Lifecycle](docs/concepts/request-lifecycle.md)** – Trace an HTTP request from entry point to JSON response.
 

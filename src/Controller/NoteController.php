@@ -135,7 +135,9 @@ class NoteController
     }
 
     /**
-     * List every note across a whole project (note -> task -> project). A note only
+     * List every note across a whole project
+     *
+     * Spans note -> task -> project. A note only
      * carries a task_id, so this spans two relationships; Note::getByProjectId() uses
      * joinWith(Task::class, Project::class), naming the through-entity so its mapper
      * registers on demand and both JOINs resolve.
@@ -291,7 +293,9 @@ class NoteController
     }
 
     /**
-     * Soft-delete a Note. Because the model uses the OaDeletedAt trait, delete()
+     * Soft-delete a Note
+     *
+     * Because the model uses the OaDeletedAt trait, delete()
      * sets deleted_at instead of removing the row, and the record then disappears
      * from get()/all() while remaining in the table.
      *

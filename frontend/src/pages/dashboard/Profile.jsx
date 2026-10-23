@@ -66,7 +66,7 @@ export default function Profile() {
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
           >
             {LANGUAGES.map((lang) => (
               <option key={lang.value} value={lang.value}>
