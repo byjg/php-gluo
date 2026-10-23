@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gluo · PHP REST API</title>
     <meta name="description" content="Gluo — production-ready PHP REST API starter with code generation, JWT auth, migrations and OpenAPI.">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="icon" type="image/svg+xml" href="gluo-icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -51,7 +50,8 @@
 
         /* ── Hero ── */
         .hero {
-            background: linear-gradient(135deg, var(--primary-10) 0%, var(--background) 60%);
+            /* gray tone so the light gluo-wordmark.svg reads */
+            background: #475569;
             border-bottom: 1px solid var(--border);
             padding: 5rem 1.5rem;
             text-align: center;
@@ -80,7 +80,7 @@
             margin: 1.25rem auto 0;
             max-width: 40rem;
             font-size: 1.125rem;
-            color: var(--muted-foreground);
+            color: #e2e8f0;
         }
         .hero-actions {
             display: flex;
@@ -475,7 +475,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/></svg>
             Open Source ByJG
         </div>
-        <h1>Gluo</h1>
+        <h1><img src="gluo-wordmark.svg" alt="Gluo" height="96"></h1>
         <p>A production-ready boilerplate to build professional REST APIs in PHP — with JWT auth, code generation, migrations, and OpenAPI baked in.</p>
         <div class="hero-actions">
             <a href="#quickstart" class="btn btn-primary">
@@ -532,7 +532,7 @@
                     </div>
                     <div class="card-title">OpenAPI First</div>
                 </div>
-                <div class="card-body">Document endpoints with PHP attributes and serve interactive Swagger UI automatically.</div>
+                <div class="card-body">Document endpoints with PHP attributes and serve an interactive API reference automatically.</div>
             </div>
         </div>
     </div>
@@ -607,7 +607,7 @@
                 </button>
                 <div class="accordion-content">
                     <div class="accordion-inner">
-                        <div class="step"><strong>Access Swagger UI:</strong> View interactive API documentation</div>
+                        <div class="step"><strong>Open the API reference:</strong> View interactive API documentation</div>
                         <div class="code-wrapper">
                             <div class="code-block">http://localhost:8080/docs/</div>
                             <button class="copy-btn" onclick="copyCode(this)">Copy</button>

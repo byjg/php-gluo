@@ -30,8 +30,10 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-sm p-8">
-        <h1 className="mb-1 text-2xl font-bold text-brand">Gluo</h1>
+      <Card className="w-full max-w-sm overflow-hidden p-8">
+        <h1 className="-mx-8 -mt-8 mb-6 flex justify-center bg-slate-600 py-6">
+          <img src="/gluo-wordmark.svg" alt="Gluo" className="h-16" />
+        </h1>
         <p className="mb-6 text-sm text-slate-500">Sign in to your account</p>
         <form onSubmit={onSubmit} className="space-y-4">
           <Field label="Email">

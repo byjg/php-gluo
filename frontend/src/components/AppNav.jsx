@@ -17,16 +17,16 @@ export default function AppNav() {
   ];
 
   return (
-    <nav className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+    <nav className="flex items-center justify-between border-b border-slate-700 bg-slate-600 px-6 py-3">
       <div className="flex items-center gap-1">
-        <span className="mr-4 text-lg font-bold text-brand">Gluo</span>
+        <img src="/gluo-wordmark.svg" alt="Gluo" className="mr-4 h-8" />
         {links.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
             to={to}
             className={cn(
               'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium',
-              pathname === to ? 'bg-brand/10 text-brand' : 'text-slate-600 hover:bg-slate-100'
+              pathname === to ? 'bg-white/15 text-white' : 'text-slate-200 hover:bg-white/10'
             )}
           >
             <Icon size={16} />
@@ -34,7 +34,7 @@ export default function AppNav() {
           </Link>
         ))}
       </div>
-      <button onClick={logout} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800">
+      <button onClick={logout} className="flex items-center gap-2 text-sm text-slate-200 hover:text-white">
         <LogOut size={16} /> Logout
       </button>
     </nav>
