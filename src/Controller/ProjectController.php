@@ -192,7 +192,7 @@ class ProjectController
     )]
     #[OA\Response(
         response: 200,
-        description: "The object rto be created",
+        description: "The created object",
         content: new OA\JsonContent(
             required: [ "id" ],
             properties: [

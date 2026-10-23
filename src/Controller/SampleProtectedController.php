@@ -21,7 +21,7 @@ class SampleProtectedController
         security: [
             ["jwt-token" => []]
         ],
-        tags: ["zz_sampleprotected"],
+        tags: ["Sample"],
     )]
     #[OA\Response(
         response: 200,
@@ -35,7 +35,7 @@ class SampleProtectedController
     )]
     #[OA\Response(
         response: 401,
-        description: "Não autorizado",
+        description: "Unauthorized",
         content: new OA\JsonContent(ref: "#/components/schemas/error")
     )]
     #[RequireAuthenticated]
@@ -60,7 +60,7 @@ class SampleProtectedController
         security: [
             ["jwt-token" => []]
         ],
-        tags: ["zz_sampleprotected"],
+        tags: ["Sample"],
     )]
     #[OA\Response(
         response: 200,
@@ -74,7 +74,7 @@ class SampleProtectedController
     )]
     #[OA\Response(
         response: 401,
-        description: "Não autorizado",
+        description: "Unauthorized",
         content: new OA\JsonContent(ref: "#/components/schemas/error")
     )]
     #[RequireRole('admin')]

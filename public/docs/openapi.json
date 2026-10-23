@@ -1,8 +1,8 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "API Title",
-        "description": "Information about the API",
+        "title": "Gluo API",
+        "description": "REST API built on Gluo",
         "termsOfService": "http://localhost:8080/terms/",
         "contact": {
             "email": "someone@example.com"
@@ -92,7 +92,7 @@
                 "operationId": "POST::/refreshtoken::RestReferenceArchitecture\\Controller\\LoginController::refreshToken",
                 "responses": {
                     "200": {
-                        "description": "The object rto be created",
+                        "description": "The refreshed token",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -124,7 +124,7 @@
                         }
                     },
                     "401": {
-                        "description": "Não autorizado",
+                        "description": "Unauthorized",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -146,7 +146,7 @@
                 "tags": [
                     "Login"
                 ],
-                "summary": "Initialize the Password Request",
+                "summary": "Request a password reset code by email",
                 "operationId": "POST::/login/resetrequest::RestReferenceArchitecture\\Controller\\LoginController::postResetRequest",
                 "requestBody": {
                     "description": "The email to have the password reset",
@@ -193,7 +193,7 @@
                 "tags": [
                     "Login"
                 ],
-                "summary": "Initialize the Password Request",
+                "summary": "Confirm the password reset code",
                 "operationId": "POST::/login/confirmcode::RestReferenceArchitecture\\Controller\\LoginController::postConfirmCode",
                 "requestBody": {
                     "description": "The email and code to confirm the password reset",
@@ -258,7 +258,7 @@
                 "tags": [
                     "Login"
                 ],
-                "summary": "Initialize the Password Request",
+                "summary": "Set a new password with the confirmed reset token",
                 "operationId": "POST::/login/resetpassword::RestReferenceArchitecture\\Controller\\LoginController::postResetPassword",
                 "requestBody": {
                     "description": "The email and the new password",
@@ -358,7 +358,8 @@
                 "tags": [
                     "Note"
                 ],
-                "summary": "Soft-delete a Note. Because the model uses the OaDeletedAt trait, delete()\nsets deleted_at instead of removing the row, and the record then disappears\nfrom get()/all() while remaining in the table.",
+                "summary": "Soft-delete a Note",
+                "description": "Because the model uses the OaDeletedAt trait, delete()\nsets deleted_at instead of removing the row, and the record then disappears\nfrom get()/all() while remaining in the table.",
                 "operationId": "DELETE::/note/{id}::RestReferenceArchitecture\\Controller\\NoteController::deleteNote",
                 "parameters": [
                     {
@@ -572,7 +573,8 @@
                 "tags": [
                     "Note"
                 ],
-                "summary": "List every note across a whole project (note -> task -> project). A note only\ncarries a task_id, so this spans two relationships; Note::getByProjectId() uses\njoinWith(Task::class, Project::class), naming the through-entity so its mapper\nregisters on demand and both JOINs resolve.",
+                "summary": "List every note across a whole project",
+                "description": "Spans note -> task -> project. A note only\ncarries a task_id, so this spans two relationships; Note::getByProjectId() uses\njoinWith(Task::class, Project::class), naming the through-entity so its mapper\nregisters on demand and both JOINs resolve.",
                 "operationId": "GET::/project/{projectId}/note::RestReferenceArchitecture\\Controller\\NoteController::listNotesByProject",
                 "parameters": [
                     {
@@ -947,7 +949,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "The object rto be created",
+                        "description": "The created object",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -986,7 +988,7 @@
         "/sample/ping": {
             "get": {
                 "tags": [
-                    "zz_sample"
+                    "Sample"
                 ],
                 "summary": "Simple ping",
                 "operationId": "GET::/sample/ping::RestReferenceArchitecture\\Controller\\SampleController::getPing",
@@ -1016,7 +1018,7 @@
         "/sampleprotected/ping": {
             "get": {
                 "tags": [
-                    "zz_sampleprotected"
+                    "Sample"
                 ],
                 "summary": "Sample Ping Only Authenticated",
                 "operationId": "GET::/sampleprotected/ping::RestReferenceArchitecture\\Controller\\SampleProtectedController::getPing",
@@ -1041,7 +1043,7 @@
                         }
                     },
                     "401": {
-                        "description": "Não autorizado",
+                        "description": "Unauthorized",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1061,7 +1063,7 @@
         "/sampleprotected/pingadm": {
             "get": {
                 "tags": [
-                    "zz_sampleprotected"
+                    "Sample"
                 ],
                 "summary": "Sample Ping Only Admin",
                 "operationId": "GET::/sampleprotected/pingadm::RestReferenceArchitecture\\Controller\\SampleProtectedController::getPingAdm",
@@ -1086,7 +1088,7 @@
                         }
                     },
                     "401": {
-                        "description": "Não autorizado",
+                        "description": "Unauthorized",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1283,7 +1285,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "The object rto be created",
+                        "description": "The created object",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1487,19 +1489,19 @@
                     "error": {
                         "properties": {
                             "type": {
-                                "description": "A class de Exceção",
+                                "description": "The exception class",
                                 "type": "string"
                             },
                             "message": {
-                                "description": "A mensagem de erro",
+                                "description": "The error message",
                                 "type": "string"
                             },
                             "file": {
-                                "description": "O arquivo que gerou o erro",
+                                "description": "The file that raised the error",
                                 "type": "string"
                             },
                             "line": {
-                                "description": "A linha do erro",
+                                "description": "The line of the error",
                                 "type": "integer"
                             }
                         },
@@ -1508,16 +1510,16 @@
                 },
                 "type": "object",
                 "externalDocs": {
-                    "description": "Find out more about Swagger",
+                    "description": "API reference",
                     "url": "http://localhost:8080/docs"
                 }
             }
         },
         "securitySchemes": {
             "jwt-token": {
-                "type": "apiKey",
-                "name": "Authorization",
-                "in": "header"
+                "type": "http",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
             }
         }
     },
@@ -1539,12 +1541,8 @@
             "description": "Project"
         },
         {
-            "name": "zz_sample",
-            "description": "zz_sample"
-        },
-        {
-            "name": "zz_sampleprotected",
-            "description": "zz_sampleprotected"
+            "name": "Sample",
+            "description": "Sample"
         },
         {
             "name": "Task",

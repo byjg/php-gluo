@@ -70,7 +70,7 @@ class LoginController extends BaseLoginController
     )]
     #[OA\Response(
         response: 200,
-        description: "The object rto be created",
+        description: "The refreshed token",
         content: new OA\JsonContent(
             required: [ "token" ],
             properties: [
@@ -85,7 +85,7 @@ class LoginController extends BaseLoginController
     )]
     #[OA\Response(
         response: 401,
-        description: "Não autorizado",
+        description: "Unauthorized",
         content: new OA\JsonContent(ref: "#/components/schemas/error")
     )]
     #[RequireAuthenticated]
@@ -96,7 +96,7 @@ class LoginController extends BaseLoginController
     }
 
     /**
-     * Initialize the Password Request
+     * Request a password reset code by email
      *
      */
     #[OA\Post(
@@ -130,7 +130,7 @@ class LoginController extends BaseLoginController
     }
 
     /**
-     * Initialize the Password Request
+     * Confirm the password reset code
      *
      */
     #[OA\Post(
@@ -170,7 +170,7 @@ class LoginController extends BaseLoginController
     }
 
     /**
-     * Initialize the Password Request
+     * Set a new password with the confirmed reset token
      *
      */
     #[OA\Post(

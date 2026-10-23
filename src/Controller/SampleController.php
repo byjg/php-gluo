@@ -16,7 +16,7 @@ class SampleController
      */
     #[OA\Get(
         path: "/sample/ping",
-        tags: ["zz_sample"],
+        tags: ["Sample"],
     )]
     #[OA\Response(
         response: 200,
