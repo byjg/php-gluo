@@ -23,7 +23,7 @@ export function Button({ className, variant = 'primary', type = 'button', ...pro
 }
 
 export function Card({ className, ...props }) {
-  return <div className={cn('rounded-lg border border-slate-200 bg-white shadow-sm', className)} {...props} />;
+  return <div className={cn('rounded-lg border border-slate-200 bg-white shadow-xs', className)} {...props} />;
 }
 
 export function PageHeader({ title, description, actions }) {
@@ -42,7 +42,7 @@ export function Input({ className, ...props }) {
   return (
     <input
       className={cn(
-        'w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand',
+        'w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-hidden focus:border-brand focus:ring-1 focus:ring-brand',
         className
       )}
       {...props}
@@ -54,7 +54,7 @@ export function Textarea({ className, ...props }) {
   return (
     <textarea
       className={cn(
-        'min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand',
+        'min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-hidden focus:border-brand focus:ring-1 focus:ring-brand',
         className
       )}
       {...props}
