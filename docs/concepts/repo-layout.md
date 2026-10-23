@@ -55,7 +55,7 @@ They are not the same kind of thing, and the distinction matters:
 |---|---|---|
 | Role | the **API docroot** — nginx serves it (`NGINX_ROOT=/srv/public`) | **Vite static passthrough** — copied verbatim into the build |
 | Served directly? | yes | no — the served root is the built `dist/`, mounted at `/static` |
-| Holds | `app.php` (front controller), `index.html`, `robots.txt`, `docs/` (Swagger UI) | `config.js`, rewritten at container start |
+| Holds | `app.php` (front controller), `index.html`, `robots.txt`, `docs/` (API reference, Scalar) | `config.js`, rewritten at container start |
 
 If you are looking for "the web root", it is `public/`. `frontend/public/` is a build
 input belonging to the Vite project.

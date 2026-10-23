@@ -12,7 +12,7 @@ This document explains what OpenAPI is, how the reference architecture uses it, 
 [OpenAPI](https://www.openapis.org/) (formerly Swagger) is a language-agnostic specification for describing HTTP APIs. A single `openapi.json` file documents every endpoint, its parameters, request bodies, and response schemas. This single source of truth drives:
 
 - **Runtime routing** – `OpenApiRouteList` reads `openapi.json` to map incoming requests to controller methods.
-- **Swagger UI** – An interactive browser UI is served at `http://localhost:8080/docs/` so you can explore and test endpoints without a separate tool.
+- **API reference** – An interactive browser UI ([Scalar](https://github.com/scalar/scalar)) is served at `http://localhost:8080/docs/` so you can explore and test endpoints without a separate tool.
 - **Contract testing** – `OpenApiValidation` (via `ByJG\ApiTools`) asserts that every test response conforms to the declared schema.
 
 ## How swagger-php Scans Your Code
@@ -33,11 +33,11 @@ APP_ENV=dev ./gluo openapi
 
 - The application can boot without running the generator.
 - Tests can validate responses even in CI environments.
-- Swagger UI always has an up-to-date spec to render.
+- The API reference always has an up-to-date spec to render.
 
-## Swagger UI
+## API Reference
 
-When the dev server is running, open `http://localhost:8080/docs/` to browse the interactive API documentation. Every endpoint, parameter, and schema defined in `openapi.json` is rendered with a built-in "Try it out" feature.
+When the dev server is running, open `http://localhost:8080/docs/` to browse the interactive API documentation. Every endpoint, parameter, and schema defined in `openapi.json` is rendered on a single page with a sidebar grouped by tag, a search (`Ctrl/⌘ K`) over operations and schemas, and a built-in request client. Each operation also has a PHP code sample using [byjg/webrequest](https://opensource.byjg.com/docs/php/webrequest/), generated in the browser by `public/docs/index.html`. To call a protected endpoint, log in with `POST /login` and paste the token into the `jwt-token` authentication field (Scalar adds the `Bearer ` prefix).
 
 ## Contract Testing Overview
 
