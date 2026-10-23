@@ -18,8 +18,8 @@ use OpenApi\Attributes as OA;
 #[OA\SecurityScheme(
     securityScheme: 'jwt-token',
     type: 'http',
-    scheme: 'bearer',
-    bearerFormat: 'JWT'
+    bearerFormat: 'JWT',
+    scheme: 'bearer'
 )]
 #[OA\Schema(
     schema: 'error',
