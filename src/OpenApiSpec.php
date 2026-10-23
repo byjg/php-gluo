@@ -9,7 +9,8 @@ use OpenApi\Attributes as OA;
     description: 'REST API built on Gluo',
     title: 'Gluo API',
     termsOfService: 'http://localhost:8080/terms/',
-)]#[OA\Contact(email: 'someone@example.com')]
+)]
+#[OA\Contact(email: 'someone@example.com')]
 #[OA\License(name: 'Proprietary')]
 #[OA\ExternalDocumentation(
     description: 'API reference',
