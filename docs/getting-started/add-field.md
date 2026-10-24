@@ -29,9 +29,9 @@ alter table example_crud
 ## Run the migration
 
 ```shell
-APP_ENV=dev ./gluo migrate:update
+APP_ENV=dev php gluo migrate:update
 # OR
-./gluo --env=dev migrate:update
+php gluo --env=dev migrate:update
 ```
 
 
@@ -119,7 +119,7 @@ protected function getSampleData($array = false)
 ## Update the OpenAPI
 
 ```shell
-./gluo openapi
+php gluo openapi
 ```
 
 ## Run the tests
@@ -127,7 +127,7 @@ protected function getSampleData($array = false)
 If everything is ok, the tests should pass:
 
 ```shell
-APP_ENV=test composer run test
+php gluo test
 ```
 
 ## Next Steps

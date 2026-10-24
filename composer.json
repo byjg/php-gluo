@@ -31,23 +31,20 @@
   },
   "scripts": {
     "post-create-project-cmd": "Builder\\PostCreateScript::run",
-    "test": [
-      "@openapi:check",
-      "./vendor/bin/phpunit"
-    ],
+    "test": "@php gluo test",
     "migrate": [
       "Composer\\Config::disableProcessTimeout",
-      "./gluo migrate"
+      "@php gluo migrate"
     ],
-    "codegen": "./gluo codegen",
-    "openapi": "./gluo openapi",
-    "openapi:check": "./gluo openapi:check",
+    "codegen": "@php gluo codegen",
+    "openapi": "@php gluo openapi",
+    "openapi:check": "@php gluo openapi:check",
     "terminal": [
       "Composer\\Config::disableProcessTimeout",
-      "./gluo terminal"
+      "@php gluo terminal"
     ],
     "psalm": "vendor/bin/psalm.phar",
-    "compile": "git pull && composer run openapi && composer run test",
+    "compile": "git pull && php gluo openapi && php gluo test",
     "up-local-dev": "docker compose -f docker-compose.yml up -d",
     "down-local-dev": "docker compose -f docker-compose.yml down"
   }

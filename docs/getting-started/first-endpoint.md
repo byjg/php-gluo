@@ -314,15 +314,15 @@ The `sendRequest()` method automatically validates:
 Update the OpenAPI specification and run the tests:
 
 ```bash
-./gluo openapi
-APP_ENV=test composer run test
+php gluo openapi
+php gluo test
 ```
 
 All tests should pass successfully!
 
 :::caution Regeneration is not optional
 Routing is read from `public/docs/openapi.json`, not from your PHP. Change a controller
-attribute without running `./gluo openapi` and the endpoint returns **404 with no
-error message**. `composer test` runs `./gluo openapi:check` first, which warns when the
+attribute without running `php gluo openapi` and the endpoint returns **404 with no
+error message**. `php gluo test` runs `php gluo openapi:check` first, which warns when the
 spec is older than your controllers or models — you can also run it on its own.
 :::

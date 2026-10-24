@@ -35,13 +35,13 @@
   `docker compose exec rest ...` instead of `docker exec resttest ...`.
 
 - **No `/etc/hosts` entry for the database.** `config/dev` and `config/test` connected to
-  `mysql-container`, which the commands run on the host (`./gluo`, `composer test`) only reached
+  `mysql-container`, which the commands run on the host (`php gluo`, `php gluo test`) only reached
   with `127.0.0.1  mysql-container` in `/etc/hosts`. They now connect to `127.0.0.1`, the published
   port, and the `rest` service sets `DBDRIVER_CONNECTION` to `gluo-database` for the app in the
   container. The tests always use the test database: `tests/bootstrap.php` keeps the server of a
   `DBDRIVER_CONNECTION` set in the environment and replaces its database with the test one (it
   ignores a SQLite one: the test file of `config/test` applies), so they
-  run on the host, in the `rest` container (`docker compose exec rest composer test`) or in a CI job
+  run on the host, in the `rest` container (`docker compose exec rest php gluo test`) or in a CI job
   that sets the variable, and never on the dev database.
 
 - **`composer create-project` no longer creates a git repository.** The installer ran `git init`
@@ -66,24 +66,25 @@
   with the self-signed certificate `byjg/static-httpserver` generates at start. HTTP on
   `:7080` is unchanged. See [Frontend](docs/guides/frontend.md#https).
 
-- **`./gluo` is the command-line entry point.** It replaces the Composer scripts for the
+- **`php gluo` is the command-line entry point.** It replaces the Composer scripts for the
   framework tasks and runs your own commands by a short name:
 
   | New | Was |
   |---|---|
-  | `./gluo --env=dev migrate:update` | `composer migrate -- --env=dev update` |
-  | `./gluo --env=dev codegen:all --table=product --save` | `composer codegen -- --env=dev --table=product all --save` |
-  | `./gluo openapi` | `composer openapi` |
-  | `./gluo terminal` | `composer terminal` |
-  | `./gluo user:cleanup 30` | `scriptify run "\\MyApp\\Service\\MaintenanceService::cleanOldRecords" --arg 30` |
+  | `php gluo --env=dev migrate:update` | `composer migrate -- --env=dev update` |
+  | `php gluo --env=dev codegen:all --table=product --save` | `composer codegen -- --env=dev --table=product all --save` |
+  | `php gluo openapi` | `composer openapi` |
+  | `php gluo terminal` | `composer terminal` |
+  | `php gluo test` | `composer test` |
+  | `php gluo user:cleanup 30` | `scriptify run "\\MyApp\\Service\\MaintenanceService::cleanOldRecords" --arg 30` |
 
-  The Composer scripts remain as aliases that call `./gluo`, so existing pipelines keep
+  The Composer scripts remain as aliases that call `php gluo`, so existing pipelines keep
   working. Project commands are declared in the new `src/Command/Commands.php`, a
-  `ByJG\Scriptify\CommandProvider` that the `./gluo` script passes to the launcher, with
+  `ByJG\Scriptify\CommandProvider` that the `gluo` script passes to the launcher, with
   class references (`PaymentCommands::class`) instead of strings. They run with the Gluo
   container, so a command's class gets its constructor dependencies.
-  `./gluo list --check` validates every command without running it, and
-  `./gluo --env=prod install <command>` installs one as a system service.
+  `php gluo list --check` validates every command without running it, and
+  `php gluo --env=prod install <command>` installs one as a system service.
   See [The gluo Command](docs/reference/gluo-cli.md).
 
   `Builder\Scripts` lost its static Composer entry points (`migrate`, `codeGenerator`,
@@ -107,8 +108,8 @@
 
 ## Bug Fixes
 
-- The Docker image copied `./gluo` and `composer.json` "for the migration script", but not
-  `db/`, so `./gluo migrate:update` in the image had no migrations to run. It now copies
+- The Docker image copied `php gluo` and `composer.json` "for the migration script", but not
+  `db/`, so `php gluo migrate:update` in the image had no migrations to run. It now copies
   `db/` (a local SQLite database file in it stays out, through `.dockerignore`).
 
 - A project created with `db_schema` `sqlite` or `postgres` did not work: only the connection
@@ -203,7 +204,7 @@ While 7.0 is unreleased these resolve to `7.0.x-dev` from each component's
 ## Housekeeping
 
 - In this repository, `docker-compose.yml`, `docker-compose.database.yml`, `db/base.sql` and
-  `db/migrations/` are no longer versioned: `./gluo --env=dev db:dialect <mysql|postgres|sqlite>`
+  `db/migrations/` are no longer versioned: `php gluo --env=dev db:dialect <mysql|postgres|sqlite>`
   writes them from `.db-dialects/`, the only place to change them. The command and
   `.db-dialects/` are removed from a created project. The CI runs the command before the tests and
   before building the image.

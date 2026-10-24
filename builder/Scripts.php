@@ -8,7 +8,7 @@ use RecursiveIteratorIterator;
 
 /**
  * Migration, OpenAPI generation and code generation logic live in
- * BaseScripts (byjg/gluo-core). ./gluo runs its built-in commands through
+ * BaseScripts (byjg/gluo-core). The gluo script runs its built-in commands through
  * this class, which anchors the working directory to this project and is
  * the place to override them.
  */
@@ -105,6 +105,6 @@ class Scripts extends BaseScripts
         foreach ($lines as $line) {
             fwrite(STDERR, "  $line\n");
         }
-        fwrite(STDERR, "\n  Run:  ./gluo openapi\n$rule\n\n");
+        fwrite(STDERR, "\n  Run:  php gluo openapi\n$rule\n\n");
     }
 }

@@ -27,8 +27,8 @@ The code generator supports two architectural patterns:
 ## Usage
 
 ```bash
-APP_ENV=<environment> ./gluo codegen:<component> --table=<table_name> [options]
-./gluo --env=<environment> codegen:<component> --table=<table_name> [options]
+APP_ENV=<environment> php gluo codegen:<component> --table=<table_name> [options]
+php gluo --env=<environment> codegen:<component> --table=<table_name> [options]
 ```
 
 ### Required
@@ -70,10 +70,10 @@ Generate all components for the `project` table using the Repository pattern:
 
 ```bash
 # Using APP_ENV
-APP_ENV=dev ./gluo codegen:all --table=project --save
+APP_ENV=dev php gluo codegen:all --table=project --save
 
 # Using --env parameter
-./gluo --env=dev codegen:all --table=project --save
+php gluo --env=dev codegen:all --table=project --save
 ```
 
 This creates:
@@ -87,7 +87,7 @@ This creates:
 Generate only specific components:
 
 ```bash
-APP_ENV=dev ./gluo codegen --table=project model controller --save
+APP_ENV=dev php gluo codegen --table=project model controller --save
 ```
 
 ### ActiveRecord Pattern
@@ -96,10 +96,10 @@ Generate all components for the `note` table using the ActiveRecord pattern:
 
 ```bash
 # Using APP_ENV
-APP_ENV=test ./gluo codegen:all --table=note --activerecord --save
+APP_ENV=test php gluo codegen:all --table=note --activerecord --save
 
 # Using --env parameter
-./gluo --env=test codegen:all --table=note --activerecord --save
+php gluo --env=test codegen:all --table=note --activerecord --save
 ```
 
 This creates:
@@ -110,7 +110,7 @@ This creates:
 Generate only the model:
 
 ```bash
-APP_ENV=test ./gluo codegen:model --table=note --activerecord --save
+APP_ENV=test php gluo codegen:model --table=note --activerecord --save
 ```
 
 ### Preview Without Saving
@@ -118,8 +118,8 @@ APP_ENV=test ./gluo codegen:model --table=note --activerecord --save
 Preview the generated REST controller without saving to disk:
 
 ```bash
-APP_ENV=dev ./gluo codegen:controller --table=project
-./gluo --env=dev codegen:all --table=note --activerecord
+APP_ENV=dev php gluo codegen:controller --table=project
+php gluo --env=dev codegen:all --table=note --activerecord
 ```
 
 ## Automatic Configuration
@@ -150,8 +150,8 @@ Using `--save` will **overwrite existing files** without warning. Be careful whe
 
 :::info After Generation
 After generating REST controllers, remember to:
-1. Run `./gluo openapi` to update the OpenAPI specification
-2. Run `composer run test` to verify the generated tests pass
+1. Run `php gluo openapi` to update the OpenAPI specification
+2. Run `php gluo test` to verify the generated tests pass
 :::
 
 ## Customizing Templates

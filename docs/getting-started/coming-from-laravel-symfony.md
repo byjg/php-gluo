@@ -33,15 +33,15 @@ So adding or changing an endpoint is a two-step operation:
 ```bash
 # 1. edit the controller attributes
 # 2. rebuild the routing table
-./gluo openapi
+php gluo openapi
 ```
 
 Skip step 2 and the endpoint returns **404 with no error** — the route simply does not
-exist yet. To catch this, `composer test` runs a freshness check first, and you can run
+exist yet. To catch this, `php gluo test` runs a freshness check first, and you can run
 it any time:
 
 ```bash
-./gluo openapi:check
+php gluo openapi:check
 ```
 
 It warns (never blocks) when the spec is older than anything in `src/Controller/` or
@@ -104,7 +104,7 @@ ProjectService::class => DI::bind(ProjectService::class)
 These are the starter's defaults, not rules. You can add an `Autowire::rule()` for any
 other namespace, or remove the controller rule and bind each controller yourself. An
 explicit binding always wins over a pattern, so you can also use a rule and still declare
-the complex cases by hand. `./gluo codegen:all` writes the service and repository entries
+the complex cases by hand. `php gluo codegen:all` writes the service and repository entries
 for what it generates.
 
 `config/test/` inherits `config/dev/`, so you register once for both.
@@ -138,7 +138,7 @@ no `viewBuilder()->setOption('serialize', ...)`, no `return $this->response->set
 The code generator reads your **existing table** and writes the PHP:
 
 ```bash
-./gluo --env=dev codegen:all --table=product --save
+php gluo --env=dev codegen:all --table=product --save
 ```
 
 That emits the model, repository, service, controller, functional test and DI bindings.
@@ -186,7 +186,7 @@ for simple tables while the complex ones get a service layer. See
 
 | Laravel | Symfony | Drupal | CakePHP | CodeIgniter | Gluo |
 |---|---|---|---|---|---|
-| `routes/api.php` | `#[Route]` | `*.routing.yml` | `config/routes.php` | `app/Config/Routes.php` | `#[OA\Get]` + `./gluo openapi` |
+| `routes/api.php` | `#[Route]` | `*.routing.yml` | `config/routes.php` | `app/Config/Routes.php` | `#[OA\Get]` + `php gluo openapi` |
 | `app/Models` | `src/Entity` | Entity API | `src/Model/Entity` | `app/Models` + `app/Entities` | `src/Model` + `#[TableAttribute]` |
 | `app/Http/Controllers` | `src/Controller` | Controller plugin | `src/Controller` | `app/Controllers` | `src/Controller` |
 | Eloquent | Doctrine ORM | Entity/Field API | CakePHP ORM | Model + Query Builder | `byjg/micro-orm` |
@@ -197,19 +197,43 @@ for simple tables while the complex ones get a service layer. See
 | `app()->make()` | autowiring | `\Drupal::service()` | `Application::services()` | `Config\Services` / `service()` | constructor injection (`Autowire::rule()` or explicit `DI::bind()`, your choice) |
 | Gate / Policy | `#[IsGranted]` | `_permission` route key | Authorization policy | Shield filter | `#[RequireRole]` |
 | FormRequest | Validator + DTO | Form API | `validationDefault()` | `$this->validate()` | `#[ValidateRequest]` + OpenAPI schema |
-| `php artisan tinker` | — | `drush php` | `bin/cake console` | — | `./gluo terminal` |
+| `php artisan tinker` | — | `drush php` | `bin/cake console` | — | `php gluo terminal` |
 
 ## Commands
 
-| Laravel | Symfony | CakePHP | CodeIgniter | Gluo |
-|---|---|---|---|---|
-| `php artisan serve` | `symfony serve` | `bin/cake server` | `php spark serve` | `docker compose up -d` |
-| `php artisan migrate` | `doctrine:migrations:migrate` | `bin/cake migrations migrate` | `php spark migrate` | `./gluo --env=dev migrate:update` |
-| `php artisan migrate:fresh` | `doctrine:schema:drop --force` | — | `php spark migrate:refresh` | `./gluo --env=dev migrate:reset` |
-| `php artisan make:model -mcr` | `make:entity` / `make:crud` | `bin/cake bake all` | `php spark make:scaffold` | `./gluo codegen:all --table=x --save` |
-| `php artisan test` | `bin/phpunit` | `vendor/bin/phpunit` | `vendor/bin/phpunit` | `composer test` |
-| — | `cache:clear` | — | — | `./gluo openapi` |
-| Pint / PHPStan | PHPStan | PHPStan | — | `composer psalm` |
+A dash means the framework has no built-in command for it. Where Gluo has none, the cell
+says where the same thing lives instead.
+
+| Task | Laravel | Symfony | CakePHP | CodeIgniter | Gluo |
+|---|---|---|---|---|---|
+| Start the app | `php artisan serve` | `symfony serve` | `bin/cake server` | `php spark serve` | `docker compose up -d` |
+| Run the migrations | `php artisan migrate` | `php bin/console doctrine:migrations:migrate` | `bin/cake migrations migrate` | `php spark migrate` | `php gluo --env=dev migrate:update` |
+| Migration status | `php artisan migrate:status` | `php bin/console doctrine:migrations:status` | `bin/cake migrations status` | `php spark migrate:status` | `php gluo --env=dev migrate:version` |
+| Roll back | `php artisan migrate:rollback` | `php bin/console doctrine:migrations:migrate prev` | `bin/cake migrations rollback` | `php spark migrate:rollback` | `php gluo --env=dev migrate:down --version=N` |
+| Rebuild the database | `php artisan migrate:fresh` | `php bin/console doctrine:schema:drop --force` | — | `php spark migrate:refresh` | `php gluo --env=dev migrate:reset` |
+| New migration | `php artisan make:migration` | `php bin/console make:migration` | `bin/cake bake migration` | `php spark make:migration` | — write the SQL pair in `db/migrations/up` and `down` |
+| Seed data | `php artisan db:seed` | `php bin/console doctrine:fixtures:load` | `bin/cake seeds run` | `php spark db:seed` | — `db/base.sql`, loaded by `migrate:reset` |
+| Scaffold a CRUD | `php artisan make:model -mcr` | `php bin/console make:crud` | `bin/cake bake all` | `php spark make:scaffold` | `php gluo --env=dev codegen:all --table=x --save` |
+| Generate one class | `php artisan make:controller` | `php bin/console make:controller` | `bin/cake bake controller` | `php spark make:controller` | `php gluo --env=dev codegen:controller --table=x` |
+| List the routes | `php artisan route:list` | `php bin/console debug:router` | `bin/cake routes` | `php spark routes` | — Swagger UI at `/docs`, read from `public/docs/openapi.json` |
+| Rebuild the routes | — | `php bin/console cache:clear` | — | — | `php gluo openapi` |
+| Run the tests | `php artisan test` | `php bin/phpunit` | `vendor/bin/phpunit` | `vendor/bin/phpunit` | `php gluo test` |
+| Interactive shell | `php artisan tinker` | — | `bin/cake console` (REPL plugin) | — | `php gluo terminal` |
+| List the commands | `php artisan list` | `php bin/console list` | `bin/cake` | `php spark list` | `php gluo list` |
+| New CLI command | `php artisan make:command` | `php bin/console make:command` | `bin/cake bake command` | `php spark make:command` | — add a method to `src/Command/Commands.php` |
+| Scheduled jobs | `php artisan schedule:run`, from cron | `php bin/console messenger:consume scheduler_default` | — | — | `php gluo --env=prod install --template=crond <command>` |
+| Background worker | `php artisan queue:work` | `php bin/console messenger:consume async` | — | — | `php gluo --env=prod install <command>` (a systemd service) |
+| Static analysis | Pint / PHPStan | PHPStan | PHPStan | — | `composer psalm` |
+
+### Only in Gluo
+
+| Command | What it does |
+|---|---|
+| `php gluo openapi:check` | Warns when the OpenAPI spec is older than the controllers and models it is generated from, the cause of a silent 404. `php gluo test` runs it first. |
+| `php gluo list --check` | Gives every command, built-in and project, a status without running it: the target method exists, its class is known to the container, the database the migrations and codegen need is reachable. |
+| `php gluo --env=prod install <command>` | Installs a project command as a `systemd`, `crond`, `upstart` or `initd` service, with its command line written in full. The other frameworks give you the worker command and leave the service to you. |
+| `php gluo uninstall <command>` | Removes a service created by `install`. |
+| `php gluo codegen:all --table=x` | Generates the model, repository, service, controller, functional test and DI bindings from an **existing table**. Only CakePHP's `bake` also reads the table. |
 
 ## Where you are already at home
 

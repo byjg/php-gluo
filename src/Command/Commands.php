@@ -8,20 +8,20 @@ use Builder\DbDialect;
 use ByJG\Scriptify\CommandProvider;
 
 /**
- * The project commands of ./gluo. The ./gluo script passes this class to the launcher.
+ * The project commands of `php gluo`. The gluo script passes this class to the launcher.
  *
  * Map a command name to a method:
  *
  *     'user:cleanup' => MaintenanceService::class . '::cleanOldRecords',
  *
- * runs as `./gluo user:cleanup 30`: the values after the name are passed, in order, to the
- * method parameters, and `./gluo user:cleanup --help` prints the method's PHPDoc.
+ * runs as `php gluo user:cleanup 30`: the values after the name are passed, in order, to the
+ * method parameters, and `php gluo user:cleanup --help` prints the method's PHPDoc.
  *
  * Or map a group name to a class, for every public method it declares, in kebab-case:
  *
  *     'maintenance' => MaintenanceService::class,
  *
- * gives `./gluo maintenance:clean-old-records 30`, and one command per other public method.
+ * gives `php gluo maintenance:clean-old-records 30`, and one command per other public method.
  * A name produced twice is an error.
  *
  * - Names are lowercase, `group:action`, using a-z, 0-9, ':' and '-'. The built-in names
@@ -30,8 +30,8 @@ use ByJG\Scriptify\CommandProvider;
  *   it is built by the container, never with `new`.
  * - The method must be public.
  *
- * `./gluo list --check` validates every command without running it, and
- * `./gluo --env=prod install <command>` installs one as a system service.
+ * `php gluo list --check` validates every command without running it, and
+ * `php gluo --env=prod install <command>` installs one as a system service.
  */
 class Commands implements CommandProvider
 {

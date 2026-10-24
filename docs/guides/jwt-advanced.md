@@ -565,10 +565,10 @@ try {
 ### 1. Store JWT Secret Securely
 
 `JWT_SECRET` must be a **base64-encoded** string whose decoded value is at least **64 bytes** (required by HS512).
-Generate one with `./gluo terminal`:
+Generate one with `php gluo terminal`:
 
 ```bash
-APP_ENV=dev ./gluo terminal
+APP_ENV=dev php gluo terminal
 php> \ByJG\JwtWrapper\JwtWrapper::generateSecret(64)
 # => 'OFbOmC2VxlgQHNrBLa/wyj7/fFkgPnLpckbXMVuIU7Sqb3RTztNx3xzEYaoeA31JUpvBjkD7FRKBFGQ0+fnTig=='
 ```

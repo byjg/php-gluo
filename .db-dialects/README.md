@@ -13,7 +13,7 @@ Everything that depends on the database lives here, one folder per database the 
                            its docker-compose.yml has no server, the databases are files in db/
 ```
 
-`./gluo --env=dev db:dialect <mysql|postgres|sqlite>` writes the files of one database to the repository root:
+`php gluo --env=dev db:dialect <mysql|postgres|sqlite>` writes the files of one database to the repository root:
 `docker-compose.yml`, `docker-compose.database.yml` (the one `docker-compose.yml` includes), `db/base.sql` and
 `db/migrations/`. In this repository they are not versioned: change them here, then run the command again.
 
