@@ -126,8 +126,8 @@ my-api/
 └── README.md         # quick start + link to the online documentation
 ```
 
-Run PHP tooling from the repo root (`composer test`, `./gluo migrate:update`,
-`./gluo openapi`) — there is one manifest and one `vendor/`.
+Run PHP tooling from the repo root (`php gluo test`, `php gluo migrate:update`,
+`php gluo openapi`) — there is one manifest and one `vendor/`.
 
 #### Configuration Options
 
@@ -164,7 +164,7 @@ The database runs in Docker, and it is reached from two places:
 | From | Connection | Set in |
 |---|---|---|
 | The API, in the `rest` container | `…@gluo-database/localdev` (the service name) | `DBDRIVER_CONNECTION` of the `rest` service, `docker-compose.yml` |
-| Your machine: `./gluo`, `composer test` | `…@127.0.0.1/localdev`, `…@127.0.0.1/localtest` (the published port) | `config/dev/credentials.env`, `config/test/credentials.env` |
+| Your machine: `php gluo`, `php gluo test` | `…@127.0.0.1/localdev`, `…@127.0.0.1/localtest` (the published port) | `config/dev/credentials.env`, `config/test/credentials.env` |
 
 Nothing has to be added to `/etc/hosts`. The tests always use the test database, wherever they run:
 `tests/bootstrap.php` keeps the server of a `DBDRIVER_CONNECTION` set in the environment (the `rest` container's)
@@ -182,10 +182,10 @@ docker compose -f docker-compose.yml up -d
 
 ```shell
 # Create a fresh database (warning: destroys existing data)
-APP_ENV=dev ./gluo migrate:reset
+APP_ENV=dev php gluo migrate:reset
 
 # Alternative if local PHP isn't configured: run it in the rest container
-# docker compose exec rest ./gluo migrate:reset
+# docker compose exec rest php gluo migrate:reset
 ```
 
 Expected output:
@@ -220,8 +220,8 @@ The project is ready! You can start by:
 ## Run Tests
 
 ```shell script
-composer test
-# OR, without PHP on your machine: docker compose exec rest composer test
+php gluo test
+# OR, without PHP on your machine: docker compose exec rest php gluo test
 ```
 
 Either way they run on the test database (see [the connections](#database-connections)).

@@ -32,7 +32,7 @@ class PostCreateScript
         $this->applyDialect($workdir, $dbConfig['schema'] ?? 'mysql');
 
         // The app in the rest container reaches the database by its service name (docker-compose.yml);
-        // the commands run on the host (./gluo, composer test) through the published port
+        // the commands run on the host (php gluo) through the published port
         // (credentials.env)
         $containerConnection = self::buildConnectionString($dbConfig, $dbConfig['dev_database']);
         $hostDbConfig = ['host' => '127.0.0.1'] + $dbConfig;

@@ -100,7 +100,7 @@ graph LR;
 The starter keeps its own dependencies to a minimum:
 
 - **byjg/gluo-core** - The Gluo framework core (see below)
-- **byjg/scriptify** - Transform any PHP class into an executable script callable from the command line (the `./gluo` launcher runs the project commands and `./gluo terminal` through it)
+- **byjg/scriptify** - Transform any PHP class into an executable script callable from the command line (the `php gluo` launcher runs the project commands and `php gluo terminal` through it)
 
 Everything else arrives through `byjg/gluo-core`, so a framework upgrade is a single `composer update byjg/gluo-core`.
 

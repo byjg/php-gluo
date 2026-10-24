@@ -24,7 +24,7 @@ Scriptify allows you to:
 Start an interactive PHP shell with your project loaded:
 
 ```bash
-./gluo terminal
+php gluo terminal
 ```
 
 This gives you immediate access to test your code with preloaded helpers:
@@ -62,17 +62,17 @@ The interactive terminal provides a REPL (Read-Eval-Print Loop) environment with
 ### Starting the Terminal
 
 ```bash
-# Using ./gluo (recommended - includes preload and environment)
-./gluo terminal
+# Using php gluo (recommended - includes preload and environment)
+php gluo terminal
 
 # Or directly
 ./vendor/bin/scriptify terminal
 
 # With custom environment
-APP_ENV=prod ./gluo terminal
+APP_ENV=prod php gluo terminal
 ```
 
-The `./gluo terminal` command automatically:
+The `php gluo terminal` command automatically:
 - Loads your project's autoloader
 - Sets up the environment from `APP_ENV` variable
 - Preloads helper functions from `templates/scriptify/scriptify.php`
@@ -214,16 +214,16 @@ Execute any public method of your classes directly from the command line.
 
 :::tip Prefer project commands
 Give the method a short name in `src/Command/Commands.php` and run it as
-`./gluo user:cleanup 30`, or map a whole class to expose all its public methods: see
+`php gluo user:cleanup 30`, or map a whole class to expose all its public methods: see
 [Project commands](gluo-cli.md#project-commands). The launcher runs it through Scriptify
 with the Gluo container, so the class gets its constructor dependencies, and
-`./gluo install` makes it a service.
+`php gluo install` makes it a service.
 :::
 
 With the default `--bootstrap` (`vendor/autoload.php`), `scriptify run` builds the class
 with `new`. A `--bootstrap` file that returns a PSR-11 container has the class built by
 it, and then the container must hold the class. The project does not ship such a file:
-a project command does the same through `./gluo`, with the Gluo container.
+a project command does the same through `php gluo`, with the Gluo container.
 
 ### Basic Usage
 
@@ -393,7 +393,7 @@ scriptify terminal myservice
 
 ### The Terminal Command
 
-`./gluo terminal` is a built-in command (`composer terminal` is an alias of it). It runs
+`php gluo terminal` is a built-in command (`composer terminal` is an alias of it). It runs
 Scriptify's terminal from the repository root with:
 - **`--preload`**: `templates/scriptify/scriptify.php`, when the file exists
 - **`--env APP_ENV=<env>`**: the environment of `--env` or `APP_ENV`, when one is set

@@ -63,7 +63,7 @@ jobs:
       - name: Write the MySQL database files
         run: |
           docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/srv -w /srv byjg/php:8.5-cli \
-            sh -c "composer install --no-interaction --no-progress && ./gluo --env=dev db:dialect mysql"
+            sh -c "composer install --no-interaction --no-progress && php gluo --env=dev db:dialect mysql"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -126,7 +126,7 @@ jobs:
 
             docker exec tester composer run migrate -- reset --yes
             docker exec tester composer install --dev --no-interaction --no-progress
-            docker exec tester composer run test
+            docker exec tester php gluo test
             docker stop tester
             break
           done

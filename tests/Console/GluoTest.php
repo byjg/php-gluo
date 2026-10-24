@@ -9,7 +9,7 @@ use RestReferenceArchitecture\Command\Commands;
 use Tests\Controller\BaseApiTestCase;
 
 /**
- * The ./gluo wiring this project owns: the Commands provider and Builder\Scripts, against
+ * The php gluo wiring this project owns: the Commands provider and Builder\Scripts, against
  * the real container and the migrated test database.
  * Extends BaseApiTestCase to reuse the database reset and environment guard.
  */
@@ -39,7 +39,7 @@ class GluoTest extends BaseApiTestCase
 
         ob_start();
         try {
-            $exitCode = $launcher->run(['./gluo', ...$arguments]);
+            $exitCode = $launcher->run(['gluo', ...$arguments]);
         } finally {
             $output = (string) ob_get_clean();
         }
@@ -73,7 +73,7 @@ class GluoTest extends BaseApiTestCase
         // --help builds the service through the container: UsersService cannot be built with new.
         [$exitCode, $output] = $this->gluo(['user:find', '--help'], $commands);
         $this->assertSame(0, $exitCode, $output);
-        $this->assertStringContainsString("./gluo user:find <email>", $output);
+        $this->assertStringContainsString("php gluo user:find <email>", $output);
     }
 
     public function testBuiltInsRunThroughTheProjectScripts(): void

@@ -39,13 +39,13 @@ cd my-api
 docker compose up -d
 
 # Run migrations
-./gluo --env=dev migrate:reset
+php gluo --env=dev migrate:reset
 
 # Your API is ready!
 curl http://localhost:8080/sample/ping
 ```
 
-Commands like `./gluo migrate:update`, `./gluo codegen:all`, `./gluo openapi`, `composer test`,
+Commands like `php gluo migrate:update`, `php gluo codegen:all`, `php gluo openapi`, `php gluo test`,
 and `composer psalm` run from the repository root — there is a single `composer.json`, and
 the repository root *is* the PHP application root.
 
@@ -124,14 +124,14 @@ mindmap
 
 ```bash
 # Generate a complete CRUD API from a single table (run from the repo root)
-./gluo --env=dev codegen:all --table=project --save
+php gluo --env=dev codegen:all --table=project --save
 ```
 
 ## Documentation
 
 ### Getting Started
 1. **[Installation & Setup](docs/getting-started/installation.md)** – Install the starter, configure environments, and review prerequisites.
-2. **[Coming from Laravel, Symfony or Drupal](docs/getting-started/coming-from-laravel-symfony.md)** – Concept and command mapping, plus the four things that genuinely work differently.
+2. **[Coming from another PHP framework](docs/getting-started/coming-from-laravel-symfony.md)** (Laravel, Symfony, Drupal, CakePHP, CodeIgniter) – Concept and command mapping, plus the four things that genuinely work differently.
 3. **[Create Your First Table](docs/getting-started/first-table.md)** – Define your first migration and schema.
 4. **[Add Fields](docs/getting-started/add-field.md)** – Safely evolve existing tables.
 5. **[Create REST Endpoints](docs/getting-started/first-endpoint.md)** – Generate REST handlers from your tables.
@@ -162,7 +162,7 @@ mindmap
 - **[Code Generator](docs/reference/code-generator.md)** – Automate models, repositories, services, controllers, and tests.
 - **[Attributes](docs/reference/attributes.md)** – `RequireAuthenticated`, `RequireRole`, `ValidateRequest`, and custom attributes.
 - **[Traits](docs/reference/traits.md)** – Timestamp and soft-delete helpers for models.
-- **[The gluo Command](docs/reference/gluo-cli.md)** – `./gluo`: migrations, codegen, OpenAPI, and your own project commands.
+- **[The gluo Command](docs/reference/gluo-cli.md)** – `php gluo`: migrations, codegen, OpenAPI, and your own project commands.
 - **[Scriptify](docs/reference/scriptify.md)** – REPL, CLI runner, and service manager utilities.
 - **[Components](docs/reference/components.md)** – Full PHP component dependency graph.
 
@@ -180,13 +180,13 @@ CREATE TABLE products (
 EOF
 
 # 2. Run migration
-./gluo --env=dev migrate:update
+php gluo --env=dev migrate:update
 
 # 3. Generate all code
-./gluo --env=dev codegen:all --table=products --save
+php gluo --env=dev codegen:all --table=products --save
 
 # 4. Generate the OpenAPI spec so routing is active
-./gluo openapi
+php gluo openapi
 
 # 5. Log in and capture the token
 TOKEN=$(curl -s -X POST http://localhost:8080/login \
@@ -245,9 +245,9 @@ for one database. A created project gets them as its own files.
 
 ```bash
 composer install
-./gluo --env=dev db:dialect mysql     # or postgres, sqlite
+php gluo --env=dev db:dialect mysql     # or postgres, sqlite
 docker compose up -d --wait
-composer test
+php gluo test
 ```
 
 See the [testing guide](docs/guides/testing.md) for writing tests for your own endpoints.

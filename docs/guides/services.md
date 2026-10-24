@@ -349,12 +349,12 @@ Generate a service using the code generator:
 
 ```bash
 # Generate service only
-APP_ENV=dev ./gluo codegen:service --table products --save
-# OR: ./gluo --env=dev codegen:service --table products --save
+APP_ENV=dev php gluo codegen:service --table products --save
+# OR: php gluo --env=dev codegen:service --table products --save
 
 # Generate service + repository + model
-APP_ENV=dev ./gluo codegen:all --table products --save
-# OR: ./gluo --env=dev codegen:all --table products --save
+APP_ENV=dev php gluo codegen:all --table products --save
+# OR: php gluo --env=dev codegen:all --table products --save
 ```
 
 The service will automatically:

@@ -50,10 +50,10 @@ Add additional directories (e.g., `tests/Service`) as needed—PHPUnit's configu
 
 ```bash
 # Create or reset the testing database
-APP_ENV=test ./gluo migrate:reset
+APP_ENV=test php gluo migrate:reset
 
 # Run all tests using the composer script
-APP_ENV=test composer run test
+php gluo test
 
 # Run a specific test file
 APP_ENV=test vendor/bin/phpunit tests/Controller/ProjectTest.php

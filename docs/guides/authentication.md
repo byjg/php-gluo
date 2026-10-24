@@ -125,10 +125,10 @@ JWT_SECRET=ZGV2LS1qd3Qtc2VjcmV0LWtleS1mb3ItbG9jYWwtZGV2ZWxvcG1lbnQtb25seS1wYWQtQ
 `JWT_SECRET` must be a **base64-encoded** string whose decoded value is at least **64 bytes** (required by HS512).
 `composer create-project` generates a fresh secret for every environment automatically.
 
-To regenerate manually, use `./gluo terminal`:
+To regenerate manually, use `php gluo terminal`:
 
 ```bash
-APP_ENV=dev ./gluo terminal
+APP_ENV=dev php gluo terminal
 php> \ByJG\JwtWrapper\JwtWrapper::generateSecret(64)
 # => 'OFbOmC2VxlgQHNrBLa/wyj7/fFkgPnLpckbXMVuIU7Sqb3RTztNx3xzEYaoeA31JUpvBjkD7FRKBFGQ0+fnTig=='
 ```

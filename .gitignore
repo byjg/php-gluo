@@ -9,7 +9,7 @@
 /tools/*/composer.lock
 src/*.db
 config/.env
-# >>> dialect: written by `./gluo db:dialect <database>` from .db-dialects/; a created project keeps them
+# >>> dialect: written by `php gluo db:dialect <database>` from .db-dialects/; a created project keeps them
 /docker-compose.yml
 /docker-compose.database.yml
 /db/base.sql

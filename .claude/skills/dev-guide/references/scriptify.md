@@ -1,9 +1,9 @@
-# CLI Commands and Services: ./gluo and byjg/scriptify
+# CLI Commands and Services: php gluo and byjg/scriptify
 
 A method of a service class becomes a command line, a cron job or a background service
 without a CLI framework in your class. In this project that is a **project command** of
-`./gluo`, run with the DI container. `byjg/scriptify` does the work underneath (it is a
-direct dependency; it also powers `./gluo terminal`).
+`php gluo`, run with the DI container. `byjg/scriptify` does the work underneath (it is a
+direct dependency; it also powers `php gluo terminal`).
 
 ---
 
@@ -52,7 +52,7 @@ OrderCommands::class => DI::bind(OrderCommands::class)
 
 ### 3. Name it in `src/Command/Commands.php`
 
-The project's `CommandProvider`; the `./gluo` script passes it to the launcher:
+The project's `CommandProvider`; the `gluo` script passes it to the launcher:
 
 ```php
 public function commands(): array
@@ -72,15 +72,15 @@ public function commands(): array
 ### 4. Run it
 
 ```bash
-./gluo list                         # the commands, with the first line of each PHPDoc
-./gluo --env=dev list --check       # validate every command without running it
-./gluo order:process --help         # the PHPDoc and: ./gluo order:process [limit]
-./gluo --env=dev order:process 50   # values map, in order, to the method parameters
-./gluo --env=dev order:process -v   # stack trace on failure
+php gluo list                         # the commands, with the first line of each PHPDoc
+php gluo --env=dev list --check       # validate every command without running it
+php gluo order:process --help         # the PHPDoc and: php gluo order:process [limit]
+php gluo --env=dev order:process 50   # values map, in order, to the method parameters
+php gluo --env=dev order:process -v   # stack trace on failure
 ```
 
 `--env` (or `APP_ENV`) selects the configuration. The container is built only when a
-project command runs, so `./gluo list` and the built-ins need none.
+project command runs, so `php gluo list` and the built-ins need none.
 
 `list --check` statuses: `OK`, `INVALID_NAME`, `RESERVED`, `INVALID_TARGET`,
 `MISSING_CLASS`, `MISSING_METHOD`, `NOT_PUBLIC`, `NOT_IN_CONTAINER` (step 2 is missing).
@@ -90,14 +90,14 @@ project command runs, so `./gluo list` and the built-ins need none.
 ## Install a command as a service
 
 ```bash
-sudo ./gluo --env=prod install order:process 50                       # systemd (default): runs it again every second
-sudo ./gluo --env=prod install --template=crond order:process         # once a minute
-sudo ./gluo --env=prod install --name=orders --description="Order processor" order:process
-sudo ./gluo uninstall order:process                                   # (--name=orders if it was given)
+sudo php gluo --env=prod install order:process 50                       # systemd (default): runs it again every second
+sudo php gluo --env=prod install --template=crond order:process         # once a minute
+sudo php gluo --env=prod install --name=orders --description="Order processor" order:process
+sudo php gluo uninstall order:process                                   # (--name=orders if it was given)
 ```
 
 - Templates: `systemd` (default), `crond`, `upstart`, `initd`.
-- The service runs `./gluo` itself, so it builds the container exactly as the command line
+- The service runs `php gluo` itself, so it builds the container exactly as the command line
   does. The command is written in full, nothing left to a default:
   `ExecStart=/usr/bin/php '/var/www/myapp/gluo' --env='prod' order:process '50' --daemon`,
   with `WorkingDirectory=/var/www/myapp`.
@@ -118,7 +118,7 @@ php vendor/bin/scriptify services              # list the services installed by 
 
 ## `scriptify run` directly
 
-For a class without constructor dependencies, outside `./gluo`:
+For a class without constructor dependencies, outside `php gluo`:
 
 ```bash
 php vendor/bin/scriptify run "App/Jobs/SendEmails::process" --arg "user@example.com" --arg "weekly"
@@ -209,7 +209,7 @@ class OrderConsumer
 
 ```bash
 # 'queue' => OrderConsumer::class in Commands, registered in the container
-sudo ./gluo --env=prod install queue:consume
+sudo php gluo --env=prod install queue:consume
 ```
 
 ---
@@ -217,7 +217,7 @@ sudo ./gluo --env=prod install queue:consume
 ## Interactive terminal (REPL)
 
 ```bash
-./gluo --env=dev terminal      # preloads templates/scriptify/scriptify.php, with the container
+php gluo --env=dev terminal      # preloads templates/scriptify/scriptify.php, with the container
 ```
 
 ---
@@ -226,13 +226,13 @@ sudo ./gluo --env=prod install queue:consume
 
 | Goal | Command |
 |---|---|
-| List / validate commands | `./gluo list`, `./gluo --env=dev list --check` |
-| Run a project command | `./gluo --env=dev order:process 50` |
-| Show its docs | `./gluo order:process --help` |
-| Install as a service | `sudo ./gluo --env=prod install [--template=crond] order:process` |
-| Remove the service | `sudo ./gluo uninstall order:process` |
+| List / validate commands | `php gluo list`, `php gluo --env=dev list --check` |
+| Run a project command | `php gluo --env=dev order:process 50` |
+| Show its docs | `php gluo order:process --help` |
+| Install as a service | `sudo php gluo --env=prod install [--template=crond] order:process` |
+| Remove the service | `sudo php gluo uninstall order:process` |
 | List services | `php vendor/bin/scriptify services` |
 | Call a REST endpoint | `php vendor/bin/scriptify call /path --controller public/app.php --http-get "k=v"` |
 | Start/stop/restart | `sudo systemctl start\|stop\|restart <name>` |
 | View logs | `sudo journalctl -u <name> -f` |
-| REPL | `./gluo --env=dev terminal` |
+| REPL | `php gluo --env=dev terminal` |

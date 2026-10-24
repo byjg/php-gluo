@@ -359,7 +359,7 @@ CREATE TABLE products (
 The code generator automatically adds timestamp fields:
 
 ```bash
-./gluo --env=dev codegen:model --table=products --save
+php gluo --env=dev codegen:model --table=products --save
 ```
 
 Generates:
@@ -614,7 +614,7 @@ class Product
 
 ### OpenAPI Generation Error
 
-**Problem**: Error when running `./gluo openapi` on traits
+**Problem**: Error when running `php gluo openapi` on traits
 
 **Solution**: This is expected if traits are not used in any model. The error only occurs when traits exist but aren't used. Once you use a trait in a model, OpenAPI generation works correctly.
 

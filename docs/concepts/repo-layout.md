@@ -20,8 +20,8 @@ my-api/
 ├── public/               # the API docroot: app.php, index.html, docs/
 ├── templates/            # email + scriptify templates
 ├── tests/
-├── builder/              # Scripts.php: overrides of the ./gluo built-in commands
-├── gluo                  # the command-line entry point (./gluo)
+├── builder/              # Scripts.php: overrides of the php gluo built-in commands
+├── gluo                  # the command-line entry point (php gluo)
 ├── phpunit.xml
 ├── psalm.xml
 │
@@ -39,7 +39,7 @@ my-api/
 
 There is exactly one `composer.json`, at the repository root, and it is the real one:
 `require`, `require-dev`, the PSR-4 autoload (`src/`, `builder/`, `tests/`) and every
-script. This is the same shape a Laravel project has, so `composer test`,
+script. This is the same shape a Laravel project has, so `php gluo test`,
 `vendor/bin/phpunit` and `vendor/bin/psalm` all run from the root with no
 `--working-dir` indirection.
 

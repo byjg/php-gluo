@@ -43,8 +43,8 @@ jobs:
       - uses: actions/checkout@v7
       - run: composer install
       # docker-compose*.yml and db/ are written from .db-dialects/, not versioned
-      - run: ./gluo --env=dev db:dialect mysql
-      - run: composer test
+      - run: php gluo --env=dev db:dialect mysql
+      - run: php gluo test
         env:
           # The job runs in a container: the database server is the service, not 127.0.0.1
           DBDRIVER_CONNECTION: mysql://root:mysqlp455w0rd@gluo-database/localtest

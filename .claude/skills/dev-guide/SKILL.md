@@ -86,9 +86,9 @@ MySQL
 git fetch && git pull && git merge origin/master
 composer update     # PHP deps live in vendor
 docker compose up -d
-./gluo --env=dev migrate:reset   # creates schema from scratch
+php gluo --env=dev migrate:reset   # creates schema from scratch
 composer psalm                        # or: php85 vendor/bin/psalm
-composer test                         # or: vendor/bin/phpunit
+php gluo test                         # or: vendor/bin/phpunit
 ```
 
 ### Every subsequent development cycle
@@ -96,9 +96,9 @@ composer test                         # or: vendor/bin/phpunit
 git fetch && git pull && git merge origin/master
 composer update
 docker compose up -d
-./gluo --env=dev migrate:update  # applies only pending migrations
+php gluo --env=dev migrate:update  # applies only pending migrations
 composer psalm
-composer test
+php gluo test
 ```
 
 When done: `docker compose down`
@@ -182,13 +182,13 @@ The example CRUD entities are `Project` (Repository, int PK, table `project`),
 ### Option A: Codegen (recommended starting point)
 ```bash
 # 1. Write the migration (see below), then apply it:
-./gluo --env=dev migrate:update
+php gluo --env=dev migrate:update
 
 # 2. Generate all classes:
-./gluo --env=dev codegen:all --table=product --save
+php gluo --env=dev codegen:all --table=product --save
 
 # 3. Regenerate OpenAPI:
-./gluo openapi
+php gluo openapi
 ```
 
 Codegen produces: model, repository, service, controller, and tests. Edit to add business logic.
@@ -213,7 +213,7 @@ CREATE TABLE product (
 
 `db/migrations/down/XXXX.sql`: `DROP TABLE product;`
 
-Apply: `./gluo --env=dev migrate:update`
+Apply: `php gluo --env=dev migrate:update`
 
 #### 2. Model
 
@@ -360,12 +360,12 @@ class ProductController
 #### 7. Regenerate OpenAPI
 
 ```bash
-./gluo openapi
+php gluo openapi
 ```
 
 Always run this after adding or changing controller attributes. It updates `public/docs/openapi.json`
 which drives both routing and contract testing. Forgetting it makes the endpoint 404 with no error —
-`./gluo openapi:check` (run automatically by `composer test`) warns when the spec is older than
+`php gluo openapi:check` (run automatically by `php gluo test`) warns when the spec is older than
 anything in `src/Controller/` or `src/Model/`.
 
 `openapi.json` is the single source of truth: `OpenApiRouteList` reads it to build the route
@@ -502,9 +502,9 @@ Throw to return the right HTTP status:
 1. Read the existing code first (model, repository, service, controller, tests)
 2. Make changes at the appropriate layer
 3. Write a new migration if DB schema changes
-4. `./gluo openapi` after any controller attribute changes
+4. `php gluo openapi` after any controller attribute changes
 5. `composer psalm` — fix type errors (or `php85 vendor/bin/psalm`)
-6. `composer test` — all tests must pass
+6. `php gluo test` — all tests must pass
 7. Update tests to reflect new behavior
 
 ---
@@ -515,26 +515,26 @@ Throw to return the right HTTP status:
 |---------|---------|
 | `docker compose up -d` | Start MySQL + PHP (+ frontend) containers |
 | `docker compose down` | Stop containers |
-| `./gluo list` | List the built-in and project commands (`--check` validates them) |
-| `./gluo <name> [args]` | Run a project command declared in `src/Command/Commands.php` |
-| `./gluo --env=prod install <name>` | Install a project command as a system service |
+| `php gluo list` | List the built-in and project commands (`--check` validates them) |
+| `php gluo <name> [args]` | Run a project command declared in `src/Command/Commands.php` |
+| `php gluo --env=prod install <name>` | Install a project command as a system service |
 | `composer update` | Update PHP dependencies (live in vendor) |
 | `composer psalm` | Run static analysis |
 | `php85 vendor/bin/psalm` | Psalm fallback (if default is buggy) |
-| `composer test` | Run test suite (phpunit) |
-| `./gluo openapi` | Regenerate OpenAPI spec from attributes |
-| `./gluo openapi:check` | Warn if the spec is stale (auto-run by `composer test`) |
-| `./gluo --env=dev migrate:update` | Apply pending migrations (normal dev) |
-| `./gluo --env=dev migrate:reset` | Wipe and recreate DB (first install / CI) |
-| `./gluo --env=dev codegen:all --table=X --save` | Scaffold full CRUD for table X |
+| `php gluo test` | Run test suite (phpunit) |
+| `php gluo openapi` | Regenerate OpenAPI spec from attributes |
+| `php gluo openapi:check` | Warn if the spec is stale (auto-run by `php gluo test`) |
+| `php gluo --env=dev migrate:update` | Apply pending migrations (normal dev) |
+| `php gluo --env=dev migrate:reset` | Wipe and recreate DB (first install / CI) |
+| `php gluo --env=dev codegen:all --table=X --save` | Scaffold full CRUD for table X |
 
 ---
 
 ## After Every Change Checklist
 
-- [ ] `./gluo openapi` — if any controller attributes changed
+- [ ] `php gluo openapi` — if any controller attributes changed
 - [ ] `composer psalm` — static analysis passes
-- [ ] `composer test` — all tests pass
+- [ ] `php gluo test` — all tests pass
 - [ ] Documentation in `docs/` reflects changes if relevant
 
 ---
@@ -557,5 +557,5 @@ Throw to return the right HTTP status:
 - `references/imageutil.md` — GD-based image manipulation: resize, crop, rotate, flip, watermark, text overlay, saving; install instructions
 - `references/statemachine.md` — Finite state machine: workflow transitions, autoTransitionFrom for classification, DI registration pattern
 - `references/messagequeue.md` — Message queues (RabbitMQ, Redis, mock): publish, consume, DLQ, ACK/NACK, DI wiring, test mock
-- `references/scriptify.md` — Project commands (`./gluo <name>`, `src/Command/Commands.php`, DI-built) and `./gluo install` as a cron job or systemd service; `scriptify run` and `scriptify call` directly
+- `references/scriptify.md` — Project commands (`php gluo <name>`, `src/Command/Commands.php`, DI-built) and `php gluo install` as a cron job or systemd service; `scriptify run` and `scriptify call` directly
 - `references/featureflags.md` — Feature flags: PHP attribute approach, DI registration, dispatcher-per-handler-class pattern, testing with clearFlags()

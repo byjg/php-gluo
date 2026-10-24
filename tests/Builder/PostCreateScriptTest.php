@@ -38,7 +38,7 @@ class PostCreateScriptTest extends TestCase
         $this->workdir = sys_get_temp_dir() . '/create-project-' . uniqid();
         $this->copyRepo($projectRoot, $this->workdir);
 
-        // What `./gluo db:dialect` wrote in this checkout is not versioned: create-project starts
+        // What `php gluo db:dialect` wrote in this checkout is not versioned: create-project starts
         // without it, from .db-dialects/ alone
         foreach (['docker-compose.yml', 'docker-compose.database.yml'] as $file) {
             @unlink("$this->workdir/$file");

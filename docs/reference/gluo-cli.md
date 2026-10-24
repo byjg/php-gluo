@@ -5,17 +5,17 @@ title: The gluo Command
 
 # The `gluo` Command
 
-`./gluo` is the command-line entry point of a Gluo project. It runs two kinds of commands:
+`php gluo` is the command-line entry point of a Gluo project. It runs two kinds of commands:
 
 - **Built-in commands**, provided by `byjg/gluo-core`: migrations, code generation, the
   OpenAPI spec and the interactive terminal.
 - **Project commands**, defined by your application: any public method, by a short name.
 
 ```bash
-./gluo                                 # same as ./gluo list
-./gluo list [--check]                  # list built-in and project commands
-./gluo [--env=<env>] <command> [args...]
-./gluo <command> --help                # help for the command
+php gluo                                 # same as php gluo list
+php gluo list [--check]                  # list built-in and project commands
+php gluo [--env=<env>] <command> [args...]
+php gluo <command> --help                # help for the command
 ```
 
 Run it from the project root. It exits with 0 on success and 1 on any failure (unknown
@@ -27,9 +27,9 @@ Add `-v` to print the stack trace of a failure.
 `--env=<env>`, `--env <env>` or `-e <env>`, before or after the command name:
 
 ```bash
-./gluo --env=dev migrate:update
-./gluo migrate:update --env dev
-APP_ENV=dev ./gluo migrate:update      # the existing APP_ENV applies when --env is absent
+php gluo --env=dev migrate:update
+php gluo migrate:update --env dev
+APP_ENV=dev php gluo migrate:update      # the existing APP_ENV applies when --env is absent
 ```
 
 The launcher consumes the option and exports it as `APP_ENV` before the configuration is
@@ -54,10 +54,10 @@ loaded. It is not passed to the command.
 Everything after the command name is passed to the command unchanged:
 
 ```bash
-./gluo --env=dev migrate:reset --version=5
-./gluo --env=dev migrate:up -vv
-./gluo --env=dev codegen:all --table=product --save
-./gluo --env=dev codegen:model --table=note --activerecord
+php gluo --env=dev migrate:reset --version=5
+php gluo --env=dev migrate:up -vv
+php gluo --env=dev codegen:all --table=product --save
+php gluo --env=dev codegen:model --table=note --activerecord
 ```
 
 See [Database Migrations](../guides/migrations.md) and the
@@ -72,15 +72,15 @@ The Composer scripts are aliases, so existing pipelines keep working:
 
 | Composer script | Runs |
 |---|---|
-| `composer migrate -- --env=dev update` | `./gluo migrate --env=dev update` |
-| `composer codegen -- --env=dev --table=product all --save` | `./gluo codegen --env=dev --table=product all --save` |
-| `composer openapi` | `./gluo openapi` |
-| `composer openapi:check` | `./gluo openapi:check` |
-| `composer terminal` | `./gluo terminal` |
+| `composer migrate -- --env=dev update` | `php gluo migrate --env=dev update` |
+| `composer codegen -- --env=dev --table=product all --save` | `php gluo codegen --env=dev --table=product all --save` |
+| `composer openapi` | `php gluo openapi` |
+| `composer openapi:check` | `php gluo openapi:check` |
+| `composer terminal` | `php gluo terminal` |
 
-`./gluo migrate <command>` and `./gluo codegen <components>`, without the colon, exist for
+`php gluo migrate <command>` and `php gluo codegen <components>`, without the colon, exist for
 these aliases. The `codegen` form is also the way to generate several components in one
-run: `./gluo --env=dev codegen --table=product model controller --save`.
+run: `php gluo --env=dev codegen --table=product model controller --save`.
 
 `composer test`, `composer psalm` and `composer compile` are development tooling and stay
 as Composer scripts.
@@ -88,7 +88,7 @@ as Composer scripts.
 ## Project commands
 
 Declare them in `src/Command/Commands.php`, the project's `CommandProvider`, as a command
-name mapped to a method. The `./gluo` script passes this class to the launcher.
+name mapped to a method. The `gluo` script passes this class to the launcher.
 
 ```php
 <?php
@@ -127,10 +127,10 @@ public function cleanOldRecords(int $days, ?string $table = null): void
 ```
 
 ```bash
-./gluo user:cleanup 30
-./gluo user:cleanup 30 audit_log
-./gluo --env=prod user:cleanup 30
-./gluo user:cleanup --help
+php gluo user:cleanup 30
+php gluo user:cleanup 30 audit_log
+php gluo --env=prod user:cleanup 30
+php gluo user:cleanup --help
 ```
 
 - **Arguments are positional.** Each value after the command name maps, in order, to the
@@ -144,7 +144,7 @@ public function cleanOldRecords(int $days, ?string $table = null): void
   example). It is built by the container, never with `new`, so its constructor
   dependencies are injected as everywhere else in the application.
 - **The method must be public.**
-- **`./gluo list` describes the command** with the first line of the method's PHPDoc
+- **`php gluo list` describes the command** with the first line of the method's PHPDoc
   (`Delete records older than the given number of days.`), or shows the target when the
   method has no PHPDoc.
 
@@ -166,12 +166,12 @@ class PaymentCommands
     public function __construct(private PaymentWorkflow $workflow) {}
 
     /** Create a payment and send it to the gateway. */
-    public function create(float $amount): void { /* ... */ }    // ./gluo payment:create 10.50
+    public function create(float $amount): void { /* ... */ }    // php gluo payment:create 10.50
 
     /** Refund a paid payment, inside the refund window. */
-    public function refund(int $paymentId): void { /* ... */ }   // ./gluo payment:refund 42
+    public function refund(int $paymentId): void { /* ... */ }   // php gluo payment:refund 42
 
-    public function cleanOldRecords(int $days): void { /* ... */ } // ./gluo payment:clean-old-records 30
+    public function cleanOldRecords(int $days): void { /* ... */ } // php gluo payment:clean-old-records 30
 
     protected function say(string $line): void { /* ... */ }      // not a command
 }
@@ -182,29 +182,29 @@ class PaymentCommands
   helpers `protected` or `private`.
 - Method names become kebab-case: `cleanOldRecords` and `clean_old_records` both give
   `clean-old-records`.
-- **A name produced twice is an error**, for every `./gluo` command until it is fixed: an
+- **A name produced twice is an error**, for every `php gluo` command until it is fixed: an
   explicit `'payment:create'` entry next to `'payment' => ...PaymentCommands`, or two methods
   with the same kebab-case name.
 - A method added to the class is a command at once, with no change to `Commands`.
 - The rest is the same as for a single method: the class must be in the container,
-  `--help` prints the method's PHPDoc, and `./gluo list --check` checks each command.
+  `--help` prints the method's PHPDoc, and `php gluo list --check` checks each command.
 
 Commands are run by [Scriptify](scriptify.md)'s launcher, with the Gluo container
-(`Config::getContainer()`). `./gluo list` and the built-ins never build it.
+(`Config::getContainer()`). `php gluo list` and the built-ins never build it.
 
 ## Running a command as a service
 
-`./gluo install` installs a project command as a system service; it needs root, like any
+`php gluo install` installs a project command as a system service; it needs root, like any
 service file:
 
 ```bash
-sudo ./gluo --env=prod install payment:sweep                          # systemd, runs it again every second
-sudo ./gluo --env=prod install --template=crond payment:sweep         # once a minute
-sudo ./gluo --env=prod install --name=sweeper --description="Payment sweep" payment:sweep 24
-sudo ./gluo uninstall payment:sweep
+sudo php gluo --env=prod install payment:sweep                          # systemd, runs it again every second
+sudo php gluo --env=prod install --template=crond payment:sweep         # once a minute
+sudo php gluo --env=prod install --name=sweeper --description="Payment sweep" payment:sweep 24
+sudo php gluo uninstall payment:sweep
 ```
 
-The service runs `./gluo` itself, so the Gluo container is built when it starts, exactly
+The service runs `php gluo` itself, so the Gluo container is built when it starts, exactly
 as on the command line. Its command line is written in full, nothing left to a default:
 
 ```text
@@ -217,11 +217,11 @@ WorkingDirectory=/var/www/shop
   `crond` adds `--daemon`, which calls the method again every second.
 - The service is named after the project directory and the command (`shop-payment-sweep`);
   `--name` chooses another, and `uninstall` takes the same `--name`.
-- The command must pass `./gluo list --check`, and installing runs nothing.
+- The command must pass `php gluo list --check`, and installing runs nothing.
 
 ## Checking the commands
 
-`./gluo list` only lists. `./gluo list --check` adds a status to each command, without
+`php gluo list` only lists. `php gluo list --check` adds a status to each command, without
 running any of them — useful during development and in CI:
 
 ```text
@@ -239,7 +239,7 @@ Project
   user:cleanup           MISSING_METHOD    MyApp/Service/MaintenanceService::cleanOldRecord
 ```
 
-It honours `--env`, so `./gluo --env=prod list --check` validates the production
+It honours `--env`, so `php gluo --env=prod list --check` validates the production
 configuration, and it exits with 1 unless every command is `OK`.
 
 | Built-in status | Meaning | Applies to |

@@ -418,14 +418,14 @@ After modifying templates, test generation:
 
 ```bash
 # Generate with modified template
-./gluo --env=dev codegen:all --table=test_table --save
+php gluo --env=dev codegen:all --table=test_table --save
 
 # Review generated code
 cat src/Model/TestTable.php
 cat src/Controller/TestTableController.php
 
 # Run tests
-composer test
+php gluo test
 ```
 
 ## Related Documentation

@@ -8,19 +8,19 @@ is the `byjg/gluo-core` package in `vendor/` and is updated with `composer updat
 
 ```bash
 docker compose up -d
-./gluo --env=dev migrate:reset
-composer test
+php gluo --env=dev migrate:reset
+php gluo test
 ```
 
 ## Common commands
 
 | Command                                                   | What it does                           |
 |-----------------------------------------------------------|----------------------------------------|
-| `composer test`                                           | Run the test suite                     |
-| `./gluo --env=dev migrate:<command>`                 | Run database migrations                |
-| `./gluo list --check` | List every command and validate it |
-| `./gluo openapi`                                        | Regenerate `public/docs/openapi.json`  |
-| `./gluo --env=dev codegen:all --table=<table> --save` | Scaffold model, repository, service, controller and test from a table |
+| `php gluo test`                                           | Run the test suite                     |
+| `php gluo --env=dev migrate:<command>`                 | Run database migrations                |
+| `php gluo list --check` | List every command and validate it |
+| `php gluo openapi`                                        | Regenerate `public/docs/openapi.json`  |
+| `php gluo --env=dev codegen:all --table=<table> --save` | Scaffold model, repository, service, controller and test from a table |
 
 ## Documentation
 

@@ -7,7 +7,7 @@ use Exception;
 use PHPUnit\Framework\TestCase;
 
 /**
- * `./gluo db:dialect <database>` writes the database files of the template from .db-dialects/.
+ * `php gluo db:dialect <database>` writes the database files of the template from .db-dialects/.
  * Runs against a copy of .db-dialects/ in a temporary project root.
  */
 class DbDialectTest extends TestCase

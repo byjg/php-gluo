@@ -101,7 +101,7 @@ ALTER TABLE `users`
     DROP COLUMN `department`;
 ```
 
-Apply: `./gluo --env=dev migrate:update`
+Apply: `php gluo --env=dev migrate:update`
 
 ### 2. Extend the User model
 

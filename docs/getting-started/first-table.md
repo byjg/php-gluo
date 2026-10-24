@@ -34,9 +34,9 @@ drop table example_crud;
 Apply your migrations with:
 
 ```shell
-APP_ENV=dev ./gluo migrate:update
+APP_ENV=dev php gluo migrate:update
 # OR
-./gluo --env=dev migrate:update
+php gluo --env=dev migrate:update
 ```
 
 Expected output:
@@ -51,9 +51,9 @@ Migration completed successfully.
 To rollback changes:
 
 ```shell
-APP_ENV=dev ./gluo migrate:update --version=1
+APP_ENV=dev php gluo migrate:update --version=1
 # OR
-./gluo --env=dev migrate:update --version=1
+php gluo --env=dev migrate:update --version=1
 ```
 
 The result should be:
@@ -75,12 +75,12 @@ Generate all necessary files for your new table:
 
 ```shell
 # Ensure DB is updated first
-APP_ENV=dev ./gluo migrate:update
-# OR: ./gluo --env=dev migrate:update
+APP_ENV=dev php gluo migrate:update
+# OR: php gluo --env=dev migrate:update
 
 # Generate files (codegen:all, or one of codegen:model, codegen:repository, codegen:service, codegen:controller, codegen:test)
-APP_ENV=dev ./gluo codegen:all --table example_crud --save
-# OR: ./gluo --env=dev codegen:all --table example_crud --save
+APP_ENV=dev php gluo codegen:all --table example_crud --save
+# OR: php gluo --env=dev codegen:all --table example_crud --save
 ```
 
 This creates:
@@ -102,8 +102,8 @@ No manual configuration needed!
 To generate ActiveRecord pattern instead of Repository pattern:
 
 ```shell
-APP_ENV=dev ./gluo codegen:all --table example_crud --activerecord --save
-# OR: ./gluo --env=dev codegen:all --table example_crud --activerecord --save
+APP_ENV=dev php gluo codegen:all --table example_crud --activerecord --save
+# OR: php gluo --env=dev codegen:all --table example_crud --activerecord --save
 ```
 
 This generates a simpler architecture with the model containing data access methods.
@@ -117,7 +117,7 @@ The automatically generated test is located at `tests/Controller/ExampleCrudTest
 Run it:
 
 ```shell
-composer run test
+php gluo test
 ```
 
 Initial tests **_will fail_** because we need to:
@@ -125,7 +125,7 @@ Initial tests **_will fail_** because we need to:
 1. Generate OpenAPI documentation to create the endpoints:
 
 ```shell
-./gluo openapi
+php gluo openapi
 ```
 
 2. Fix the test data by updating `tests/Controller/ExampleCrudTest.php`:
@@ -158,7 +158,7 @@ To:
 
 3. Run the tests again:
 ```shell
-composer run test
+php gluo test
 ```
 
 Your tests should now pass successfully!
