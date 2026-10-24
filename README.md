@@ -131,7 +131,7 @@ mindmap
 
 ### Getting Started
 1. **[Installation & Setup](docs/getting-started/installation.md)** – Install the starter, configure environments, and review prerequisites.
-2. **[Coming from Laravel, Symfony or Drupal](docs/getting-started/coming-from-laravel-symfony.md)** – Concept and command mapping, plus the four things that genuinely work differently.
+2. **[Coming from another PHP framework](docs/getting-started/coming-from-laravel-symfony.md)** (Laravel, Symfony, Drupal, CakePHP, CodeIgniter) – Concept and command mapping, plus the four things that genuinely work differently.
 3. **[Create Your First Table](docs/getting-started/first-table.md)** – Define your first migration and schema.
 4. **[Add Fields](docs/getting-started/add-field.md)** – Safely evolve existing tables.
 5. **[Create REST Endpoints](docs/getting-started/first-endpoint.md)** – Generate REST handlers from your tables.
