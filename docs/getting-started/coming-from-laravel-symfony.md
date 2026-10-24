@@ -50,7 +50,13 @@ It warns (never blocks) when the spec is older than anything in `src/Controller/
 > the "cache rebuild" is explicit and you own it. **Drupal:** it plays the role of
 > `mymodule.routing.yml`, except you never edit it by hand.
 
-### 2. Every binding is explicit — there is no autowire-by-convention
+### 2. Autowire is a developer decision
+
+Gluo does not impose one style. For each namespace you choose: let the container resolve
+classes for you with a pattern rule, or accept only the bindings you declared. It is a
+trade-off between performance and convenience. An explicit binding resolves with a plain
+lookup. A class that is only matched by a rule costs a `class_exists()` check and a pattern
+match on each resolution, and it hides the decisions an explicit binding would show.
 
 Constructor injection works the way you expect. Controllers declare what they need and
 the container provides it:
@@ -69,17 +75,19 @@ class ProjectController
 }
 ```
 
-Controllers need no registration — one pattern rule covers the namespace:
+The starter autowires controllers, because they are terminal classes with nothing to
+decide: one implementation, named directly by the router, always per-request. One pattern
+rule covers the namespace:
 
 ```php
 // config/dev/07-controllers.php
-'App\Controller\*' => Autowire::rule()
+'RestReferenceArchitecture\Controller\*' => Autowire::rule()
     ->withInjectedConstructor()   // resolve constructor args from their type hints
     ->toInstance(),               // per-request, not shared
 ```
 
-Services and repositories *are* declared one by one, because those bindings carry
-decisions a pattern cannot make — which implementation, singleton or not, scalar
+Services and repositories are declared one by one, because those bindings carry
+decisions a pattern cannot make: which implementation, singleton or not, scalar
 constructor arguments:
 
 ```php
@@ -89,14 +97,16 @@ ProjectService::class => DI::bind(ProjectService::class)
     ->toSingleton(),
 ```
 
-So there is no `services.yaml`-style autowiring for the layers where a choice exists, and
-no per-class boilerplate for the layer where none does. `./gluo codegen:all` writes the
-service and repository entries for what it generates.
+These are the starter's defaults, not rules. You can add an `Autowire::rule()` for any
+other namespace, or remove the controller rule and bind each controller yourself. An
+explicit binding always wins over a pattern, so you can also use a rule and still declare
+the complex cases by hand. `./gluo codegen:all` writes the service and repository entries
+for what it generates.
 
 `config/test/` inherits `config/dev/`, so you register once for both.
 
 > **Symfony:** the controller rule is your `App\Controller\: resource:` line; the
-> difference is that services get no equivalent — declare each one. **Laravel:** think
+> difference is that the starter declares each service instead. **Laravel:** think
 > explicit `$this->app->bind()` for services, with controllers resolved for you.
 > **Drupal:** like `mymodule.services.yml`, except constructor arguments resolve from type
 > hints and controllers need no entry.
@@ -147,7 +157,7 @@ db/migrations/down/00001-rollback-products.sql
 | `database/migrations` | `migrations/` | `hook_update_N` | `db/migrations/{up,down}` |
 | `config/*.php` | `config/services.yaml` | `*.services.yml` | `config/{env}/*.php` |
 | `.env` | `.env` | `settings.php` | `config/{env}/credentials.env` |
-| `app()->make()` | autowiring | `\Drupal::service()` | constructor injection (bindings declared explicitly) |
+| `app()->make()` | autowiring | `\Drupal::service()` | constructor injection (`Autowire::rule()` or explicit `DI::bind()`, your choice) |
 | Gate / Policy | `#[IsGranted]` | `_permission` route key | `#[RequireRole]` |
 | FormRequest | Validator + DTO | Form API | `#[ValidateRequest]` + OpenAPI schema |
 | `php artisan tinker` | — | `drush php` | `./gluo terminal` |
