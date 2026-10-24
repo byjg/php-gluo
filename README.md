@@ -6,7 +6,7 @@ tags: [php, http, openapi]
 # Gluo — PHP REST API Starter
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/byjg/php-gluo/master/docs/gluo-icon.svg" alt="Gluo logo" width="180" />
+  <img src="https://raw.githubusercontent.com/byjg/php-gluo/master/docs/gluo-wordmark.svg" alt="Gluo logo" width="360" />
 </p>
 
 **Gluo** (Esperanto for *glue*) is a **production-ready PHP REST API starter**: create a project you fully own, powered by an updatable framework core — so you focus on business logic, not infrastructure.
