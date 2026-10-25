@@ -28,6 +28,8 @@ Gluo splits the problem the right way:
 - **Your project** (`composer create-project byjg/gluo`) — a full-stack monorepo: the PHP REST API at the repository root, an optional Vite + React frontend in `frontend/`, plus `docker-compose.yml` and `docker/`. Generated once, renamed to your namespace, fully yours: change, remove, or replace anything.
 - **The framework core** ([`byjg/gluo-core`](https://github.com/byjg/php-gluo-core)) — base classes, auth flow, attributes, code generator, and test harness live in `vendor/` and improve with a plain `composer update`. No copy-paste to stay current.
 
+And the API contract is never out of date: the OpenAPI attributes on your controllers generate `openapi.json`, which is at the same time the **routing table** and the **contract every test checks** responses against. An endpoint that is not documented does not exist, and a response that drifts from the documentation fails the test suite.
+
 ## Quick Start
 
 ```bash
