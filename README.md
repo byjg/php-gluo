@@ -1,9 +1,10 @@
 ---
 sidebar_key: gluo
+sidebar_category: gluo
 tags: [php, http, openapi]
 ---
 
-# Gluo — PHP REST API Starter
+# Gluo: PHP REST API Starter
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/byjg/php-gluo/master/docs/gluo-wordmark.svg" alt="Gluo logo" width="360" />
