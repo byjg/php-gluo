@@ -134,12 +134,9 @@ public function updateClient(HttpResponse $response, HttpRequest $request): void
     // Payload becomes: ["name" => "Updated Name", "phone" => "555-1234"]
     // Note: "email" with null is REMOVED
 
-    // Add primary key to payload (service will use it to fetch the record)
-    $payload['id'] = $request->attribute('id');
-
-    // Service update() does: getOrFail() + ObjectCopy::copy() + save()
+    // Service update() does: getOrFail($id) + ObjectCopy::copy() + save()
     $clientService = Config::get(ClientService::class);
-    $client = $clientService->update($payload);
+    $client = $clientService->update($request->attribute('id'), $payload);
     // Result: name and phone updated, email unchanged (not set to null)
 
     $response->write($client);
@@ -162,12 +159,9 @@ public function updateClient(HttpResponse $response, HttpRequest $request): void
     // Payload stays: ["name" => "Updated Name", "email" => null, "phone" => "555-1234"]
     // Note: "email" with null is KEPT
 
-    // Add primary key to payload (service will use it to fetch the record)
-    $payload['id'] = $request->attribute('id');
-
-    // Service update() does: getOrFail() + ObjectCopy::copy() + save()
+    // Service update() does: getOrFail($id) + ObjectCopy::copy() + save()
     $clientService = Config::get(ClientService::class);
-    $client = $clientService->update($payload);
+    $client = $clientService->update($request->attribute('id'), $payload);
     // Result: name and phone updated, email set to null (cleared)
 
     $response->write($client);

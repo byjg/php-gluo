@@ -21,22 +21,31 @@ export default function ProjectsList() {
   const [size, setSize] = useState(20);
   const [descending, setDescending] = useState(false);
 
-  const load = async () => {
+  // Every load goes through the effect below: it uses the current page, size and order, and
+  // aborts the previous request, so a response for a page the user has left cannot
+  // overwrite the newer one. A save or a delete asks for a reload with reload().
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => setReloadKey((key) => key + 1);
+
+  const load = async (signal) => {
     setError('');
     try {
-      const params = new URLSearchParams({ page, size, orderBy: descending ? 'name desc' : 'name' });
-      const data = await api.request(`/project?${params}`, { method: 'GET' });
+      const params = new URLSearchParams({ page, size, orderBy: descending ? 'name desc,id' : 'name,id' });
+      const data = await api.request(`/project?${params}`, { method: 'GET', signal });
       setProjects(Array.isArray(data) ? data : []);
     } catch (err) {
+      if (signal.aborted) return;
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
-  }, [page, size, descending]);
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [page, size, descending, reloadKey]);
 
   const changeSize = (newSize) => {
     setSize(newSize);
@@ -92,7 +101,7 @@ export default function ProjectsList() {
         description: form.description.trim(),
       };
       if (editingProject) {
-        await api.putJson('/project', { id: editingProject.id, ...payload });
+        await api.putJson(`/project/${editingProject.id}`, payload);
       } else {
         await api.postJson('/project', payload);
       }
@@ -100,7 +109,7 @@ export default function ProjectsList() {
       setModalOpen(false);
       setForm(blankForm);
       setEditingProject(null);
-      await load();
+      reload();
     } catch (err) {
       setFormError(err.message);
     } finally {

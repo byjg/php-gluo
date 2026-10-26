@@ -202,8 +202,9 @@ a real application.
   Laravel and Symfony let any logged-in user do both. To match them, replace
   `#[RequireRole(User::ROLE_ADMIN)]` with `#[RequireAuthenticated]` on the write endpoints.
 - **Validation and API documentation from one declaration.** The OpenAPI attributes on the
-  model and the endpoint validate the request (`#[ValidateRequest]`, 400 on failure) and are
-  the schema Swagger UI publishes, so the two cannot drift. codegen writes the types, the
+  model and the endpoint validate the request (`#[ValidateRequest]`, 400 on failure), validate
+  the model again on every `save()` (so a command or a queue consumer is held to the same rules),
+  and are the schema Swagger UI publishes, so the three cannot drift. codegen writes the types, the
   required fields and the lengths from the table (a `NOT NULL` text column without a default
   also gets `minLength: 1`, so an empty string is refused like a missing value); value
   ranges are yours.

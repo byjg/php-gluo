@@ -23,6 +23,14 @@
   `sendRequest()`. The template's tests already use `sendRequest()`; a project's own test that calls
   `$this->assertRequest($request)` must call `$this->sendRequest($request)`.
 
+- **`PUT` takes the key from the path:** `PUT /project/{id}`, `PUT /task/{id}` and `PUT /note/{id}`,
+  like `GET` and `DELETE`. Before, it was `PUT /project` with the key in the body. The body is the
+  same as the `POST`'s, the writable fields only; a key in the body is refused with 400. A client
+  of the API, and a project's own controllers generated before this change, have to move. See
+  gluo-core's changelog for the controller change, and use
+  `$this->service->update($request->attribute('id'), ValidateRequest::getPayload())`:
+  `BaseService::update()` now takes the key as its first argument.
+
 ## Changes
 
 - **The database server is the `gluo-database` service, in `docker-compose.database.yml`.** It was
@@ -116,6 +124,16 @@
   `minLength: 1` on `project.name`, `task.title` and `note.body`, and a test per entity that
   sends invalid bodies to the server.
 - **`public/docs/openapi.json` is OpenAPI 3.1.**
+- **Every save is validated against the model's OpenAPI schema, not only requests.** `Project`,
+  `Task` and `Note` declare `validator: SchemaValidator::class` in their table attribute, so a
+  `save()` from a command, a queue consumer or a service is held to the same rules as
+  `#[ValidateRequest]` and fails with the same 400. Their keys, and Note's computed `bodyLength`
+  and `days`, are marked `readOnly`: the server generates them. See
+  [OpenAPI Integration](docs/concepts/openapi-integration.md#the-schema-validates-every-save).
+- **`Note` uses Gluo's `ActiveRecord` trait**, and its controller calls `Note::getOrFail($id)` instead
+  of `Note::get($id)` followed by a null check, in `GET`, `PUT` and `DELETE`. A missing record is a 404
+  named after the model in both patterns: `"Note not found"`, `"Project not found"` (it was
+  `"Id not found"` in the Repository pattern). See [Traits](docs/reference/traits.md#activerecord-trait).
 
 ## Bug Fixes
 

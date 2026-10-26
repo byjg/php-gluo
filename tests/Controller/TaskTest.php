@@ -95,8 +95,8 @@ class TaskTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/task")
-            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => BaseRepository::getUuid()]))
+            ->withPath("/task/" . BaseRepository::getUuid())
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(401)
         ;
         $this->sendRequest($request);
@@ -134,8 +134,8 @@ class TaskTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/task")
-            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => BaseRepository::getUuid()]))
+            ->withPath("/task/" . BaseRepository::getUuid())
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(403)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
@@ -172,14 +172,15 @@ class TaskTest extends BaseApiTestCase
                 "Authorization" => "Bearer " . $result['token']
             ])
         ;
-        $body = $this->sendRequest($request);
+        $this->sendRequest($request);
 
+        // The key is in the path; the body has the same fields as the POST
         $request = new FakeApiRequester();
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/task")
-            ->withRequestBody($body->getBody()->getContents())
+            ->withPath("/task/" . $bodyAr['id'])
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(200)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
@@ -197,19 +198,25 @@ class TaskTest extends BaseApiTestCase
     {
         $result = json_decode($this->sendRequest(Credentials::requestLogin(Credentials::getAdminUser()))->getBody()->getContents(), true);
         $sample = $this->getSampleData(true);
+        $collection = "/task";
+        $item = "/task/" . BaseRepository::getUuid();
 
         $invalid = [
-            'PUT without the primary key' => ['PUT', (object)[]],
-            'POST without the required fields' => ['POST', (object)[]],
-            'POST with an empty title' => ['POST', array_merge($sample, ['title' => ''])],
+            // The key is generated (POST) or taken from the path (PUT): the body cannot set it
+            'POST with the key in the body' => ['POST', $collection, $sample + ['id' => BaseRepository::getUuid()]],
+            'PUT with the key in the body' => ['PUT', $item, $sample + ['id' => BaseRepository::getUuid()]],
+            'POST without the required fields' => ['POST', $collection, (object)[]],
+            'PUT without the required fields' => ['PUT', $item, (object)[]],
+            'POST with an empty title' => ['POST', $collection, array_merge($sample, ['title' => ''])],
+            'PUT with an empty title' => ['PUT', $item, array_merge($sample, ['title' => ''])],
         ];
 
-        foreach ($invalid as $case => [$method, $payload]) {
+        foreach ($invalid as $case => [$method, $path, $payload]) {
             $request = new FakeApiRequester();
             $request
                 ->withPsr7Request($this->getPsr7Request())
                 ->withMethod($method)
-                ->withPath("/task")
+                ->withPath($path)
                 ->withRequestBody(json_encode($payload))
                 ->withRequestHeader([
                     "Authorization" => "Bearer " . $result['token']

@@ -275,16 +275,33 @@ class TaskController
      * @throws ReflectionException
      */
     #[OA\Put(
-        path: "/task",
+        path: "/task/{id}",
         security: [
             ["jwt-token" => []]
         ],
         tags: ["Task"]
     )]
+    #[OA\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        schema: new OA\Schema(
+            type: "string",
+            format: "string"
+        )
+    )]
     #[OA\RequestBody(
         description: "The object Task to be updated",
         required: true,
-        content: new OA\JsonContent(ref: "#/components/schemas/Task")
+        content: new OA\JsonContent(
+            required: [ "projectId", "title", "status" ],
+            properties: [
+
+                new OA\Property(property: "projectId", type: "integer", format: "int32"),
+                new OA\Property(property: "title", type: "string", format: "string", maxLength: 150, minLength: 1),
+                new OA\Property(property: "status", type: "string", format: "string", maxLength: 20)
+            ]
+        )
     )]
     #[OA\Response(
         response: 200,
@@ -299,7 +316,7 @@ class TaskController
     #[ValidateRequest]
     public function putTask(HttpResponse $response, HttpRequest $request): void
     {
-        $this->taskService->update(ValidateRequest::getPayload());
+        $this->taskService->update($request->attribute('id'), ValidateRequest::getPayload());
     }
 
 }

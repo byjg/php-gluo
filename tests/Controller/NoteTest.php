@@ -97,8 +97,8 @@ class NoteTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/note")
-            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => 1]))
+            ->withPath("/note/1")
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(401)
         ;
         $this->sendRequest($request);
@@ -136,8 +136,8 @@ class NoteTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/note")
-            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => 1]))
+            ->withPath("/note/1")
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(403)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
@@ -174,14 +174,15 @@ class NoteTest extends BaseApiTestCase
                 "Authorization" => "Bearer " . $result['token']
             ])
         ;
-        $body = $this->sendRequest($request);
+        $this->sendRequest($request);
 
+        // The key is in the path; the body has the same fields as the POST
         $request = new FakeApiRequester();
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/note")
-            ->withRequestBody($body->getBody()->getContents())
+            ->withPath("/note/" . $bodyAr['id'])
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(200)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
@@ -199,19 +200,25 @@ class NoteTest extends BaseApiTestCase
     {
         $result = json_decode($this->sendRequest(Credentials::requestLogin(Credentials::getAdminUser()))->getBody()->getContents(), true);
         $sample = $this->getSampleData(true);
+        $collection = "/note";
+        $item = "/note/1";
 
         $invalid = [
-            'PUT without the primary key' => ['PUT', (object)[]],
-            'POST without the required fields' => ['POST', (object)[]],
-            'POST with an empty body' => ['POST', array_merge($sample, ['body' => ''])],
+            // The key is generated (POST) or taken from the path (PUT): the body cannot set it
+            'POST with the key in the body' => ['POST', $collection, $sample + ['id' => 1]],
+            'PUT with the key in the body' => ['PUT', $item, $sample + ['id' => 1]],
+            'POST without the required fields' => ['POST', $collection, (object)[]],
+            'PUT without the required fields' => ['PUT', $item, (object)[]],
+            'POST with an empty body' => ['POST', $collection, array_merge($sample, ['body' => ''])],
+            'PUT with an empty body' => ['PUT', $item, array_merge($sample, ['body' => ''])],
         ];
 
-        foreach ($invalid as $case => [$method, $payload]) {
+        foreach ($invalid as $case => [$method, $path, $payload]) {
             $request = new FakeApiRequester();
             $request
                 ->withPsr7Request($this->getPsr7Request())
                 ->withMethod($method)
-                ->withPath("/note")
+                ->withPath($path)
                 ->withRequestBody(json_encode($payload))
                 ->withRequestHeader([
                     "Authorization" => "Bearer " . $result['token']
@@ -341,8 +348,9 @@ class NoteTest extends BaseApiTestCase
                 ->expectStatus(200)
         );
 
-        // It is now hidden from the API (get returns 404)...
+        // It is now hidden from the API (get returns 404, named after the model by getOrFail())...
         $this->expectException(Error404Exception::class);
+        $this->expectExceptionMessage('Note not found');
         $this->sendRequest(
             (new FakeApiRequester())
                 ->withPsr7Request($this->getPsr7Request())
@@ -351,5 +359,31 @@ class NoteTest extends BaseApiTestCase
                 ->withRequestHeader(['Authorization' => "Bearer $token"])
                 ->expectStatus(404)
         );
+    }
+
+    /**
+     * The ActiveRecord save() is validated too, on insert and on update.
+     */
+    public function testAnInvalidNoteIsRejectedWhenSavedOutsideTheApi()
+    {
+        try {
+            Note::new(['taskId' => self::SEED_TASK_UUID, 'body' => str_repeat('a', 501)])->save();
+            $this->fail('The long body was saved');
+        } catch (Error400Exception $ex) {
+            $this->assertStringContainsString('is longer than maxLength 500', $ex->getMessage());
+        }
+
+        $note = Note::new(['taskId' => self::SEED_TASK_UUID, 'body' => 'First version']);
+        $note->save();
+
+        $note->setBody('');
+        try {
+            $note->save();
+            $this->fail('The empty body was saved');
+        } catch (Error400Exception $ex) {
+            $this->assertStringContainsString('is shorter than minLength 1', $ex->getMessage());
+        }
+
+        $this->assertSame('First version', Note::get($note->getId())->getBody());
     }
 }

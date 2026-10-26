@@ -7,6 +7,7 @@ use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableUuidPKAttribute;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\MicroOrm\Literal\LiteralInterface;
+use ByJG\Gluo\Util\SchemaValidator;
 use OpenApi\Attributes as OA;
 
 
@@ -15,14 +16,14 @@ use OpenApi\Attributes as OA;
  * @package RestReferenceArchitecture\Model
  */
 #[OA\Schema(required: ["id", "projectId", "title", "status"], type: "object", xml: new OA\Xml(name: "Task"))]
-#[TableUuidPKAttribute("task")]
+#[TableUuidPKAttribute("task", validator: SchemaValidator::class)]
 class Task
 {
 
     /**
      * @var string|LiteralInterface|null
      */
-    #[OA\Property(type: "string", format: "string")]
+    #[OA\Property(type: "string", format: "string", readOnly: true)]
     #[FieldUuidAttribute(primaryKey: true, fieldName: "id")]
     protected string|LiteralInterface|null $id = null;
 

@@ -120,19 +120,23 @@ Repositories are registered in `config/<env>/04-repositories.php` and injected i
 
 When using the ActiveRecord pattern, the controller calls model methods directly — no separate service class is required. The reference implementation is `src/Controller/NoteController.php`.
 
+The model uses Gluo's `ActiveRecord` trait, `ByJG\Gluo\Trait\ActiveRecord`: MicroOrm's
+`ActiveRecord` plus `getOrFail()`, which returns the record or answers 404. It is the
+ActiveRecord counterpart of `BaseService::getOrFail()`, and what Laravel calls `findOrFail()`:
+
+```php
+Note::getOrFail($id);                           // 404 "Note not found" when there is none
+Note::getOrFail($id, "There is no note $id");   // the same, with your message
+Note::get($id);                                 // null when there is none
+```
+
 ### GET — Fetch by ID
 
 ```php title="src/Controller/NoteController.php (GET by id)"
 #[RequireAuthenticated]
 public function getNote(HttpResponse $response, HttpRequest $request): void
 {
-    $model = Note::get($request->attribute('id'));
-
-    if (is_null($model)) {
-        throw new Error404Exception("Note not found");
-    }
-
-    $response->write($model);
+    $response->write(Note::getOrFail($request->attribute('id')));
 }
 ```
 
@@ -175,22 +179,18 @@ public function postNote(HttpResponse $response, HttpRequest $request): void
 
 ### PUT — Update
 
-Use `->fill($payload)` to apply changes to an existing instance, then call `save()`:
+`PUT /note/{id}` takes the key from the path and the same body as the `POST`. Use
+`->fill($payload)` to apply the changes to the loaded instance, then call `save()`:
 
 ```php title="src/Controller/NoteController.php (update)"
 #[RequireRole(User::ROLE_ADMIN)]
 #[ValidateRequest]
 public function putNote(HttpResponse $response, HttpRequest $request): void
 {
-    $payload = ValidateRequest::getPayload();
+    $model = Note::getOrFail($request->attribute('id'));
 
-    $model = Note::get($payload['id'] ?? null);
-
-    if (is_null($model)) {
-        throw new Error404Exception("Note not found");
-    }
-
-    $model->fill($payload);
+    // The key comes from the path; the body has only the writable fields
+    $model->fill(ValidateRequest::getPayload());
     $model->save();
 }
 ```
@@ -200,8 +200,8 @@ public function putNote(HttpResponse $response, HttpRequest $request): void
 | Service pattern | ActiveRecord pattern |
 |---|---|
 | `$this->projectService->create($payload)` (injected) | `Note::new($payload)->save()` |
-| `$this->projectService->getOrFail($id)` (injected) | `Note::get($id)` |
-| `$service->update($payload)` | `$model->fill($payload); $model->save()` |
+| `$this->projectService->getOrFail($id)` (injected) | `Note::getOrFail($id)` |
+| `$service->update($id, $payload)` | `$model->fill($payload); $model->save()` |
 
 ## 7. Read-only and computed fields (the Note example)
 

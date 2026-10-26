@@ -26,10 +26,15 @@ The code generator supports two architectural patterns:
 
 The delete endpoint is not generated; write it by hand where the entity needs one.
 
+The generated routes are `GET /{table}/{id}`, `GET /{table}`, `POST /{table}` and
+`PUT /{table}/{id}`. `POST` and `PUT` take the same body, the writable fields; the key is
+generated on `POST` and taken from the path on `PUT`, so a key sent in the body is refused.
+
 ### From columns to the OpenAPI schema
 
-Each column becomes an `OA\Property` on the model and in the request body of `POST`, and
-that schema is what `#[ValidateRequest]` enforces (400 on failure) and what the API docs
+Each column becomes an `OA\Property` on the model and in the request body of `POST` and
+`PUT`. That schema is what `#[ValidateRequest]` enforces on the request (400 on failure),
+what the model is checked against on every `save()` (see below), and what the API docs
 publish:
 
 | Column | Generated |
@@ -39,12 +44,20 @@ publish:
 | `NOT NULL` | listed in `required` |
 | `char(N)` / `varchar(N)` | `maxLength: N` |
 | `NOT NULL` text (`char`, `varchar`, `text`) **with no default** | `minLength: 1`: an empty string is refused like a missing value |
+| primary key (auto-increment, or a UUID seeded by `TableUuidPKAttribute`), virtual generated column | `readOnly: true`: the server generates it; the API returns it and does not take it |
 
 Value ranges (`minimum`, `maximum`) cannot be read from a column type; add them by hand.
 
-The generated functional test also sends invalid bodies straight to the server (a `PUT`
-without the primary key, a `POST` without the required fields, and an empty value for each
-`minLength` column) and expects 400. They are sent without the OpenAPI spec on the client
+The model's table attribute also declares `validator: SchemaValidator::class`. The model is
+then checked against its own schema every time it is saved, not only when a request comes
+in: a command line script, a queue consumer or a service that saves it gets the same 400.
+A `readOnly` property, such as the generated key, is not required for that check. Writes
+that do not go through `save()` (`UpdateQuery`, `InsertBulkQuery`, raw SQL) are not
+checked. See [OpenAPI Integration](../concepts/openapi-integration.md#the-schema-validates-every-save).
+
+The generated functional test also sends invalid bodies straight to the server, on `POST`
+and on `PUT`: the key in the body, the required fields missing, and an empty value for each
+`minLength` column. It expects 400. They are sent without the OpenAPI spec on the client
 side, so the test client does not stop them first.
 
 ## Usage

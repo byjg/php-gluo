@@ -143,7 +143,7 @@ export default function ProjectDetail() {
         status: taskForm.status,
       };
       if (editingTask) {
-        await api.putJson('/task', { id: editingTask.id, ...payload });
+        await api.putJson(`/task/${editingTask.id}`, payload);
       } else {
         await api.postJson('/task', payload);
       }
