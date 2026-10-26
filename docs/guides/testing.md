@@ -424,15 +424,13 @@ public function testFullCrud()
     $this->assertEquals($id, $retrieved['id']);
     $this->assertEquals('name', $retrieved['name']);
 
-    // UPDATE
-    $retrieved['description'] = 'updated value';
-
+    // UPDATE: the key goes in the path; the body has the same fields as the POST
     $updateRequest = new FakeApiRequester();
     $updateRequest
         ->withPsr7Request($this->getPsr7Request())
         ->withMethod('PUT')
-        ->withPath('/project')
-        ->withRequestBody(json_encode($retrieved))
+        ->withPath("/project/{$id}")
+        ->withRequestBody(json_encode(['name' => $retrieved['name'], 'description' => 'updated value']))
         ->withRequestHeader(['Authorization' => "Bearer {$token}"])
         ->expectStatus(200);
 

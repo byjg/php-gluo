@@ -464,6 +464,22 @@ class PostCreateScriptTest extends TestCase
         $this->assertStringNotContainsString('RestReferenceArchitecture', $readme);
     }
 
+    public function testSkillReplacedByThePublishedPlugin(): void
+    {
+        $this->assertFileExists($this->workdir . '/.claude/skills/gluo-developer/SKILL.md');
+
+        $this->applyTemplate(true);
+
+        // The skill is not copied: the project declares the published plugin instead
+        $this->assertDirectoryDoesNotExist($this->workdir . '/.claude/skills');
+        $this->assertFileDoesNotExist($this->workdir . '/builder/claude-settings.project.json');
+        $settings = json_decode(file_get_contents($this->workdir . '/.claude/settings.json'), true);
+        $this->assertSame('byjg/skills', $settings['extraKnownMarketplaces']['byjg']['source']['repo']);
+        $this->assertSame(['gluo-developer@byjg' => true], $settings['enabledPlugins']);
+        // The instructions that tell Claude when to use it stay
+        $this->assertStringContainsString('gluo-developer', file_get_contents($this->workdir . '/.claude/CLAUDE.md'));
+    }
+
     /**
      * Regression: the hook is stripped by deleting its whole line, which also removes
      * that line's own trailing comma. That is correct everywhere except as the LAST

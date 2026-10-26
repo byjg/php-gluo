@@ -144,12 +144,12 @@ public function testFullCrud(): void
     )->getBody()->getContents(), true);
     $this->assertEquals('Widget', $getBody['name']);
 
-    // Update (PUT sends full object back)
+    // Update (PUT /product/{id}: the key in the path, the same fields as the POST in the body)
     $this->sendRequest(
         (new FakeApiRequester())
             ->withPsr7Request($this->getPsr7Request())
-            ->withMethod('PUT')->withPath('/product')
-            ->withRequestBody(json_encode($getBody + ['name' => 'Widget Pro']))
+            ->withMethod('PUT')->withPath("/product/$id")
+            ->withRequestBody(json_encode(['name' => 'Widget Pro', 'price' => 9.99]))
             ->withRequestHeader($auth)
             ->expectStatus(200)
     );

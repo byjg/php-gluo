@@ -1,8 +1,9 @@
 ---
-name: dev-guide
+name: gluo-developer
 description: >
-  Expert guide for working with the byjg/php-gluo project. Use this skill
-  whenever the user is working on this project — including setting up the dev environment,
+  Expert guide for working on a Gluo project: a PHP REST API created from byjg/php-gluo
+  (composer create-project byjg/gluo) on the byjg/gluo-core framework. Use this skill
+  whenever the user is working on such a project — including setting up the dev environment,
   creating new CRUD features, scaffolding with the code generator, modifying or fixing
   existing features, writing or updating tests, running migrations, and maintaining OpenAPI
   documentation. Trigger this skill for any task related to models, repositories, services,
@@ -11,7 +12,7 @@ description: >
   "fix this bug", use this skill if they're working in this project.
 ---
 
-# PHP REST Reference Architecture — Development Skill
+# Gluo — Development Skill
 
 This is a production-ready PHP REST API template (not a framework). You own it completely
 and modify it freely. The focus is clean separation of concerns, OpenAPI-first design, and
@@ -127,7 +128,8 @@ src/
 
 # Attributes (RequireAuthenticated, ...), traits (OaCreatedAt, ...), base
 # classes and utilities live in the byjg/gluo-core package (ByJG\Gluo\*).
-# The PHP namespace is still RestReferenceArchitecture\* (renamed on create-project).
+# The examples use App\* for the application's namespace. The starter's own is
+# RestReferenceArchitecture\*, which create-project renames to the one you choose.
 
 config/{env}/
 ├── 01-infrastructure.php  # DB, cache, logging, ORM init
@@ -174,6 +176,8 @@ The example CRUD entities are `Project` (Repository, int PK, table `project`),
 - Use when: simple CRUD, prototyping, admin panels
 - Files: Model + Controller (2 files + no DI registrations needed + tests)
 - Reference: `src/Controller/NoteController.php`, `src/Model/Note.php`
+- The model uses `ByJG\Gluo\Trait\ActiveRecord` (MicroOrm's plus `getOrFail($id, ?$message)`, which
+  answers 404), so the controller writes `Note::getOrFail($request->attribute('id'))`, no null check
 
 ---
 
@@ -218,17 +222,17 @@ Apply: `php gluo --env=dev migrate:update`
 #### 2. Model
 
 ```php
-#[OA\Schema(required: ["name"], type: "object")]
-#[TableAttribute("product")]
+#[OA\Schema(required: ["id", "name"], type: "object")]
+#[TableAttribute("product", validator: SchemaValidator::class)]
 class Product
 {
     use OaCreatedAt, OaUpdatedAt, OaDeletedAt;
 
-    #[OA\Property(type: "integer", format: "int32")]
+    #[OA\Property(type: "integer", format: "int32", readOnly: true)]
     #[FieldAttribute(primaryKey: true, fieldName: "id")]
     protected int|null $id = null;
 
-    #[OA\Property(type: "string", maxLength: 120)]
+    #[OA\Property(type: "string", maxLength: 120, minLength: 1)]
     #[FieldAttribute(fieldName: "name")]
     protected string|null $name = null;
 
@@ -241,7 +245,14 @@ class Product
 
 **Available traits:** `use OaCreatedAt;` / `use OaUpdatedAt;` / `use OaDeletedAt;`
 
-**UUID primary key:** use `#[TableUuidPKAttribute("product")]` and `#[FieldUuidAttribute(primaryKey: true)]`
+**Validated on every save:** `validator: SchemaValidator::class` (`ByJG\Gluo\Util\SchemaValidator`)
+checks the model against its own OpenAPI schema before `save()` writes it, so a command, a
+consumer or a service gets the same 400 as `#[ValidateRequest]`. Mark what the server generates
+`readOnly: true` (an auto-increment or seeded key, virtual columns): it is then not required on
+insert. A key the client supplies stays writable. Only `save()` is checked, not `UpdateQuery`,
+`InsertBulkQuery` or raw SQL.
+
+**UUID primary key:** use `#[TableUuidPKAttribute("product", validator: SchemaValidator::class)]` and `#[FieldUuidAttribute(primaryKey: true)]`
 (see `src/Model/Task.php` for the complete UUID model pattern)
 
 #### 3. Repository
@@ -282,7 +293,8 @@ class ProductService extends BaseService
     {
         parent::__construct($repository);
     }
-    // Inherited: getOrFail($id), list($page, $size), save($model), create($data), update($data), delete($id)
+    // Inherited: getOrFail($id, ?$message), list($page, $size), save($model), create($data),
+    //            update($id, $data, ?$message), delete($id, ?$message); a missing record is a 404 "<Model> not found"
 }
 ```
 
@@ -369,8 +381,8 @@ which drives both routing and contract testing. Forgetting it makes the endpoint
 anything in `src/Controller/` or `src/Model/`.
 
 `openapi.json` is the single source of truth: `OpenApiRouteList` reads it to build the route
-table (URL+method → Controller::method), and `#[ValidateRequest]` reads it to validate request
-bodies. See `references/request-response.md` for the full pipeline, content negotiation, and
+table (URL+method → Controller::method), `#[ValidateRequest]` reads it to validate request
+bodies, and `SchemaValidator` reads it to validate each model before it is saved. See `references/request-response.md` for the full pipeline, content negotiation, and
 OpenAPI attribute patterns.
 
 #### 8. Tests

@@ -160,7 +160,7 @@ Create a custom mapper:
 
 ```php
 // src/Security/BcryptPasswordMapper.php
-namespace RestReferenceArchitecture\Security;
+namespace App\Security;
 
 use ByJG\Authenticate\Interfaces\PasswordMapperInterface;
 
@@ -201,7 +201,7 @@ The JWT is built by `ByJG\Gluo\Util\JwtContext` (byjg/gluo-core). Default payloa
 Subclass `JwtContext` and override its hooks (`customTokenFields()`, `tokenExpiry()`, `defaultRole()`):
 
 ```php
-namespace RestReferenceArchitecture\Util;
+namespace App\Util;
 
 use ByJG\Authenticate\Enum\UserField;
 use ByJG\Gluo\Util\JwtContext;

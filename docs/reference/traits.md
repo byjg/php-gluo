@@ -5,11 +5,13 @@ title: Traits Reference
 
 # Traits Reference
 
-Traits provide reusable functionality for your models, particularly for automatic timestamp management and soft deletes.
+Traits provide reusable functionality for your models: the ActiveRecord pattern, automatic
+timestamp management and soft deletes.
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [ActiveRecord Trait](#activerecord-trait)
 - [OaCreatedAt Trait](#oacreatedat-trait)
 - [OaUpdatedAt Trait](#oaupdatedat-trait)
 - [OaDeletedAt Trait](#oadeletedat-trait)
@@ -34,6 +36,47 @@ The reference architecture provides three timestamp traits that combine:
 | `OaCreatedAt`  | Track record creation time     | `created_at` | On INSERT        |
 | `OaUpdatedAt`  | Track record modification time | `updated_at` | On INSERT/UPDATE |
 | `OaDeletedAt`  | Soft delete support            | `deleted_at` | Manual           |
+
+## ActiveRecord Trait
+
+**Location**: `ByJG\Gluo\Trait\ActiveRecord` (byjg/gluo-core)
+
+MicroOrm's `ActiveRecord` trait (`new()`, `get()`, `fill()`, `save()`, `delete()`, `all()`, the
+query methods; see [Active Record](https://opensource.byjg.com/docs/php/micro-orm/active-record))
+plus one method, `getOrFail()`. codegen uses it for every ActiveRecord model (`--activerecord`).
+
+```php
+use ByJG\Gluo\Trait\ActiveRecord;
+
+#[TableAttribute("note", validator: SchemaValidator::class)]
+class Note
+{
+    use ActiveRecord;
+    // ...
+}
+```
+
+### getOrFail()
+
+```php
+public static function getOrFail(array|string|int|LiteralInterface $pk, ?string $message = null): static
+```
+
+Returns the record with this key, or throws `Error404Exception`, which the API answers with 404.
+The message is `"<Model> not found"` (`"Note not found"`), or the one you pass. A composite key is
+passed as an array.
+
+```php
+$note = Note::getOrFail($request->attribute('id'));
+$note = Note::getOrFail($id, "There is no note $id");
+```
+
+It is the ActiveRecord counterpart of `BaseService::getOrFail()` in the Repository pattern, and
+what Laravel calls `findOrFail()`: the controller does not write the null check before it shows,
+changes or deletes a record. `get()` is still there for when a missing record is not an error.
+
+To move an existing model, import `ByJG\Gluo\Trait\ActiveRecord` instead of
+`ByJG\MicroOrm\Trait\ActiveRecord`; everything else stays.
 
 ## OaCreatedAt Trait
 
@@ -81,7 +124,7 @@ public function setCreatedAt(?string $value): static
 #[FieldAttribute(fieldName: "created_at", syncWithDb: false)]
 
 // OpenAPI Attribute
-#[OA\Property(type: "string", format: "date-time", nullable: true)]
+#[OA\Property(type: "string", format: "date-time", readOnly: true, nullable: true)]
 ```
 
 ### Behavior
@@ -112,11 +155,14 @@ When using this trait, the OpenAPI schema automatically includes:
 Product:
   type: object
   properties:
-    created_at:
-      type: string
+    createdAt:
+      type: [string, "null"]
       format: date-time
-      nullable: true
+      readOnly: true
 ```
+
+The date is set by the database, so it is `readOnly`: the API returns it, and neither a
+request body nor the validation of a `save()` requires it.
 
 ## OaUpdatedAt Trait
 
@@ -157,7 +203,7 @@ public function setUpdatedAt(?string $value): static
 #[FieldAttribute(fieldName: "updated_at", syncWithDb: false)]
 
 // OpenAPI Attribute
-#[OA\Property(type: "string", format: "date-time", nullable: true)]
+#[OA\Property(type: "string", format: "date-time", readOnly: true, nullable: true)]
 ```
 
 ### Behavior
@@ -412,7 +458,7 @@ trait CustomCreatedAt
 {
     use CreatedAt;
 
-    #[OA\Property(type: "string", format: "date-time", nullable: true)]
+    #[OA\Property(type: "string", format: "date-time", readOnly: true, nullable: true)]
     #[FieldAttribute(fieldName: "date_created", syncWithDb: false)]
     protected string|null $createdAt = null;
 }
@@ -457,7 +503,7 @@ use OpenApi\Attributes as OA;
 
 trait OaPublishedAt
 {
-    #[OA\Property(type: "string", format: "date-time", nullable: true)]
+    #[OA\Property(type: "string", format: "date-time", readOnly: true, nullable: true)]
     #[FieldAttribute(fieldName: "published_at", syncWithDb: false)]
     protected string|null $publishedAt = null;
 

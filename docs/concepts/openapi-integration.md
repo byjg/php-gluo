@@ -12,6 +12,7 @@ This document explains what OpenAPI is, how the reference architecture uses it, 
 [OpenAPI](https://www.openapis.org/) (formerly Swagger) is a language-agnostic specification for describing HTTP APIs. A single `openapi.json` file documents every endpoint, its parameters, request bodies, and response schemas. This single source of truth drives:
 
 - **Runtime routing** – `OpenApiRouteList` reads `openapi.json` to map incoming requests to controller methods.
+- **Validation** – `#[ValidateRequest]` checks each request against it, and `SchemaValidator` checks each model against it before it is saved (see [The schema validates every save](#the-schema-validates-every-save)).
 - **API reference** – An interactive browser UI ([Scalar](https://github.com/scalar/scalar)) is served at `http://localhost:8080/docs/` so you can explore and test endpoints without a separate tool.
 - **Contract testing** – `OpenApiValidation` (via `ByJG\ApiTools`) asserts that every test response conforms to the declared schema.
 
@@ -34,6 +35,61 @@ APP_ENV=dev php gluo openapi
 - The application can boot without running the generator.
 - Tests can validate responses even in CI environments.
 - The API reference always has an up-to-date spec to render.
+
+### Spec version
+
+The spec is written as **OpenAPI 3.1**. The attributes do not change: swagger-php turns
+`nullable: true` into the 3.1 form, a type union such as `"type": ["string", "null"]`. The
+router, `#[ValidateRequest]` and the contract tests all read 3.1. To keep writing 3.0,
+override `getOpenApiVersion()` in `builder/Scripts.php` and return `'3.0.0'`.
+
+## The schema validates every save
+
+`#[ValidateRequest]` checks what comes in through an endpoint. A model can also be saved
+without a request: by a command line script, a queue consumer, a service called by another
+service. To hold those saves to the same rules, the model declares a validator in its table
+attribute (codegen writes it):
+
+```php title="src/Model/Project.php"
+#[OA\Schema(required: ["id", "name"], type: "object", xml: new OA\Xml(name: "Project"))]
+#[TableAttribute("project", validator: SchemaValidator::class)]
+class Project
+{
+    #[OA\Property(type: "integer", format: "int32", readOnly: true)]
+    #[FieldAttribute(primaryKey: true, fieldName: "id")]
+    protected int|null $id = null;
+
+    #[OA\Property(type: "string", format: "string", maxLength: 100, minLength: 1)]
+    #[FieldAttribute(fieldName: "name")]
+    protected string|null $name = null;
+    // ...
+}
+```
+
+The code that saves does not change: `save()` calls the validator first. It serializes the
+model as the API returns it and matches it against `#/components/schemas/Project`, the schema
+its own `OA\Property` attributes produce. A valid model is saved; an invalid one throws the
+same 400 as `#[ValidateRequest]`, and nothing is written:
+
+```php
+// Repository pattern
+$projectService->create(['name' => '']);       // Error400Exception: ... is shorter than minLength 1
+
+// ActiveRecord pattern
+$note = Note::get($id);
+$note->setBody('');
+$note->save();                                  // Error400Exception; the stored body is unchanged
+```
+
+- A property marked `readOnly` is not required: the generated key does not exist yet when a
+  record is inserted, and computed fields are never written. codegen marks the key `readOnly`
+  when the server generates it (auto-increment, or a UUID seeded by `TableUuidPKAttribute`);
+  a key the client supplies stays writable and required.
+- A property that is null is treated as not set.
+- Only `save()` is validated. `UpdateQuery`, `InsertBulkQuery` and raw SQL through the
+  `DatabaseExecutor` write to the table directly and are not checked.
+- The check uses the generated `public/docs/openapi.json`, like the router: regenerate it
+  after changing a model's attributes.
 
 ## API Reference
 

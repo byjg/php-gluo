@@ -15,9 +15,9 @@ A plain public method. The class gets its dependencies through the constructor, 
 service:
 
 ```php
-namespace RestReferenceArchitecture\Command;
+namespace App\Command;
 
-use RestReferenceArchitecture\Service\OrderService;
+use App\Service\OrderService;
 
 class OrderCommands
 {
@@ -175,7 +175,7 @@ A consumer is a project command whose method blocks on the queue; install it as 
 service. Inject the connector:
 
 ```php
-namespace RestReferenceArchitecture\Command;
+namespace App\Command;
 
 use ByJG\MessageQueueClient\Connector\ConnectorInterface;
 use ByJG\MessageQueueClient\Connector\Pipe;

@@ -4,6 +4,7 @@ namespace RestReferenceArchitecture\Model;
 
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
+use ByJG\Gluo\Util\SchemaValidator;
 use OpenApi\Attributes as OA;
 
 
@@ -12,28 +13,28 @@ use OpenApi\Attributes as OA;
  * @package RestReferenceArchitecture\Model
  */
 #[OA\Schema(required: ["id", "name"], type: "object", xml: new OA\Xml(name: "Project"))]
-#[TableAttribute("project")]
+#[TableAttribute("project", validator: SchemaValidator::class)]
 class Project
 {
 
     /**
      * @var int|null
      */
-    #[OA\Property(type: "integer", format: "int32")]
+    #[OA\Property(type: "integer", format: "int32", readOnly: true)]
     #[FieldAttribute(primaryKey: true, fieldName: "id")]
     protected int|null $id = null;
 
     /**
      * @var string|null
      */
-    #[OA\Property(type: "string", format: "string")]
+    #[OA\Property(type: "string", format: "string", maxLength: 100, minLength: 1)]
     #[FieldAttribute(fieldName: "name")]
     protected string|null $name = null;
 
     /**
      * @var string|null
      */
-    #[OA\Property(type: "string", format: "string", nullable: true)]
+    #[OA\Property(type: "string", format: "string", nullable: true, maxLength: 255)]
     #[FieldAttribute(fieldName: "description")]
     protected string|null $description = null;
 

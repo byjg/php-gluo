@@ -36,7 +36,7 @@ Example:
 
 ```php
 #[OA\Put(
-    path: "/example/crud/status",
+    path: "/example/crud/{id}/status",
     security: [
         ["jwt-token" => []]
     ],
@@ -49,18 +49,23 @@ The `security` attribute defines the security schema. Without it, the endpoint r
 
 ### 2. Request Attribute
 
-This defines the input to the method using `OA\RequestBody` or `OA\Parameter`.
-
-Example:
+This defines the input to the method using `OA\Parameter` (path, query or header) and
+`OA\RequestBody` (the body). The record is identified by its key in the path, `{id}`; the body
+has only what changes:
 
 ```php
+#[OA\Parameter(
+    name: "id",
+    in: "path",
+    required: true,
+    schema: new OA\Schema(type: "integer", format: "int32")
+)]
 #[OA\RequestBody(
     description: "The status to be updated",
     required: true,
     content: new OA\JsonContent(
         required: ["status"],
         properties: [
-            new OA\Property(property: "id", type: "integer", format: "int32"),
             new OA\Property(property: "status", type: "string")
         ]
     )
@@ -88,6 +93,7 @@ Place these attributes at the beginning of your method. Following our pattern, w
 
 ```php
 #[OA\Put()]                 // complete with the attributes above
+#[OA\Parameter()]           // complete with the attributes above
 #[OA\RequestBody()]         // complete with the attributes above
 #[OA\Response()]            // complete with the attributes above
 public function putExampleCrudStatus(HttpResponse $response, HttpRequest $request)
@@ -194,8 +200,8 @@ public function putExampleCrudStatus(HttpResponse $response, HttpRequest $reques
 {
     $payload = ValidateRequest::getPayload();
 
-    // Use the service layer for business logic
-    $model = $this->exampleCrudService->getOrFail($payload['id']);
+    // The key comes from the path; the service layer holds the business logic
+    $model = $this->exampleCrudService->getOrFail($request->attribute('id'));
     $model->setStatus($payload['status']);
     $this->exampleCrudService->save($model);
 
@@ -280,9 +286,8 @@ class ExampleCrudTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/example/crud/status")
+            ->withPath("/example/crud/$recordId/status")
             ->withRequestBody(json_encode([
-                'id' => $recordId,
                 'status' => $newStatus
             ]))
             ->withRequestHeader([

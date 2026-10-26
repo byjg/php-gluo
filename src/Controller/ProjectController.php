@@ -185,8 +185,8 @@ class ProjectController
             required: [ "name" ],
             properties: [
 
-                new OA\Property(property: "name", type: "string", format: "string"),
-                new OA\Property(property: "description", type: "string", format: "string", nullable: true)
+                new OA\Property(property: "name", type: "string", format: "string", maxLength: 100, minLength: 1),
+                new OA\Property(property: "description", type: "string", format: "string", nullable: true, maxLength: 255)
             ]
         )
     )]
@@ -238,16 +238,32 @@ class ProjectController
      * @throws ReflectionException
      */
     #[OA\Put(
-        path: "/project",
+        path: "/project/{id}",
         security: [
             ["jwt-token" => []]
         ],
         tags: ["Project"]
     )]
+    #[OA\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        schema: new OA\Schema(
+            type: "integer",
+            format: "int32"
+        )
+    )]
     #[OA\RequestBody(
         description: "The object Project to be updated",
         required: true,
-        content: new OA\JsonContent(ref: "#/components/schemas/Project")
+        content: new OA\JsonContent(
+            required: [ "name" ],
+            properties: [
+
+                new OA\Property(property: "name", type: "string", format: "string", maxLength: 100, minLength: 1),
+                new OA\Property(property: "description", type: "string", format: "string", nullable: true, maxLength: 255)
+            ]
+        )
     )]
     #[OA\Response(
         response: 200,
@@ -262,7 +278,7 @@ class ProjectController
     #[ValidateRequest]
     public function putProject(HttpResponse $response, HttpRequest $request): void
     {
-        $this->projectService->update(ValidateRequest::getPayload());
+        $this->projectService->update($request->attribute('id'), ValidateRequest::getPayload());
     }
 
 }

@@ -2,12 +2,16 @@
 
 namespace Tests\Controller;
 
+use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\Config\Config;
 use ByJG\Gluo\Util\FakeApiRequester;
 use ByJG\RestServer\Exception\Error400Exception;
 use ByJG\RestServer\Exception\Error401Exception;
 use ByJG\RestServer\Exception\Error403Exception;
+use ByJG\RestServer\Exception\Error404Exception;
 use ByJG\Serializer\ObjectCopy;
 use RestReferenceArchitecture\Model\Project;
+use RestReferenceArchitecture\Service\ProjectService;
 
 class ProjectTest extends BaseApiTestCase
 {
@@ -93,8 +97,8 @@ class ProjectTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/project")
-            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => 1]))
+            ->withPath("/project/1")
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(401)
         ;
         $this->sendRequest($request);
@@ -132,8 +136,8 @@ class ProjectTest extends BaseApiTestCase
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/project")
-            ->withRequestBody(json_encode($this->getSampleData(true) + ['id' => 1]))
+            ->withPath("/project/1")
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(403)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
@@ -170,20 +174,64 @@ class ProjectTest extends BaseApiTestCase
                 "Authorization" => "Bearer " . $result['token']
             ])
         ;
-        $body = $this->sendRequest($request);
+        $this->sendRequest($request);
 
+        // The key is in the path; the body has the same fields as the POST
         $request = new FakeApiRequester();
         $request
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('PUT')
-            ->withPath("/project")
-            ->withRequestBody($body->getBody()->getContents())
+            ->withPath("/project/" . $bodyAr['id'])
+            ->withRequestBody(json_encode($this->getSampleData(true)))
             ->expectStatus(200)
             ->withRequestHeader([
                 "Authorization" => "Bearer " . $result['token']
             ])
         ;
         $this->sendRequest($request);
+    }
+
+    /**
+     * The server refuses an invalid body with 400, not only the test client: these requests
+     * are sent without the OpenAPI schema, so the client does not stop them and they reach
+     * #[ValidateRequest] in the controller.
+     */
+    public function testInvalidPayloadIsRejectedByTheServer()
+    {
+        $result = json_decode($this->sendRequest(Credentials::requestLogin(Credentials::getAdminUser()))->getBody()->getContents(), true);
+        $sample = $this->getSampleData(true);
+        $collection = "/project";
+        $item = "/project/1";
+
+        $invalid = [
+            // The key is generated (POST) or taken from the path (PUT): the body cannot set it
+            'POST with the key in the body' => ['POST', $collection, $sample + ['id' => 1]],
+            'PUT with the key in the body' => ['PUT', $item, $sample + ['id' => 1]],
+            'POST without the required fields' => ['POST', $collection, (object)[]],
+            'PUT without the required fields' => ['PUT', $item, (object)[]],
+            'POST with an empty name' => ['POST', $collection, array_merge($sample, ['name' => ''])],
+            'PUT with an empty name' => ['PUT', $item, array_merge($sample, ['name' => ''])],
+        ];
+
+        foreach ($invalid as $case => [$method, $path, $payload]) {
+            $request = new FakeApiRequester();
+            $request
+                ->withPsr7Request($this->getPsr7Request())
+                ->withMethod($method)
+                ->withPath($path)
+                ->withRequestBody(json_encode($payload))
+                ->withRequestHeader([
+                    "Authorization" => "Bearer " . $result['token']
+                ])
+            ;
+
+            try {
+                $request->send();
+                $this->fail("$case was accepted");
+            } catch (Error400Exception) {
+                $this->addToAssertionCount(1);
+            }
+        }
     }
 
     public function testList()
@@ -231,5 +279,44 @@ class ProjectTest extends BaseApiTestCase
         $this->expectException(Error400Exception::class);
         $this->expectExceptionMessage("unknown field 'notAField'");
         $list('notAField');
+    }
+
+    /**
+     * The model is validated against its own OpenAPI schema on every save, not only through the
+     * API: a service called from a command or a queue consumer is held to the same rules.
+     */
+    public function testAnInvalidProjectIsRejectedWhenSavedOutsideTheApi()
+    {
+        $executor = Config::get(DatabaseExecutor::class);
+        $count = $executor->getScalar('select count(*) from project');
+
+        try {
+            Config::get(ProjectService::class)->create(['name' => '']);
+            $this->fail('The empty name was saved');
+        } catch (Error400Exception $ex) {
+            $this->assertStringContainsString('is shorter than minLength 1', $ex->getMessage());
+        }
+
+        $this->assertEquals($count, $executor->getScalar('select count(*) from project'));
+    }
+
+    /**
+     * A missing record answers 404 named after the model: BaseService::getOrFail() says
+     * "Project not found" without the controller passing a message.
+     */
+    public function testAMissingProjectIs404()
+    {
+        $result = json_decode($this->sendRequest(Credentials::requestLogin(Credentials::getRegularUser()))->getBody()->getContents(), true);
+
+        $this->expectException(Error404Exception::class);
+        $this->expectExceptionMessage('Project not found');
+        $this->sendRequest(
+            (new FakeApiRequester())
+                ->withPsr7Request($this->getPsr7Request())
+                ->withMethod('GET')
+                ->withPath('/project/999999')
+                ->withRequestHeader(['Authorization' => "Bearer " . $result['token']])
+                ->expectStatus(404)
+        );
     }
 }

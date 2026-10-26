@@ -2,16 +2,17 @@
 
 namespace RestReferenceArchitecture\Model;
 
+use ByJG\Gluo\Trait\ActiveRecord;
 use ByJG\Gluo\Trait\OaCreatedAt;
 use ByJG\Gluo\Trait\OaDeletedAt;
 use ByJG\Gluo\Trait\OaUpdatedAt;
+use ByJG\Gluo\Util\SchemaValidator;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\MicroOrm\Literal\LiteralInterface;
 use ByJG\MicroOrm\Query;
-use ByJG\MicroOrm\Trait\ActiveRecord;
 use OpenApi\Attributes as OA;
 use RuntimeException;
 
@@ -21,7 +22,7 @@ use RuntimeException;
  * @package RestReferenceArchitecture\Model
  */
 #[OA\Schema(required: ["id", "taskId", "body"], type: "object", xml: new OA\Xml(name: "Note"))]
-#[TableAttribute("note")]
+#[TableAttribute("note", validator: SchemaValidator::class)]
 class Note
 {
     // Add the ActiveRecord trait to enable Active Record pattern
@@ -36,7 +37,7 @@ class Note
     /**
      * @var int|null
      */
-    #[OA\Property(type: "integer", format: "int32")]
+    #[OA\Property(type: "integer", format: "int32", readOnly: true)]
     #[FieldAttribute(primaryKey: true, fieldName: "id")]
     protected int|null $id = null;
 
@@ -50,7 +51,7 @@ class Note
     /**
      * @var string|null
      */
-    #[OA\Property(type: "string", format: "string")]
+    #[OA\Property(type: "string", format: "string", maxLength: 500, minLength: 1)]
     #[FieldAttribute(fieldName: "body")]
     protected string|null $body = null;
 
@@ -61,7 +62,7 @@ class Note
      *
      * @var int|null
      */
-    #[OA\Property(type: "integer", format: "int32", nullable: true)]
+    #[OA\Property(type: "integer", format: "int32", readOnly: true, nullable: true)]
     #[FieldAttribute(fieldName: "body_length", syncWithDb: false)]
     protected int|null $bodyLength = null;
 
@@ -74,7 +75,7 @@ class Note
      *
      * @var int|null
      */
-    #[OA\Property(type: "integer", format: "int32", nullable: true)]
+    #[OA\Property(type: "integer", format: "int32", readOnly: true, nullable: true)]
     #[FieldAttribute(fieldName: "created_at", syncWithDb: false)]
     protected int|null $days = null;
 

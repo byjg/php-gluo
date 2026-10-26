@@ -59,13 +59,7 @@ class NoteController
     #[RequireAuthenticated]
     public function getNote(HttpResponse $response, HttpRequest $request): void
     {
-        $model = Note::get($request->attribute('id'));
-
-        if (is_null($model)) {
-            throw new Error404Exception("Note not found");
-        }
-
-        $response->write($model);
+        $response->write(Note::getOrFail($request->attribute('id')));
     }
 
     /**
@@ -198,7 +192,7 @@ class NoteController
             properties: [
 
                 new OA\Property(property: "taskId", type: "string", format: "string"),
-                new OA\Property(property: "body", type: "string", format: "string"),
+                new OA\Property(property: "body", type: "string", format: "string", maxLength: 500, minLength: 1),
             ]
         )
     )]
@@ -255,16 +249,32 @@ class NoteController
      * @throws ReflectionException
      */
     #[OA\Put(
-        path: "/note",
+        path: "/note/{id}",
         security: [
             ["jwt-token" => []]
         ],
         tags: ["Note"]
     )]
+    #[OA\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        schema: new OA\Schema(
+            type: "integer",
+            format: "int32"
+        )
+    )]
     #[OA\RequestBody(
         description: "The object Note to be updated",
         required: true,
-        content: new OA\JsonContent(ref: "#/components/schemas/Note")
+        content: new OA\JsonContent(
+            required: [ "taskId", "body" ],
+            properties: [
+
+                new OA\Property(property: "taskId", type: "string", format: "string"),
+                new OA\Property(property: "body", type: "string", format: "string", maxLength: 500, minLength: 1),
+            ]
+        )
     )]
     #[OA\Response(
         response: 200,
@@ -279,16 +289,10 @@ class NoteController
     #[ValidateRequest]
     public function putNote(HttpResponse $response, HttpRequest $request): void
     {
-        $payload = ValidateRequest::getPayload();
+        $model = Note::getOrFail($request->attribute('id'));
 
-        $model = Note::get($payload['id'] ?? null);
-
-        if (is_null($model)) {
-            throw new Error404Exception("Note not found");
-        }
-
-        // Update model with payload using fill() method
-        $model->fill($payload);
+        // The key comes from the path; the body has only the writable fields
+        $model->fill(ValidateRequest::getPayload());
         $model->save();
     }
 
@@ -329,13 +333,7 @@ class NoteController
     #[RequireRole(User::ROLE_ADMIN)]
     public function deleteNote(HttpResponse $response, HttpRequest $request): void
     {
-        $model = Note::get($request->attribute('id'));
-
-        if (is_null($model)) {
-            throw new Error404Exception("Note not found");
-        }
-
-        $model->delete();
+        Note::getOrFail($request->attribute('id'))->delete();
     }
 
 }

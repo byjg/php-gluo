@@ -53,15 +53,14 @@ abstract class BaseService
         return $model;
     }
 
-    public function update(array $payload): mixed
+    public function update(mixed $id, array $payload, ?string $message = null): mixed
     {
-        $primaryKey = $this->baseRepository->getMapper()->getPrimaryKey();
-        $pkValue = array_intersect_key($payload, array_flip($primaryKey));
-        if (count($pkValue) !== count($primaryKey)) {
-            throw new Error422Exception('Update requires primary key field(s): ' . implode(', ', $primaryKey));
-        }
+        $model = $this->getOrFail($id, $message);
 
-        $model = $this->getOrFail($pkValue);
+        // The record is the one $id names: a key in the payload cannot point the update elsewhere
+        foreach ($this->baseRepository->getMapper()->getPrimaryKey() as $pkField) {
+            unset($payload[$pkField]);
+        }
         ObjectCopy::copy($payload, $model);
         $this->baseRepository->save($model);
         return $model;
@@ -72,11 +71,11 @@ abstract class BaseService
         return $this->baseRepository->get($id);
     }
 
-    public function getOrFail(array|string|int|LiteralInterface $id): mixed
+    public function getOrFail(array|string|int|LiteralInterface $id, ?string $message = null): mixed
     {
         $result = $this->baseRepository->get($id);
         if (empty($result)) {
-            throw new Error404Exception('Id not found');
+            throw new Error404Exception($message ?? 'Product not found');   // "<Model> not found"
         }
         return $result;
     }
@@ -91,8 +90,9 @@ abstract class BaseService
         $this->baseRepository->save($model);
     }
 
-    public function delete(mixed $id): void
+    public function delete(mixed $id, ?string $message = null): void
     {
+        $this->getOrFail($id, $message);      // a missing record is a 404, not a silent success
         $this->baseRepository->delete($id);
     }
 }
@@ -379,7 +379,7 @@ public function __construct(protected TaskService $taskService)
 #[ValidateRequest]
 public function putTask(HttpResponse $response, HttpRequest $request): void
 {
-    $model = $this->taskService->update(ValidateRequest::getPayload());
+    $model = $this->taskService->update($request->attribute('id'), ValidateRequest::getPayload());
     $response->write($model);
 }
 

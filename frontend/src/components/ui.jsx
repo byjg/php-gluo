@@ -1,5 +1,5 @@
 import React, {useEffect, useId} from 'react';
-import {X} from 'lucide-react';
+import {ChevronLeft, ChevronRight, X} from 'lucide-react';
 import {cn} from '@/lib/utils';
 
 export function Button({ className, variant = 'primary', type = 'button', ...props }) {
@@ -91,6 +91,42 @@ export function EmptyState({ title, description, action, className }) {
       <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
       {description && <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+export const PAGE_SIZES = [10, 20, 50, 100];
+
+/**
+ * Previous / next paging for the generated list endpoints (`?page=&size=`). The API does not
+ * return a total, so a full page means there may be a next one.
+ */
+export function Pagination({ page, size, count, onPageChange, onSizeChange, className }) {
+  const hasNext = count === size;
+  return (
+    <div className={cn('flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600', className)}>
+      <label className="flex items-center gap-2">
+        Rows per page
+        <select
+          value={size}
+          onChange={(e) => onSizeChange(Number(e.target.value))}
+          className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
+          aria-label="Rows per page"
+        >
+          {PAGE_SIZES.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      </label>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" className="px-2 py-1" onClick={() => onPageChange(page - 1)} disabled={page === 0} aria-label="Previous page">
+          <ChevronLeft size={16} />
+        </Button>
+        <span>Page {page + 1}</span>
+        <Button variant="outline" className="px-2 py-1" onClick={() => onPageChange(page + 1)} disabled={!hasNext} aria-label="Next page">
+          <ChevronRight size={16} />
+        </Button>
+      </div>
     </div>
   );
 }

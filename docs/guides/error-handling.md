@@ -601,7 +601,7 @@ public function updateProduct(int $productId, array $payload): Product
     ]);
 
     try {
-        $product = $this->update($payload);
+        $product = $this->update($productId, $payload);
 
         $this->logger->info('Product updated successfully', [
             'product_id' => $productId
@@ -719,7 +719,9 @@ public function createProduct(...) { }
 
 ```php
 // Good - Concise
-$product = $this->getOrFail($id);
+$product = $this->getOrFail($id);                                  // in a service
+$product = $this->getOrFail($id, "There is no product $id");       // with your message
+$note = Note::getOrFail($id);                                      // ActiveRecord model
 
 // Bad - Verbose
 $product = $this->get($id);
@@ -727,6 +729,11 @@ if ($product === null) {
     throw new Error404Exception('Product not found');
 }
 ```
+
+Both answer `"<Model> not found"` by default (`"Product not found"`, `"Note not found"`), and
+both take your message as the second argument. In the Repository pattern, `update($id, $payload)`
+and `delete($id)` look the record up the same way, so a missing record is a 404 there too, and
+they take the message as their last argument.
 
 ### 8. Catch Specific Exceptions
 

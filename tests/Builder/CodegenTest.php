@@ -49,7 +49,8 @@ class CodegenTest extends BaseApiTestCase
     {
         $output = $this->runCodegen(['model', 'controller', '--activerecord']);
 
-        $this->assertStringContainsString('use ByJG\MicroOrm\Trait\ActiveRecord;', $output);
+        // Gluo's ActiveRecord trait: MicroOrm's, plus getOrFail()
+        $this->assertStringContainsString('use ByJG\Gluo\Trait\ActiveRecord;', $output);
         $this->assertStringContainsString('use ByJG\Gluo\Attribute\RequireAuthenticated;', $output);
         // ActiveRecord pattern must not generate repository/service imports
         $this->assertStringNotContainsString('use ByJG\Gluo\Service\BaseService;', $output);
