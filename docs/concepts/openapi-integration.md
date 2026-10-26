@@ -35,6 +35,13 @@ APP_ENV=dev php gluo openapi
 - Tests can validate responses even in CI environments.
 - The API reference always has an up-to-date spec to render.
 
+### Spec version
+
+The spec is written as **OpenAPI 3.1**. The attributes do not change: swagger-php turns
+`nullable: true` into the 3.1 form, a type union such as `"type": ["string", "null"]`. The
+router, `#[ValidateRequest]` and the contract tests all read 3.1. To keep writing 3.0,
+override `getOpenApiVersion()` in `builder/Scripts.php` and return `'3.0.0'`.
+
 ## API Reference
 
 When the dev server is running, open `http://localhost:8080/docs/` to browse the interactive API documentation. Every endpoint, parameter, and schema defined in `openapi.json` is rendered on a single page with a sidebar grouped by tag, a search (`Ctrl/⌘ K`) over operations and schemas, and a built-in request client. Each operation also has a PHP code sample using [byjg/webrequest](https://opensource.byjg.com/docs/php/webrequest/), generated in the browser by `public/docs/index.html`. To call a protected endpoint, log in with `POST /login` and paste the token into the `jwt-token` authentication field (Scalar adds the `Bearer ` prefix).

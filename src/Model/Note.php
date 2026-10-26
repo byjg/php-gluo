@@ -50,7 +50,7 @@ class Note
     /**
      * @var string|null
      */
-    #[OA\Property(type: "string", format: "string")]
+    #[OA\Property(type: "string", format: "string", maxLength: 500, minLength: 1)]
     #[FieldAttribute(fieldName: "body")]
     protected string|null $body = null;
 

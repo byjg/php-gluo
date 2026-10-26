@@ -198,7 +198,7 @@ class NoteController
             properties: [
 
                 new OA\Property(property: "taskId", type: "string", format: "string"),
-                new OA\Property(property: "body", type: "string", format: "string"),
+                new OA\Property(property: "body", type: "string", format: "string", maxLength: 500, minLength: 1),
             ]
         )
     )]

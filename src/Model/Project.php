@@ -26,14 +26,14 @@ class Project
     /**
      * @var string|null
      */
-    #[OA\Property(type: "string", format: "string")]
+    #[OA\Property(type: "string", format: "string", maxLength: 100, minLength: 1)]
     #[FieldAttribute(fieldName: "name")]
     protected string|null $name = null;
 
     /**
      * @var string|null
      */
-    #[OA\Property(type: "string", format: "string", nullable: true)]
+    #[OA\Property(type: "string", format: "string", nullable: true, maxLength: 255)]
     #[FieldAttribute(fieldName: "description")]
     protected string|null $description = null;
 

@@ -185,8 +185,8 @@ class ProjectController
             required: [ "name" ],
             properties: [
 
-                new OA\Property(property: "name", type: "string", format: "string"),
-                new OA\Property(property: "description", type: "string", format: "string", nullable: true)
+                new OA\Property(property: "name", type: "string", format: "string", maxLength: 100, minLength: 1),
+                new OA\Property(property: "description", type: "string", format: "string", nullable: true, maxLength: 255)
             ]
         )
     )]

@@ -106,9 +106,20 @@
   tests in `Tests\Controller`. A project created from an earlier template keeps working as it
   is; rename its namespace when you want the generated tests to match.
 
+- **The example lists page and sort.** The projects screen pages (`page`, `size`) and sorts
+  by name through the API, with a new `Pagination` component in
+  `frontend/src/components/ui.jsx`. It used to show only the first 50 projects.
+- **`GET /project/{projectId}/task`** returns a project's tasks, filtered by the database
+  (`TaskService::getByProjectId()`). The project screen used to load the first 50 tasks of
+  every project and filter them in the browser, so tasks disappeared once there were more.
+- **The examples are what codegen writes now:** `maxLength` and, for required text,
+  `minLength: 1` on `project.name`, `task.title` and `note.body`, and a test per entity that
+  sends invalid bodies to the server.
+- **`public/docs/openapi.json` is OpenAPI 3.1.**
+
 ## Bug Fixes
 
-- The Docker image copied `php gluo` and `composer.json` "for the migration script", but not
+- The Docker image copied the `gluo` script and `composer.json` "for the migration script", but not
   `db/`, so `php gluo migrate:update` in the image had no migrations to run. It now copies
   `db/` (a local SQLite database file in it stays out, through `.dockerignore`).
 

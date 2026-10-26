@@ -228,7 +228,7 @@ class Product
     #[FieldAttribute(primaryKey: true, fieldName: "id")]
     protected int|null $id = null;
 
-    #[OA\Property(type: "string", maxLength: 120)]
+    #[OA\Property(type: "string", maxLength: 120, minLength: 1)]
     #[FieldAttribute(fieldName: "name")]
     protected string|null $name = null;
 

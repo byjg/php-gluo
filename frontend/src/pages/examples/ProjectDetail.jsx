@@ -47,9 +47,11 @@ export default function ProjectDetail() {
     setProject(data);
   }, [id]);
 
+  // The API returns only this project's tasks (TaskService::getByProjectId); pulling the
+  // first page of every task and filtering here would lose tasks once there are more.
   const loadTasks = useCallback(async () => {
-    const data = await api.request('/task', { method: 'GET' });
-    setTasks(Array.isArray(data) ? data.filter((t) => String(t.projectId) === String(id)) : []);
+    const data = await api.request(`/project/${id}/task`, { method: 'GET' });
+    setTasks(Array.isArray(data) ? data : []);
   }, [id]);
 
   // Fetch every note in this project in one request. A note only carries a task_id,

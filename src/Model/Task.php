@@ -36,14 +36,14 @@ class Task
     /**
      * @var string|null
      */
-    #[OA\Property(type: "string", format: "string")]
+    #[OA\Property(type: "string", format: "string", maxLength: 150, minLength: 1)]
     #[FieldAttribute(fieldName: "title")]
     protected string|null $title = null;
 
     /**
      * @var string|null
      */
-    #[OA\Property(type: "string", format: "string")]
+    #[OA\Property(type: "string", format: "string", maxLength: 20)]
     #[FieldAttribute(fieldName: "status")]
     protected string|null $status = null;
 

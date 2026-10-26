@@ -1,8 +1,8 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {Link} from 'react-router-dom';
-import {Edit3, FolderPlus, Search} from 'lucide-react';
+import {ArrowDown, ArrowUp, Edit3, FolderPlus, Search} from 'lucide-react';
 import {api} from '@/lib/api';
-import {Alert, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Textarea} from '@/components/ui';
+import {Alert, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Pagination, Textarea} from '@/components/ui';
 
 const blankForm = { name: '', description: '' };
 
@@ -16,11 +16,16 @@ export default function ProjectsList() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  // The list is paged and sorted by the API (?page=&size=&orderBy=), so every project can be reached.
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+  const [descending, setDescending] = useState(false);
 
   const load = async () => {
     setError('');
     try {
-      const data = await api.request('/project', { method: 'GET' });
+      const params = new URLSearchParams({ page, size, orderBy: descending ? 'name desc' : 'name' });
+      const data = await api.request(`/project?${params}`, { method: 'GET' });
       setProjects(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
@@ -31,7 +36,12 @@ export default function ProjectsList() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, size, descending]);
+
+  const changeSize = (newSize) => {
+    setSize(newSize);
+    setPage(0);
+  };
 
   const filteredProjects = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -127,7 +137,7 @@ export default function ProjectsList() {
             />
           </div>
           <div className="text-sm text-slate-500">
-            {loading ? 'Loading...' : `${filteredProjects.length} of ${projects.length} projects`}
+            {loading ? 'Loading...' : `${filteredProjects.length} of ${projects.length} projects on this page`}
           </div>
         </div>
 
@@ -136,7 +146,7 @@ export default function ProjectsList() {
 
           {loading && <p className="py-8 text-center text-sm text-slate-500">Loading projects...</p>}
 
-          {!loading && !error && !hasProjects && (
+          {!loading && !error && !hasProjects && page === 0 && (
             <EmptyState
               title="No projects yet"
               description="Create the first project to start exercising the example CRUD flow."
@@ -168,8 +178,11 @@ export default function ProjectsList() {
               <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th scope="col" className="px-4 py-3 font-semibold">
-                      Name
+                    <th scope="col" className="px-4 py-3 font-semibold" aria-sort={descending ? 'descending' : 'ascending'}>
+                      <button type="button" className="inline-flex items-center gap-1 uppercase" onClick={() => setDescending(!descending)}>
+                        Name
+                        {descending ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
+                      </button>
                     </th>
                     <th scope="col" className="px-4 py-3 font-semibold">
                       Description
@@ -201,6 +214,17 @@ export default function ProjectsList() {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {!loading && !error && (hasProjects || page > 0) && (
+            <Pagination
+              className="mt-4"
+              page={page}
+              size={size}
+              count={projects.length}
+              onPageChange={setPage}
+              onSizeChange={changeSize}
+            />
           )}
         </div>
       </Card>

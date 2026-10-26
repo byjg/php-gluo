@@ -142,6 +142,8 @@ php gluo --env=dev codegen:all --table=product --save
 ```
 
 That emits the model, repository, service, controller, functional test and DI bindings.
+The controller has get, list, create and update, working; the delete endpoint is the one
+you write yourself (Symfony's `make:crud` generates it, Laravel generates none of the bodies).
 Migrations are hand-written numbered SQL pairs — you write both directions:
 
 ```
@@ -182,6 +184,42 @@ Both styles live in the same project, so a Laravel developer can keep the Eloque
 for simple tables while the complex ones get a service layer. See
 [Architecture Decisions](../concepts/architecture.md) for when to choose which.
 
+## What you get in the box
+
+What a new project already does before you write a line, compared with what you would
+add or generate elsewhere. [See it side by side](#see-it-side-by-side) shows each one in
+a real application.
+
+- **Login, done.** `POST /login` returns a JWT. For basic login that is what Laravel's
+  starter kit (Fortify) or Symfony's `make:user` + `make:security:form-login` give you.
+  Beyond the login itself, Gluo also ships token refresh, password reset by an e-mail code,
+  and roles. Laravel's starter kit has password reset too (plus registration, e-mail
+  verification and 2FA); Symfony's two makers do not, and `make:reset-password` adds it
+  with a SymfonyCasts bundle.
+- **Permissions per endpoint.** `#[RequireAuthenticated]` and `#[RequireRole]` on the
+  method, so reading and writing can have different permissions without a policy or a
+  firewall rule. The generated CRUD lets any logged-in user read and **only admins write**;
+  Laravel and Symfony let any logged-in user do both. To match them, replace
+  `#[RequireRole(User::ROLE_ADMIN)]` with `#[RequireAuthenticated]` on the write endpoints.
+- **Validation and API documentation from one declaration.** The OpenAPI attributes on the
+  model and the endpoint validate the request (`#[ValidateRequest]`, 400 on failure) and are
+  the schema Swagger UI publishes, so the two cannot drift. codegen writes the types, the
+  required fields and the lengths from the table (a `NOT NULL` text column without a default
+  also gets `minLength: 1`, so an empty string is refused like a missing value); value
+  ranges are yours.
+- **Timestamps and soft delete from the column names.** When the table has `created_at`,
+  `updated_at` and `deleted_at`, codegen adds the `OaCreatedAt`, `OaUpdatedAt` and
+  `OaDeletedAt` traits, and deleted rows are hidden. Laravel's equivalent is the
+  `SoftDeletes` trait; Symfony and Doctrine have none of their own.
+- **Lists that page and sort.** Generated list endpoints take `page`, `size` and
+  `orderBy`, and an `orderBy` that is not a field of the model is rejected with 400. The
+  starter's frontend has a `Pagination` component for them.
+- **A separate frontend, if you want one.** An optional React SPA in `frontend/` calls the
+  API with the JWT, in its own container, with HTTPS in development (a self-signed
+  certificate generated at start). Delete the folder and the API is unchanged.
+- **Contract tests.** The generated functional tests check every response against the
+  OpenAPI document, and send invalid bodies to the server to check it answers 400.
+
 ## Vocabulary
 
 | Laravel | Symfony | Drupal | CakePHP | CodeIgniter | Gluo |
@@ -195,7 +233,11 @@ for simple tables while the complex ones get a service layer. See
 | `config/*.php` | `config/services.yaml` | `*.services.yml` | `config/app.php` | `app/Config/*.php` | `config/{env}/*.php` |
 | `.env` | `.env` | `settings.php` | `config/app_local.php` | `.env` | `config/{env}/credentials.env` |
 | `app()->make()` | autowiring | `\Drupal::service()` | `Application::services()` | `Config\Services` / `service()` | constructor injection (`Autowire::rule()` or explicit `DI::bind()`, your choice) |
+| Starter kit login (Fortify) | `make:user` + `make:security:form-login` | User module | Authentication plugin | Shield | shipped `LoginController` (JWT) |
 | Gate / Policy | `#[IsGranted]` | `_permission` route key | Authorization policy | Shield filter | `#[RequireRole]` |
+| `SoftDeletes` trait | Gedmo extension (community) or your own filter | — | — | `$useSoftDeletes` on the Model | `OaDeletedAt` trait, added by codegen |
+| Blade / Inertia pages | Twig | Twig themes | Templates | Views | optional React SPA in `frontend/`, over the API |
+| — (community packages) | — (NelmioApiDocBundle) | — | — | — | OpenAPI + Swagger UI, generated from the routes |
 | FormRequest | Validator + DTO | Form API | `validationDefault()` | `$this->validate()` | `#[ValidateRequest]` + OpenAPI schema |
 | `php artisan tinker` | — | `drush php` | `bin/cake console` | — | `php gluo terminal` |
 
@@ -223,7 +265,7 @@ says where the same thing lives instead.
 | New CLI command | `php artisan make:command` | `php bin/console make:command` | `bin/cake bake command` | `php spark make:command` | — add a method to `src/Command/Commands.php` |
 | Scheduled jobs | `php artisan schedule:run`, from cron | `php bin/console messenger:consume scheduler_default` | — | — | `php gluo --env=prod install --template=crond <command>` |
 | Background worker | `php artisan queue:work` | `php bin/console messenger:consume async` | — | — | `php gluo --env=prod install <command>` (a systemd service) |
-| Static analysis | Pint / PHPStan | PHPStan | PHPStan | — | `composer psalm` |
+| Static analysis | Pint / PHPStan | — (PHPStan is common, but not configured) | PHPStan | — | `composer psalm` |
 
 ### Only in Gluo
 
@@ -279,9 +321,9 @@ already there:
 
 ## See it side by side
 
-[Gluo vs Laravel vs Symfony](https://opensource.byjg.com/docs/php/gluo-framework-comparison/)
-builds the same small application with each framework, each one following what its own
-framework recommends. It lists every command and every hand edit, so you can compare how
+[Gluo vs Laravel, Symfony, CakePHP and CodeIgniter](https://opensource.byjg.com/docs/php/gluo-framework-comparison/)
+builds the same small application with each of those frameworks (Drupal is not built
+there), each one following what its own framework recommends. It lists every command and every hand edit, so you can compare how
 each feature is actually done.
 
 ## Next

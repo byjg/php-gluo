@@ -186,6 +186,43 @@ class ProjectTest extends BaseApiTestCase
         $this->sendRequest($request);
     }
 
+    /**
+     * The server refuses an invalid body with 400, not only the test client: these requests
+     * are sent without the OpenAPI schema, so the client does not stop them and they reach
+     * #[ValidateRequest] in the controller.
+     */
+    public function testInvalidPayloadIsRejectedByTheServer()
+    {
+        $result = json_decode($this->sendRequest(Credentials::requestLogin(Credentials::getAdminUser()))->getBody()->getContents(), true);
+        $sample = $this->getSampleData(true);
+
+        $invalid = [
+            'PUT without the primary key' => ['PUT', (object)[]],
+            'POST without the required fields' => ['POST', (object)[]],
+            'POST with an empty name' => ['POST', array_merge($sample, ['name' => ''])],
+        ];
+
+        foreach ($invalid as $case => [$method, $payload]) {
+            $request = new FakeApiRequester();
+            $request
+                ->withPsr7Request($this->getPsr7Request())
+                ->withMethod($method)
+                ->withPath("/project")
+                ->withRequestBody(json_encode($payload))
+                ->withRequestHeader([
+                    "Authorization" => "Bearer " . $result['token']
+                ])
+            ;
+
+            try {
+                $request->send();
+                $this->fail("$case was accepted");
+            } catch (Error400Exception) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
     public function testList()
     {
         $result = json_decode($this->sendRequest(Credentials::requestLogin(Credentials::getRegularUser()))->getBody()->getContents(), true);

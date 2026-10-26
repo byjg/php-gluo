@@ -24,6 +24,29 @@ The code generator supports two architectural patterns:
 - **REST API** - Complete CRUD endpoints (GET, POST, PUT)
 - **Functional Tests** - Test suite for the CRUD API
 
+The delete endpoint is not generated; write it by hand where the entity needs one.
+
+### From columns to the OpenAPI schema
+
+Each column becomes an `OA\Property` on the model and in the request body of `POST`, and
+that schema is what `#[ValidateRequest]` enforces (400 on failure) and what the API docs
+publish:
+
+| Column | Generated |
+|---|---|
+| `int`, `bigint`, `decimal`, `date`, `datetime`, ... | `type` and `format` |
+| `NULL` allowed | `nullable: true` |
+| `NOT NULL` | listed in `required` |
+| `char(N)` / `varchar(N)` | `maxLength: N` |
+| `NOT NULL` text (`char`, `varchar`, `text`) **with no default** | `minLength: 1`: an empty string is refused like a missing value |
+
+Value ranges (`minimum`, `maximum`) cannot be read from a column type; add them by hand.
+
+The generated functional test also sends invalid bodies straight to the server (a `PUT`
+without the primary key, a `POST` without the required fields, and an empty value for each
+`minLength` column) and expects 400. They are sent without the OpenAPI spec on the client
+side, so the test client does not stop them first.
+
 ## Usage
 
 ```bash

@@ -149,6 +149,42 @@ class TaskController
         $response->write($result);
     }
 
+    /**
+     * List the tasks of a project, filtered by the database instead of by the client.
+     *
+     * @param HttpResponse $response
+     * @param HttpRequest $request
+     * @return void
+     */
+    #[OA\Get(
+        path: "/project/{projectId}/task",
+        security: [
+            ["jwt-token" => []]
+        ],
+        tags: ["Task"]
+    )]
+    #[OA\Parameter(
+        name: "projectId",
+        in: "path",
+        required: true,
+        schema: new OA\Schema(type: "integer", format: "int32")
+    )]
+    #[OA\Response(
+        response: 200,
+        description: "The tasks belonging to the project",
+        content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Task"))
+    )]
+    #[OA\Response(
+        response: 401,
+        description: "Not Authorized",
+        content: new OA\JsonContent(ref: "#/components/schemas/error")
+    )]
+    #[RequireAuthenticated]
+    public function listTasksByProject(HttpResponse $response, HttpRequest $request): void
+    {
+        $response->write($this->taskService->getByProjectId((int)$request->attribute('projectId')));
+    }
+
 
     /**
      * Create a new Task 
@@ -186,8 +222,8 @@ class TaskController
             properties: [
 
                 new OA\Property(property: "projectId", type: "integer", format: "int32"),
-                new OA\Property(property: "title", type: "string", format: "string"),
-                new OA\Property(property: "status", type: "string", format: "string")
+                new OA\Property(property: "title", type: "string", format: "string", maxLength: 150, minLength: 1),
+                new OA\Property(property: "status", type: "string", format: "string", maxLength: 20)
             ]
         )
     )]
