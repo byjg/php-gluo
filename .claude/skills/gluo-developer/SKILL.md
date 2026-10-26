@@ -197,6 +197,20 @@ php gluo openapi
 
 Codegen produces: model, repository, service, controller, and tests. Edit to add business logic.
 
+What the generated code already does, so you don't write it again:
+- **Model**: `OA\Property` for each column, with `maxLength` from `char`/`varchar`, `minLength: 1`
+  for required text with no default, `nullable` from `NULL`; the primary key and virtual columns
+  are `readOnly`. The table attribute declares `validator: SchemaValidator::class`, so every
+  `save()` is checked against this schema (400 on failure). Date columns become the
+  `OaCreatedAt`/`OaUpdatedAt`/`OaDeletedAt` traits.
+- **Controller**: `GET /product/{id}`, `GET /product` (paged, `orderBy`), `POST /product`, and
+  `PUT /product/{id}`. POST and PUT share the body (writable fields only). Writes require
+  `RequireRole(User::ROLE_ADMIN)`, reads `RequireAuthenticated`. No DELETE: write it by hand.
+  ActiveRecord controllers use `Product::getOrFail()`.
+- **Test**: auth (401/403), the full CRUD, list and ordering, and invalid bodies sent to the
+  server (the key in the body, missing required fields, an empty text) on POST and PUT.
+- **Not generated**: value ranges (`minimum`/`maximum`), the DELETE endpoint, business rules.
+
 ---
 
 ### Option B: Manual — Repository Pattern
@@ -345,23 +359,77 @@ class ProductController
         $response->write($result);
     }
 
-    #[OA\Post(path: "/product", security: [["jwt-token" => []]], tags: ["product"])]
-    #[OA\RequestBody(required: true, content: new OA\JsonContent(ref: "#/components/schemas/Product"))]
-    #[OA\Response(response: 200, description: "Created",
-        content: new OA\JsonContent(ref: "#/components/schemas/Product"))]
+    // A list is paged and ordered by the API: ?page=0&size=20&orderBy=name desc,id
+    #[OA\Get(path: "/product", security: [["jwt-token" => []]], tags: ["product"])]
+    #[OA\Parameter(name: "page", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "size", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "orderBy", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Response(response: 200, description: "Success",
+        content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Product")))]
     #[RequireAuthenticated]
+    public function listProduct(HttpResponse $response, HttpRequest $request): void
+    {
+        $response->write($this->productService->list(
+            (int)($request->queryString('page') ?? 0),
+            (int)($request->queryString('size') ?? 50),
+            OrderBy::fromQueryString($request->queryString('orderBy'), Product::class)
+        ));
+    }
+
+    // POST and PUT take the same body: the writable fields only, declared inline. The key is
+    // generated on POST and taken from the path on PUT, so a key in the body is refused (400).
+    #[OA\Post(path: "/product", security: [["jwt-token" => []]], tags: ["product"])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ["name"],
+        properties: [new OA\Property(property: "name", type: "string", format: "string", maxLength: 120, minLength: 1)]
+    ))]
+    #[OA\Response(response: 200, description: "Created",
+        content: new OA\JsonContent(properties: [new OA\Property(property: "id", type: "integer")]))]
+    #[RequireRole(User::ROLE_ADMIN)]
     #[ValidateRequest]
     public function postProduct(HttpResponse $response, HttpRequest $request): void
     {
         $model = $this->productService->create(ValidateRequest::getPayload());
-        $response->write($model);
+        $response->write(["id" => $model->getId()]);
+    }
+
+    #[OA\Put(path: "/product/{id}", security: [["jwt-token" => []]], tags: ["product"])]
+    #[OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ["name"],
+        properties: [new OA\Property(property: "name", type: "string", format: "string", maxLength: 120, minLength: 1)]
+    ))]
+    #[OA\Response(response: 200, description: "Nothing to return")]
+    #[RequireRole(User::ROLE_ADMIN)]
+    #[ValidateRequest]
+    public function putProduct(HttpResponse $response, HttpRequest $request): void
+    {
+        // 404 "Product not found" when there is no such record
+        $this->productService->update($request->attribute('id'), ValidateRequest::getPayload());
+    }
+
+    // codegen does not write a DELETE; this is the hand-written one
+    #[OA\Delete(path: "/product/{id}", security: [["jwt-token" => []]], tags: ["product"])]
+    #[OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))]
+    #[OA\Response(response: 200, description: "Nothing to return")]
+    #[RequireRole(User::ROLE_ADMIN)]
+    public function deleteProduct(HttpResponse $response, HttpRequest $request): void
+    {
+        $this->productService->delete($request->attribute('id'));   // 404 when missing
     }
 }
 ```
 
+In the ActiveRecord pattern the same endpoints call the model: `Product::getOrFail($id)` for GET,
+`$model = Product::getOrFail($id); $model->fill(ValidateRequest::getPayload()); $model->save();`
+for PUT, and `Product::getOrFail($id)->delete()` for DELETE.
+
+`OrderBy::fromQueryString()` (`ByJG\Gluo\Util\OrderBy`) accepts fields of the model, by
+property or column name, each optionally followed by `asc` or `desc`; anything else is a 400.
+
 **Request helpers:**
 - `$request->attribute('id')` — path param (e.g. `{id}`) or JWT decoded claim (e.g. `$request->attribute('jwt.data')`)
-- `$request->query('page')` — query string param
+- `$request->queryString('page')` — one query string param as a string (`$request->query()` returns them all)
 - `ValidateRequest::getPayload()` — validated request body (array for JSON)
 
 **Security attributes:**
@@ -375,7 +443,8 @@ class ProductController
 php gluo openapi
 ```
 
-Always run this after adding or changing controller attributes. It updates `public/docs/openapi.json`
+The spec is OpenAPI 3.1: `nullable: true` on an attribute becomes a type union in the JSON
+(`"type": ["string", "null"]`). Always run this after adding or changing controller attributes. It updates `public/docs/openapi.json`
 which drives both routing and contract testing. Forgetting it makes the endpoint 404 with no error —
 `php gluo openapi:check` (run automatically by `php gluo test`) warns when the spec is older than
 anything in `src/Controller/` or `src/Model/`.
