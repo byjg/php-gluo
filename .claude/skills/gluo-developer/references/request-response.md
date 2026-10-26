@@ -14,7 +14,7 @@ public/docs/openapi.json   ←── single source of truth for routing + valida
 ```
 
 `openapi.json` is generated from the PHP attributes in `src/`. **You never hand-edit it.**
-Run `php gluo openapi` after any controller attribute change — routing AND validation
+Run `php gluo openapi` after any model or controller attribute change — routing AND validation
 both break if the file is stale.
 
 ---
@@ -57,7 +57,8 @@ on `Serialize` first).
 ## Input validation: #[ValidateRequest]
 
 Add `#[ValidateRequest]` to any method that accepts a body. It runs before the method,
-validates the body against the OpenAPI `requestBody` schema, and stores the result.
+validates JSON/multipart bodies against the OpenAPI `requestBody` schema, and stores the
+result. XML bodies are parsed but not schema-validated here; see [XML](xml.md).
 
 ```php
 #[OA\Post(path: "/product", security: [["jwt-token" => []]], tags: ["product"])]
@@ -88,7 +89,8 @@ public function postProduct(HttpResponse $response, HttpRequest $request): void
 
 ### Null stripping (default)
 
-Keys explicitly set to `null` in the JSON body are removed before your code sees them:
+Validation checks the original JSON body first. If it passes, keys explicitly set to
+`null` are removed before your code sees them:
 
 ```json
 {"name": "Widget", "price": null}
@@ -237,11 +239,11 @@ The framework then picks the processor that matches the `Accept` header. A clien
 ### Request body
 
 ```php
-// Reference to a model schema (preferred — keeps the spec DRY)
+// Reference a model only when its schema matches the intended request fields
 #[OA\RequestBody(required: true,
     content: new OA\JsonContent(ref: "#/components/schemas/Product"))]
 
-// Inline schema (use for responses that don't match a full model)
+// Current generated writes use inline schemas containing only writable fields
 #[OA\RequestBody(required: true,
     content: new OA\JsonContent(
         required: ["name"],
@@ -293,7 +295,7 @@ Both are needed — the OA attribute for documentation/contract, the PHP attribu
 ## Full lifecycle summary
 
 ```
-1. Developer adds/changes OA attributes on a controller method
+1. Developer adds/changes OA attributes on a model or controller
    └── php gluo openapi
        └── scans src/, writes public/docs/openapi.json
 
