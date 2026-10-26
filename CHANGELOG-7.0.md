@@ -33,6 +33,17 @@
 
 ## Changes
 
+- **The agent skill is `gluo-developer`, published instead of copied.** It was `dev-guide`, copied
+  into every new project, where it stayed as it was on the day the project was created. The source
+  is still `.claude/skills/gluo-developer/` in this repository; it is published with the
+  documentation, at https://opensource.byjg.com/docs/ai/agent-skills/gluo-developer, and in the ByJG plugin
+  catalog (`byjg/skills`). `create-project` now removes `.claude/skills/` and writes a
+  `.claude/settings.json` that declares the catalog and enables `gluo-developer@byjg`, so Claude
+  Code offers the skill once the project folder is trusted. Other agents install it with
+  `npx skills add byjg/skills --skill gluo-developer`. A project created before this change
+  can delete its `.claude/skills/dev-guide/`, add the same `.claude/settings.json`, and rename
+  `dev-guide` to `gluo-developer` in its `.claude/CLAUDE.md`.
+
 - **The database server is the `gluo-database` service, in `docker-compose.database.yml`.** It was
   `mysql-container` (`postgres-container` for PostgreSQL) in `docker-compose.yml`, with fixed
   `container_name`s (`resttest`, `mysql-container`) that made every project created from the

@@ -25,7 +25,7 @@ Routes are declared entirely through OpenAPI attributes on controller methods. T
 `operationId` that `zircote/swagger-php` generates becomes the routing key:
 
 ```
-operationId: "RestReferenceArchitecture\\Controller\\ProjectController::getProject"
+operationId: "App\\Controller\\ProjectController::getProject"
                  └── class (fully qualified)      └── method
 ```
 
@@ -218,7 +218,7 @@ The framework then picks the processor that matches the `Accept` header. A clien
 ```php
 #[OA\Get(path: "/product/{id}", security: [["jwt-token" => []]], tags: ["product"])]
 #[OA\Post(path: "/product",     security: [["jwt-token" => []]], tags: ["product"])]
-#[OA\Put(path: "/product",      security: [["jwt-token" => []]], tags: ["product"])]
+#[OA\Put(path: "/product/{id}", security: [["jwt-token" => []]], tags: ["product"])]
 #[OA\Delete(path: "/product/{id}", security: [["jwt-token" => []]], tags: ["product"])]
 ```
 

@@ -285,6 +285,16 @@ ENV;
         rename("$workdir/builder/README.project.md", "$workdir/README.md");
         echo "Created README.md\n";
 
+        // The agent skill is published too (opensource.byjg.com/skills), where it follows
+        // gluo-core updates. Drop the copy and declare the published plugin instead: Claude
+        // Code offers it once the project folder is trusted.
+        if (is_dir("$workdir/.claude/skills")) {
+            self::removeDir("$workdir/.claude/skills");
+            echo "Removed .claude/skills/\n";
+        }
+        rename("$workdir/builder/claude-settings.project.json", "$workdir/.claude/settings.json");
+        echo "Created .claude/settings.json\n";
+
         // The changelogs are the history of this starter, not of the project being
         // created, which starts its own.
         foreach (glob("$workdir/CHANGELOG-*.md") ?: [] as $changelog) {

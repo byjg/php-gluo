@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "byjg": {
+      "source": {
+        "source": "github",
+        "repo": "byjg/skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "gluo-developer@byjg": true
+  }
+}

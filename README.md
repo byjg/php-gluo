@@ -169,6 +169,18 @@ php gluo --env=dev codegen:all --table=project --save
 - **[Scriptify](docs/reference/scriptify.md)** – REPL, CLI runner, and service manager utilities.
 - **[Components](docs/reference/components.md)** – Full PHP component dependency graph.
 
+## AI coding agents
+
+`gluo-developer` is an Agent Skill that teaches a coding agent how a Gluo project is built: the
+two model patterns, codegen, the OpenAPI attributes, tests, migrations and the DI config. It is
+published at [opensource.byjg.com/docs/ai/agent-skills/gluo-developer](https://opensource.byjg.com/docs/ai/agent-skills/gluo-developer).
+
+- **Claude Code**: a project created from the starter declares the ByJG plugin catalog in
+  `.claude/settings.json`, so Claude Code offers the skill once you trust the project folder. To install it by hand:
+  `/plugin marketplace add byjg/skills`, then `/plugin install gluo-developer@byjg`.
+- **Other agents** that read Agent Skills (Codex, Cursor, Gemini CLI, ...):
+  `npx skills add byjg/skills --skill gluo-developer`.
+
 ## Real-World Example
 
 ```bash
