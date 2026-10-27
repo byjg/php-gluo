@@ -328,6 +328,6 @@ All tests should pass successfully!
 :::caution Regeneration is not optional
 Routing is read from `public/docs/openapi.json`, not from your PHP. Change a controller
 attribute without running `php gluo openapi` and the endpoint returns **404 with no
-error message**. `php gluo test` runs `php gluo openapi:check` first, which warns when the
-spec is older than your controllers or models — you can also run it on its own.
+error message**. `php gluo test` runs `php gluo openapi:check` first, which fails when the
+spec is not what your controllers and models generate — you can also run it on its own.
 :::

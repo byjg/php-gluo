@@ -238,8 +238,8 @@ php gluo openapi
 The spec is OpenAPI 3.1: `nullable: true` on an attribute becomes a type union in the JSON
 (`"type": ["string", "null"]`). Always run this after adding or changing model or controller attributes. It updates `public/docs/openapi.json`
 which drives both routing and contract testing. Forgetting it makes the endpoint 404 with no error —
-`php gluo openapi:check` (run automatically by `php gluo test`) warns when the spec is older than
-anything in `src/Controller/` or `src/Model/`.
+`php gluo openapi:check` (run automatically by `php gluo test`) fails when the spec is not what
+the attributes generate.
 
 `openapi.json` is the single source of truth: `OpenApiRouteList` reads it to build the route
 table (URL+method → Controller::method), `#[ValidateRequest]` reads it to validate request

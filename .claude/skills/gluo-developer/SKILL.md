@@ -341,7 +341,7 @@ Throw to return the right HTTP status:
 | `composer psalm` | Run static analysis |
 | `php gluo test` | Run test suite (phpunit) |
 | `php gluo openapi` | Regenerate OpenAPI spec from attributes |
-| `php gluo openapi:check` | Warn if the spec is stale (auto-run by `php gluo test`) |
+| `php gluo openapi:check` | Fail if the spec is out of date (auto-run by `php gluo test`) |
 | `php gluo --env=dev migrate:update` | Apply pending migrations (normal dev) |
 | `php gluo --env=dev migrate:reset` | Wipe and recreate the selected DB; only for an intended reset |
 | `php gluo --env=dev codegen:all --table=X --save` | Scaffold full CRUD for table X |
