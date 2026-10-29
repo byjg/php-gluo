@@ -3,16 +3,8 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use ByJG\Config\Config;
-use ByJG\RestServer\Route\OpenApiRouteList;
-use ByJG\RestServer\Server;
+use ByJG\Gluo\Http\Application;
 
-class App
-{
-    public static function run()
-    {
-        $server = Config::get(Server::class);
-        $server->handle(Config::get(OpenApiRouteList::class));
-    }
-}
-
-App::run();
+// The Application, the Server and the routes are in the configuration (config/<env>/03-api.php).
+// A persistent worker gets the Application once and calls handle($psr7Request) for each request.
+Config::get(Application::class)->handle();
