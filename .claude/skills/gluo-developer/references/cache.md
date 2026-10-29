@@ -169,7 +169,7 @@ OpenApiRouteList::class => DI::bind(OpenApiRouteList::class)
     ->toSingleton(),
 ```
 
-In dev, skip `withCache()` so route changes are picked up immediately.
+The starter uses `NoCacheEngine` in dev; keep that binding when route caching is not needed.
 
 ---
 
@@ -179,15 +179,19 @@ For staging and prod, the resolved DI config can be cached to avoid re-processin
 files on every cold start. This is configured in `config/ConfigBootstrap.php`:
 
 ```php
-->addEnvironment(
-    (new Environment('prod'))
-        ->inheritFrom(new Environment('staging'))
-        ->withCache(new FileSystemCacheEngine('/tmp/config-cache'), 'config')
-)
+// Inside configureDefinition(Definition $definition), after calling the parent:
+$definition->getConfigObject('prod')->withCache(
+    new FileSystemCacheEngine(prefix: 'config', path: '/tmp/config-cache', createPath: true)
+);
 ```
 
-This is already set up in the project — don't cache in dev or test (it would hide config
-changes from taking effect).
+`FileSystemCacheEngine` takes a prefix first and an optional directory second. The optional
+second argument of `Environment::withCache()` is a `ByJG\Config\CacheModeEnum`, not a
+cache-key string; omit it to use the default mode.
+
+The core does not enable config caching. The starter enables it for staging and prod in
+`config/ConfigBootstrap.php`, using the default system-temp location. Keep caching off in
+dev and test so configuration changes are visible, and adapt the location to deployment.
 
 ---
 

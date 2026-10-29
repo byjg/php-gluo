@@ -154,41 +154,18 @@ All rules default to 0 (not required) if omitted. `MINIMUM_CHARS` defaults to 8.
 
 Passwords are stored as **SHA1 hashes** (`CHAR(40)` column) via `PasswordSha1Mapper`.
 
-### Replacing SHA1 with bcrypt
+### Changing password hashing
 
-Create a custom mapper:
+Changing only the field mapper is insufficient. The installed `UsersService::isValidUser()`
+hashes the submitted password using that mapper and compares it with the stored string.
+Salted hashes such as bcrypt require verification with `password_verify()` instead.
 
-```php
-// src/Security/BcryptPasswordMapper.php
-namespace App\Security;
-
-use ByJG\Authenticate\Interfaces\PasswordMapperInterface;
-
-class BcryptPasswordMapper implements PasswordMapperInterface
-{
-    public function processedValue(mixed $value, mixed $instance, mixed $executor = null): mixed
-    {
-        if (empty($value)) {
-            return null;
-        }
-        if (str_starts_with((string)$value, '$2')) {   // already a bcrypt hash
-            return $value;
-        }
-        return password_hash($value, PASSWORD_BCRYPT);
-    }
-}
-```
-
-Apply it on the `password` field in `src/Model/User.php`:
-
-```php
-#[FieldAttribute(fieldName: "password", updateFunction: BcryptPasswordMapper::class)]
-protected string|null $password = null;
-```
-
-> **Migration:** Switching from SHA1 to bcrypt requires widening the column
-> (`ALTER TABLE users MODIFY COLUMN password VARCHAR(255)`) and a plan to migrate
-> existing passwords (e.g., force a password-reset cycle).
+Before changing the algorithm, inspect the installed `PasswordMapperInterface`,
+`UsersService::isValidUser()`, and the password-reset flow. A mapper must implement both
+`processedValue()` and `isPasswordEncrypted()`. Adapt authentication to verify the stored
+hash, widen the password column if necessary, and define how existing accounts migrate.
+Test account creation, valid and invalid login, password changes, reset, and existing
+accounts together. There is no drop-in bcrypt mapper recipe for the current login code.
 
 ---
 

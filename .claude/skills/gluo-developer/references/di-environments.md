@@ -10,7 +10,8 @@ config/
 │   ├── 03-api.php
 │   ├── 04-repositories.php
 │   ├── 05-services.php
-│   └── 06-external.php
+│   ├── 06-external.php
+│   └── 07-controllers.php
 ├── test/                   # test environment (inherits from dev)
 │   ├── 01-infrastructure.php
 │   └── ...
@@ -19,8 +20,8 @@ config/
 ├── prod/                   # prod environment (inherits from staging)
 │   └── ...
 ├── ConfigBootstrap.php     # defines all environments and their inheritance
-└── config-dev.env          # optional flat file alternative to config/dev/ directory
-.env                        # root override (not committed; local secrets)
+├── config-dev.env          # optional flat file alternative to config/dev/ directory
+└── .env                    # optional local overrides (not committed)
 ```
 
 Each environment is a directory. You only need to include files that differ from the parent
@@ -69,8 +70,8 @@ APP_NAME=MyApp
 LOG_LEVEL=debug
 ```
 
-Within the same directory, all `*.php` and `*.env` files are merged together. PHP files and
-env files can coexist freely — keys from either type work the same way in `Config::get()`.
+Within a directory, PHP files load alphabetically first, then env files alphabetically.
+Later values override earlier ones. Keys from either format are available through `Config::get()`.
 
 ---
 
@@ -79,20 +80,20 @@ env files can coexist freely — keys from either type work the same way in `Con
 ```
 OS environment variables              ← highest priority — overrides everything
     ▲
-.env (root, not committed)            ← overrides env-specific config files
+config/.env (not committed)            ← overrides env-specific config files
     ▲
-config/{env}/    ← directory files    ← PHP + env files merged alphabetically
+config/{env}/    ← directory files    ← PHP files first, then env files
 config-{env}.php / config-{env}.env  ← single-file alternative (rarely used here)
     ▲
 inherited parent environment(s)       ← lowest priority
 ```
 
 Practical implications:
-- Put secrets in root `.env` — they override any env-specific value.
+- Put secrets in `config/.env` — they override any env-specific value.
 - Put environment-specific defaults in `config/{env}/` — they're in version control.
 - OS env vars win over everything — useful in CI/CD where secrets are injected via the environment.
 
-The root `.env` is **not committed** (it's in `.gitignore`). It's the place for local
+The `config/.env` is **not committed** (it's in `.gitignore`). It's the place for local
 developer overrides and secrets: database passwords, API keys, anything that varies
 per machine or must stay out of the repo.
 
@@ -100,28 +101,23 @@ per machine or must stay out of the repo.
 
 ## Selecting the active environment
 
-`APP_ENV` is set once — in the root `.env` file or in the Docker / CI environment — and
-stays there. **Never override it per-command** when running the app or tests.
-
-```ini
-# .env (not committed)
-APP_ENV=dev   # or test, staging, prod
-```
-
-Tests always run under `APP_ENV=test`. The test environment inherits from dev but overrides
-the database connection and swaps real services for mocks. Running PHPUnit with any other
-`APP_ENV` would hit the wrong database and potentially destroy data.
-
-The only time you pass `--env` explicitly on the command line is for **dev tooling** that
-accepts it as its own flag — migrations, codegen, and similar scripts:
+Select `APP_ENV` through the process environment or the global `php gluo --env` option.
+The launcher exports `--env` as `APP_ENV` before initializing the container; it applies to
+project commands as well as migrations and codegen.
 
 ```bash
-php gluo --env=dev migrate:update     # apply migrations in dev DB
-php gluo --env=test migrate:reset     # recreate test DB from scratch
+php gluo --env=dev migrate:update
 php gluo --env=dev codegen:all --table=product --save
+APP_ENV=dev php gluo list --check
 ```
 
-These `--env` flags are handled by the tool itself and are separate from `APP_ENV`.
+`config/.env` supplies container values after an environment has been selected; setting
+`APP_ENV` there does not select the environment. The project-root `.env` may be used by
+Docker Compose, but it is not Gluo's configuration override file.
+
+The starter's `phpunit.xml` forces `APP_ENV=test`. `BaseApiTestCase` also refuses to reset
+the database unless the selected environment is test. Check the test connection before
+running database tests; the first API test resets that database.
 
 The config system auto-initializes the first time `Config::get()` is called by reading
 `config/ConfigBootstrap.php`, which defines all environments. You never call bootstrap
@@ -131,32 +127,35 @@ manually in application code.
 
 ## ConfigBootstrap.php — defining environments
 
-The project file is a thin subclass — environments, inheritance, and caching live in
-`ByJG\Gluo\Config\BaseConfigBootstrap` (byjg/gluo-core):
-
-```php
-<?php
-// config/ConfigBootstrap.php
-use ByJG\Gluo\Config\BaseConfigBootstrap;
-
-return new class extends BaseConfigBootstrap {
-};
-```
-
-The gluo base defines (see vendor/byjg/gluo-core/src/Config/BaseConfigBootstrap.php):
+`ByJG\Gluo\Config\BaseConfigBootstrap` defines environment inheritance without caching:
 
 ```php
 $dev = Environment::create('dev');
 $test = Environment::create('test')->inheritFrom($dev);
-$staging = Environment::create('staging')->inheritFrom($dev)
-    ->withCache(new FileSystemCacheEngine());
-$prod = Environment::create('prod')->inheritFrom($staging, $dev)
-    ->withCache(new FileSystemCacheEngine());
+$staging = Environment::create('staging')->inheritFrom($dev);
+$prod = Environment::create('prod')->inheritFrom($staging, $dev);
 ```
 
-Override `configureDefinition(Definition $definition)` in your anonymous subclass to add
-OS environment variables (`$definition->withOSEnvironment([...])` — the default exposes
-`TAG_VERSION` and `TAG_COMMIT`), extra config directories, or custom environments.
+The starter's `config/ConfigBootstrap.php` extends it and explicitly enables caching:
+
+```php
+use ByJG\Cache\Psr16\FileSystemCacheEngine;
+use ByJG\Config\Definition;
+use ByJG\Gluo\Config\BaseConfigBootstrap;
+
+return new class extends BaseConfigBootstrap {
+    protected function configureDefinition(Definition $definition): void
+    {
+        parent::configureDefinition($definition);
+        $definition->getConfigObject('staging')->withCache(new FileSystemCacheEngine());
+        $definition->getConfigObject('prod')->withCache(new FileSystemCacheEngine());
+    }
+};
+```
+
+Inspect the application's override before changing it. Calling the parent preserves the
+core's OS imports (`TAG_VERSION` and `TAG_COMMIT`). Add custom environments or config
+directories here as needed. See [Cache](cache.md) for cache options.
 
 ### Environment options
 
@@ -164,13 +163,14 @@ OS environment variables (`$definition->withOSEnvironment([...])` — the defaul
 |---|---|
 | `inheritFrom(Environment ...$envs)` | Merge parent config (child keys win) |
 | `withOSEnvironment(['KEY'])` | Pull specific OS env vars into the container |
-| `withCache($psr16, $key)` | Cache the resolved config (use in staging/prod) |
+| `withCache($psr16, CacheModeEnum $mode)` | Cache the resolved config (use in staging/prod) |
 | `setAsAbstract()` | Cannot be loaded directly — only inherited |
 | `setAsFinal()` | Cannot be inherited from |
 
-`withOSEnvironment` is important: only keys explicitly listed are imported from the OS
-environment into the DI container. Without it, OS env vars still override values at resolve
-time, but they aren't available via `Config::get('MY_KEY')`.
+`withOSEnvironment()` belongs to `Definition`, not `Environment`. It imports additional
+OS keys into the container. Non-empty process environment values also override keys
+already present in the configuration when the container is built; those keys do not need
+an explicit import. This is not a live lookup after the container has been built.
 
 ---
 
@@ -195,8 +195,8 @@ if (Config::has('SOME_FEATURE_FLAG')) { ... }
 Config::reset();
 ```
 
-In controllers and services, `Config::get(ClassName::class)` is the standard pattern for
-PSR-11 container lookups.
+Prefer constructor injection in controllers and services. Use `Config::get()` where a
+container lookup is needed, such as existing framework hooks or bootstrap integration.
 
 ---
 

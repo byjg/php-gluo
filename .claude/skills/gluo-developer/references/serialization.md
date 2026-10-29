@@ -76,7 +76,7 @@ $data = Serialize::from($model)
 ```
 
 The framework itself uses this internally in `ValidateRequest::getPayload()` to strip client-sent
-nulls before validation — so `getPayload()` already returns a null-free array.
+nulls after validation unless `preserveNullValues: true` is set on `ValidateRequest`.
 
 ### Convert to JSON string
 
@@ -121,26 +121,26 @@ ObjectCopy::copy(ValidateRequest::getPayload(), $model);
 $this->repository->save($model);
 ```
 
-You rarely need this explicitly because `BaseService::create($payload)` does it for you:
+`BaseService::create($payload)` already creates the entity through the repository's mapper
+and saves it; a controller does not need to hydrate it again:
 
 ```php
-// Inside BaseService::create():
-$model = new $modelClass();
-ObjectCopy::copy($payload, $model);   // ← this is what happens under the hood
-$this->baseRepository->save($model);
+$model = $this->productService->create($payload);
 ```
 
 ### Update an entity (merge changed fields)
 
-`BaseService::update($payload)` also uses `ObjectCopy` internally — it fetches the entity
-by PK, then copies the payload over it, so only changed fields are overwritten:
+`BaseService::update($id, $payload, ?$message)` loads the entity by its path key,
+removes primary-key fields from the payload, copies the remaining fields with
+`ObjectCopy`, and saves the model. Absent fields keep their existing values.
 
 ```php
-// Inside BaseService::update():
-$model = $this->getOrFail($pkValue);
-ObjectCopy::copy($payload, $model);   // merges; unchanged fields stay as-is
-$this->baseRepository->save($model);
+$model = $this->productService->update($id, $payload);
 ```
+
+Request validation still enforces the endpoint's required fields. Use
+`#[ValidateRequest(preserveNullValues: true)]` if an explicit JSON null should clear
+a nullable field rather than leave its old value unchanged.
 
 ### Copy between two objects
 

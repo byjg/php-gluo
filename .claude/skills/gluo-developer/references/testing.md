@@ -4,7 +4,9 @@
 
 Tests are in-process (no real HTTP, no Docker port binding). `FakeApiRequester` routes
 requests through the same `JwtMiddleware` + `OpenApiRouteList` as production, so they
-test the full stack including auth attribute processing and OpenAPI contract validation.
+exercise routing, auth attributes, controllers, and OpenAPI contracts. The harness builds
+its own `MockServer` and attaches JWT middleware; it does not inherit all middleware from
+the application's `Server` binding. Test CORS or custom middleware separately when relevant.
 
 **Base class:** `Tests\Controller\BaseApiTestCase` — a thin subclass of `ByJG\Gluo\Testing\BaseApiTestCase` overriding only `getOpenApiPath()`; the gluo base provides the PHPUnit TestCase + OpenApiValidation ancestry, database reset, and the `getDatabaseClass()`/`getMigrationsPath()` hooks
 **Request class:** `ByJG\Gluo\Util\FakeApiRequester`
@@ -178,19 +180,45 @@ public function testList(): void
 }
 ```
 
+## Invalid bodies must reach the server
+
+`sendRequest()` attaches the OpenAPI contract and can reject an invalid body on the client
+side before the controller runs. To verify server-side validation, create a fresh requester
+and call `send()` directly, without passing it through `sendRequest()`:
+
+```php
+$token = $this->loginAs(Credentials::getAdminUser());
+$request = (new FakeApiRequester())
+    ->withPsr7Request($this->getPsr7Request())
+    ->withMethod('POST')->withPath('/product')
+    ->withRequestBody(json_encode(['name' => '']))
+    ->withRequestHeader(['Authorization' => "Bearer $token"]);
+
+$this->expectException(\ByJG\RestServer\Exception\Error400Exception::class);
+$request->send();
+```
+
+The in-process harness propagates `Error400Exception`; this checks the server validation
+path, not serialization of an HTTP error response. For assertions that storage is unchanged,
+catch the expected exception and then compare database state. Test both POST and PUT,
+using a real existing key in the PUT path. Keep response-contract tests through
+`sendRequest()` for valid requests.
+
 ## Credentials
 
 Default test users (can be overridden with env vars):
 - Admin: `admin@example.com` / `!P4ssw0rdstr!`
 - Regular: `user@example.com` / `!P4ssw0rdstr!`
 
-Seeded in `db/base.sql`, recreated on every `resetDb()` call.
+Seeded in `db/base.sql`. The first `resetDb()` call resets the database once per PHP
+process; later calls are no-ops. Tests share database state, so seed or clean the data each
+test needs and avoid depending on execution order.
 
 ## Running tests
 
 ```bash
-docker compose up -d          # MySQL must be running
-php vendor/bin/phpunit        # all tests
+docker compose up -d          # if the selected database requires a running service
+php gluo test                # all tests, with the OpenAPI freshness check first
 
 # Single file:
 php vendor/bin/phpunit tests/Controller/ProductTest.php

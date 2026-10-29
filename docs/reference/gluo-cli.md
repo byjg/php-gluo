@@ -47,7 +47,7 @@ loaded. It is not passed to the command.
 | `codegen:all` | Generate every component for a table |
 | `codegen:model`, `codegen:repository`, `codegen:service`, `codegen:controller`, `codegen:test` | Generate one component (`codegen:repo` is an alias) |
 | `openapi` | Regenerate `public/docs/openapi.json` from the controller attributes |
-| `openapi:check` | Warn when the spec is older than its sources |
+| `openapi:check` | Fail when the spec is not what its sources generate |
 | `terminal` | Open the [interactive PHP terminal](scriptify.md) |
 | `install` / `uninstall` | Install a project command as a system service, or remove it ([below](#running-a-command-as-a-service)) |
 

@@ -44,8 +44,9 @@ it any time:
 php gluo openapi:check
 ```
 
-It warns (never blocks) when the spec is older than anything in `src/Controller/` or
-`src/Model/`.
+It fails, and `php gluo test` with it, when the spec is not what the attributes generate:
+it generates the spec in memory and compares it with `public/docs/openapi.json`. Run
+`php gluo openapi`, review the change and commit it.
 
 > **Laravel:** there is no `routes/api.php`. **Symfony:** it resembles `#[Route]`, except
 > the "cache rebuild" is explicit and you own it. **Drupal:** it plays the role of
@@ -272,7 +273,7 @@ says where the same thing lives instead.
 
 | Command | What it does |
 |---|---|
-| `php gluo openapi:check` | Warns when the OpenAPI spec is older than the controllers and models it is generated from, the cause of a silent 404. `php gluo test` runs it first. |
+| `php gluo openapi:check` | Fails when the OpenAPI spec is not what the controllers and models generate, the cause of a silent 404. `php gluo test` runs it first. |
 | `php gluo list --check` | Gives every command, built-in and project, a status without running it: the target method exists, its class is known to the container, the database the migrations and codegen need is reachable. |
 | `php gluo --env=prod install <command>` | Installs a project command as a `systemd`, `crond`, `upstart` or `initd` service, with its command line written in full. The other frameworks give you the worker command and leave the service to you. |
 | `php gluo uninstall <command>` | Removes a service created by `install`. |
