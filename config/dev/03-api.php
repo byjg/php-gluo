@@ -4,18 +4,20 @@ use ByJG\ApiTools\Base\Schema;
 use ByJG\Cache\Psr16\BaseCacheEngine;
 use ByJG\Config\DependencyInjection as DI;
 use ByJG\Config\Param;
+use ByJG\Gluo\Http\Application;
 use ByJG\JwtWrapper\JwtWrapper;
 use ByJG\RestServer\Middleware\CorsMiddleware;
 use ByJG\RestServer\Middleware\JwtMiddleware;
 use ByJG\RestServer\OutputProcessor\JsonCleanOutputProcessor;
 use ByJG\RestServer\Route\OpenApiRouteList;
+use ByJG\RestServer\Route\RouteListInterface;
 use ByJG\RestServer\Server;
 use Psr\Log\LoggerInterface;
 
 return [
 
     // OpenAPI Configuration
-    OpenAPiRouteList::class => DI::bind(OpenAPiRouteList::class)
+    RouteListInterface::class => DI::bind(OpenApiRouteList::class)
         ->withConstructorArgs([
             __DIR__ . '/../../public/docs/openapi.json'
         ])
@@ -54,6 +56,11 @@ return [
         // Config::getContainer() here, as it is not yet available while this file is read.
         ->withMethodCall("withContainer", [Param::container()])
 //        ->withMethodCall("withDetailedErrorHandler", [])
+        ->toSingleton(),
+
+    // HTTP entry point (public/app.php): the Server and the routes above, for every request
+    Application::class => DI::bind(Application::class)
+        ->withInjectedConstructor()
         ->toSingleton(),
 
 ];

@@ -47,7 +47,9 @@ sequenceDiagram
 The web server (nginx/Apache/built-in) directs all requests to `public/app.php`. This file:
 
 1. Loads the Composer autoloader.
-2. Gets the `Server` and the `OpenApiRouteList` from `Config::get()`; byjg/config initializes itself on that first use, from the `APP_ENV` environment variable.
+2. Gets the `ByJG\Gluo\Http\Application` from `Config::get()` and calls its `handle()`; byjg/config initializes itself on that first use, from the `APP_ENV` environment variable. The `Application` is bound in `config/dev/03-api.php`, with the `Server` and the `OpenApiRouteList` injected.
+
+**Persistent workers.** A runtime that keeps PHP in memory between requests (RoadRunner, Swoole, a CLI worker) gets the `Application` once and calls `handle($request)` with each request as a PSR-7 `ServerRequestInterface`, because `php://input` is not the request body there. For that request, `handle()` also renders RestServer's HTTP errors (404, 401, 422...), which PHP-FPM leaves to the exception handler RestServer registers.
 
 ### 2. Config Bootstrap
 

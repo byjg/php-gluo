@@ -163,7 +163,7 @@ Parsing `openapi.json` on every request is wasteful in production. Cache it via
 
 ```php
 // config/prod/03-api.php
-OpenApiRouteList::class => DI::bind(OpenApiRouteList::class)
+RouteListInterface::class => DI::bind(OpenApiRouteList::class)
     ->withConstructorArgs([__DIR__ . '/../../public/docs/openapi.json'])
     ->withMethodCall('withCache', [Param::get(BaseCacheEngine::class)])
     ->toSingleton(),

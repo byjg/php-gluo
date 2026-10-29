@@ -33,6 +33,19 @@
 
 ## Changes
 
+- **`public/app.php` uses gluo-core's `Application`.** It was a class `App` declaring what to
+  handle; it is now `Config::get(Application::class)->handle();`, with `Application` bound in
+  `config/dev/03-api.php`. `Application::handle()` also takes a PSR-7 request, so a persistent worker
+  (RoadRunner, Swoole, a CLI worker) can get the `Application` once and serve every request with it.
+  An existing project updates `public/app.php`, binds the routes as `RouteListInterface::class`
+  (it was `OpenApiRouteList::class`; the `Application` and the API tests get them by that key) and
+  adds the binding:
+
+  ```php
+  Application::class => DI::bind(Application::class)
+      ->withInjectedConstructor()
+      ->toSingleton(),
+  ```
 - **The agent skill is `gluo-developer`, published instead of copied.** It was `dev-guide`, copied
   into every new project, where it stayed as it was on the day the project was created. The source
   is still `.claude/skills/gluo-developer/` in this repository; it is published with the
