@@ -19,7 +19,7 @@ CREATE TABLE `users` (
     `name`       VARCHAR(50),
     `email`      VARCHAR(120),
     `username`   VARCHAR(20) NOT NULL,
-    `password`   CHAR(40) NOT NULL,
+    `password`   VARCHAR(255) NOT NULL,
     `role`       VARCHAR(50),
     `created_at` DATETIME DEFAULT (NOW()),
     `updated_at` DATETIME ON UPDATE CURRENT_TIMESTAMP,
@@ -109,7 +109,17 @@ return [
 ];
 ```
 
-AuthUser uses the mapper configured on `User::$password` to hash passwords (`PasswordSha1Mapper` by default). Override the mapper if you need a different algorithm.
+`UsersRepository` receives this binding by type (its binding is `withInjectedConstructorOverrides`)
+and checks it on every save: a plain password outside the rules throws `InvalidArgumentException`,
+also for a `new User(...)` saved without `UsersService`; a stored hash is not checked.
+`UsersService` takes it from the repository and applies it to the users it creates or loads, so
+`setPassword()` rejects a weak password right away. Do not pass it to `UsersService`.
+
+AuthUser uses the mapper configured on `User::$password` to hash passwords: bcrypt
+(`PasswordBcryptMapper`), set by gluo-core's `BaseUser`. A SHA-1 hash of an older database
+(`PasswordSha1Mapper`, the default before 7.0) still logs in, and the login replaces it with a bcrypt
+hash; while the column is still `CHAR(40)` the SHA-1 hash is kept. Override the mapper on
+`User::$password` if you need a different algorithm.
 
 ## JWT Configuration
 

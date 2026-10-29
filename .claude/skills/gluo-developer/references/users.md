@@ -16,7 +16,7 @@ The base `UserModel` (from the library) has these fields:
 | `name` | `VARCHAR(50)` | Display name |
 | `email` | `VARCHAR(120)` | Unique |
 | `username` | `VARCHAR(20)` | Unique login handle |
-| `password` | `CHAR(40)` | SHA1 hash |
+| `password` | `VARCHAR(255)` | bcrypt hash (60 characters) |
 | `role` | `VARCHAR(50)` | Role string — use `User::ROLE_ADMIN` / `User::ROLE_USER` |
 | `created_at` | `DATETIME` | Auto |
 | `updated_at` | `DATETIME ON UPDATE` | Auto |
@@ -148,24 +148,33 @@ PasswordDefinition::class => DI::bind(PasswordDefinition::class)
 
 All rules default to 0 (not required) if omitted. `MINIMUM_CHARS` defaults to 8.
 
+`UsersRepository` receives this binding by type (its binding is `withInjectedConstructorOverrides`)
+and checks it on every save: a plain password outside the rules throws `InvalidArgumentException`,
+also for a `new User(...)` saved without `UsersService`; a stored hash is not checked.
+`UsersService` takes it from the repository and applies it to the users it creates or loads, so
+`setPassword()` rejects a weak password right away. Do not pass it to `UsersService`.
+
 ---
 
 ## Password hashing
 
-Passwords are stored as **SHA1 hashes** (`CHAR(40)` column) via `PasswordSha1Mapper`.
+Passwords are stored as **bcrypt hashes** (`VARCHAR(255)` column) via `PasswordBcryptMapper`,
+set on `BaseUser::$password` (byjg/gluo-core).
+
+- A SHA-1 hash (40 characters, `PasswordSha1Mapper`, the default before 7.0) still logs in; the
+  login (`UsersService::createAuthToken()`, through `JwtContext`) replaces it with a bcrypt hash.
+- A project created before 7.0 has `password CHAR(40)`: add a migration
+  `ALTER TABLE users MODIFY password VARCHAR(255) NOT NULL;`. Until then the SHA-1 hashes are kept
+  (nobody is locked out), but new or changed passwords do not fit.
+- `isValidUser()` only checks a password; a login of your own calls
+  `rehashPasswordIfNeeded($user, $password)` after it to upgrade the hash.
 
 ### Changing password hashing
 
-Changing only the field mapper is insufficient. The installed `UsersService::isValidUser()`
-hashes the submitted password using that mapper and compares it with the stored string.
-Salted hashes such as bcrypt require verification with `password_verify()` instead.
-
-Before changing the algorithm, inspect the installed `PasswordMapperInterface`,
-`UsersService::isValidUser()`, and the password-reset flow. A mapper must implement both
-`processedValue()` and `isPasswordEncrypted()`. Adapt authentication to verify the stored
-hash, widen the password column if necessary, and define how existing accounts migrate.
-Test account creation, valid and invalid login, password changes, reset, and existing
-accounts together. There is no drop-in bcrypt mapper recipe for the current login code.
+Redeclare `$password` in `src/Model/User.php` with another mapper, e.g. to stay on SHA-1:
+`#[FieldAttribute(updateFunction: PasswordSha1Mapper::class)] protected ?string $password = null;`.
+A custom mapper implements `PasswordMapperInterface`: `processedValue()`, `isPasswordEncrypted()`,
+`verifyPassword()` and `needsRehash()`.
 
 ---
 

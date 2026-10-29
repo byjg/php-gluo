@@ -2,7 +2,7 @@
 
 namespace RestReferenceArchitecture\Model;
 
-use ByJG\Authenticate\MapperFunctions\PasswordSha1Mapper;
+use ByJG\Authenticate\MapperFunctions\PasswordBcryptMapper;
 use ByJG\Gluo\Model\BaseUser;
 use ByJG\Gluo\Trait\OaCreatedAt;
 use ByJG\Gluo\Trait\OaDeletedAt;
@@ -57,7 +57,7 @@ class User extends BaseUser
      * @var ?string
      */
     #[OA\Property(type: "string", format: "string")]
-    #[FieldAttribute(updateFunction: PasswordSha1Mapper::class)]
+    #[FieldAttribute(updateFunction: PasswordBcryptMapper::class)]
     protected ?string $password = null;
 
     /**
