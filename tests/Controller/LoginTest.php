@@ -118,19 +118,19 @@ class LoginTest extends BaseApiTestCase
         /** @var UsersService $usersService */
         $usersService = Config::get(UsersService::class);
         $user = $usersService->getByEmail($email);
-        $user->set(User::PROP_RESETTOKEN, null);
-        $user->set(User::PROP_RESETTOKENEXPIRE, null);
-        $user->set(User::PROP_RESETCODE, null);
-        $user->set(User::PROP_RESETALLOWED, null);
+        $user->set(User::PROP_RESET_TOKEN, null);
+        $user->set(User::PROP_RESET_TOKEN_EXPIRE, null);
+        $user->set(User::PROP_RESET_CODE, null);
+        $user->set(User::PROP_RESET_ALLOWED, null);
         $usersService->save($user);
 
         // Check if the reset token was cleared
         $user = $usersService->getByEmail($email);
         $this->assertNotNull($user);
-        $this->assertEmpty($user->get(User::PROP_RESETTOKEN));
-        $this->assertEmpty($user->get(User::PROP_RESETTOKENEXPIRE));
-        $this->assertEmpty($user->get(User::PROP_RESETCODE));
-        $this->assertEmpty($user->get(User::PROP_RESETALLOWED));
+        $this->assertEmpty($user->get(User::PROP_RESET_TOKEN));
+        $this->assertEmpty($user->get(User::PROP_RESET_TOKEN_EXPIRE));
+        $this->assertEmpty($user->get(User::PROP_RESET_CODE));
+        $this->assertEmpty($user->get(User::PROP_RESET_ALLOWED));
         
         // Execute the request
         $request = new FakeApiRequester();
@@ -148,10 +148,10 @@ class LoginTest extends BaseApiTestCase
         $usersService = Config::get(UsersService::class);
         $user = $usersService->getByEmail($email);
         $this->assertNotNull($user);
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKEN));
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKENEXPIRE));
-        $this->assertNotEmpty($user->get(User::PROP_RESETCODE));
-        $this->assertEmpty($user->get(User::PROP_RESETALLOWED));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN_EXPIRE));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_CODE));
+        $this->assertEmpty($user->get(User::PROP_RESET_ALLOWED));
     }
 
     public function testResetRequestSendsTheCodeByEmail()
@@ -168,7 +168,7 @@ class LoginTest extends BaseApiTestCase
         // The test environment's MAIL_ENVELOPE factory prefixes the subject with "[test] "
         $this->assertEquals("[test] Password Reset", $sent[0]->getSubject());
         $this->assertStringContainsString(
-            trim(chunk_split($user->get(User::PROP_RESETCODE), 1, ' ')),
+            trim(chunk_split($user->get(User::PROP_RESET_CODE), 1, ' ')),
             $sent[0]->getBody()
         );
     }
@@ -179,10 +179,10 @@ class LoginTest extends BaseApiTestCase
 
         $user = $this->startPasswordReset($email);
         $this->assertNotNull($user);
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKEN));
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKENEXPIRE));
-        $this->assertNotEmpty($user->get(User::PROP_RESETCODE));
-        $this->assertEmpty($user->get(User::PROP_RESETALLOWED));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN_EXPIRE));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_CODE));
+        $this->assertEmpty($user->get(User::PROP_RESET_ALLOWED));
         
         $this->expectException(Error422Exception::class);
 
@@ -192,7 +192,7 @@ class LoginTest extends BaseApiTestCase
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('POST')
             ->withPath("/login/confirmcode")
-            ->withRequestBody(json_encode((["email" => $email, "code" => "123456", "token" => $user->get(User::PROP_RESETTOKEN)])))
+            ->withRequestBody(json_encode((["email" => $email, "code" => "123456", "token" => $user->get(User::PROP_RESET_TOKEN)])))
             ->expectStatus(422)
         ;
         $this->sendRequest($request);
@@ -204,18 +204,18 @@ class LoginTest extends BaseApiTestCase
 
         $user = $this->startPasswordReset($email);
         $this->assertNotNull($user);
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKEN));
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKENEXPIRE));
-        $this->assertNotEmpty($user->get(User::PROP_RESETCODE));
-        $this->assertEmpty($user->get(User::PROP_RESETALLOWED));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN_EXPIRE));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_CODE));
+        $this->assertEmpty($user->get(User::PROP_RESET_ALLOWED));
         
         // Execute the request, now with the correct code
         $user = $this->confirmResetCode($email, $user);
         $this->assertNotNull($user);
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKEN));
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKENEXPIRE));
-        $this->assertNotEmpty($user->get(User::PROP_RESETCODE));
-        $this->assertEquals(User::VALUE_YES, $user->get(User::PROP_RESETALLOWED));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN_EXPIRE));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_CODE));
+        $this->assertEquals(User::VALUE_YES, $user->get(User::PROP_RESET_ALLOWED));
     }
 
     public function testPasswordResetOk()
@@ -225,10 +225,10 @@ class LoginTest extends BaseApiTestCase
 
         $user = $this->confirmResetCode($email, $this->startPasswordReset($email));
         $this->assertNotNull($user);
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKEN));
-        $this->assertNotEmpty($user->get(User::PROP_RESETTOKENEXPIRE));
-        $this->assertNotEmpty($user->get(User::PROP_RESETCODE));
-        $this->assertEquals(User::VALUE_YES, $user->get(User::PROP_RESETALLOWED));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_TOKEN_EXPIRE));
+        $this->assertNotEmpty($user->get(User::PROP_RESET_CODE));
+        $this->assertEquals(User::VALUE_YES, $user->get(User::PROP_RESET_ALLOWED));
         
         // Execute the request, now with the correct code
         $request = new FakeApiRequester();
@@ -238,7 +238,7 @@ class LoginTest extends BaseApiTestCase
             ->withPath("/login/resetpassword")
             ->withRequestBody(json_encode([
                 "email" => $email,
-                "token" => $user->get(User::PROP_RESETTOKEN),
+                "token" => $user->get(User::PROP_RESET_TOKEN),
                 "password" => "new$password"
             ]))
             ->expectStatus(200)
@@ -250,11 +250,11 @@ class LoginTest extends BaseApiTestCase
             // Check if the reset token was created
             $user = $usersService->getByEmail($email);
             $this->assertNotNull($user);
-            $this->assertEquals("83bfd34a3ebc0973609f5f2ec0080080286e3879", $user->getPassword());
-            $this->assertEmpty($user->get(User::PROP_RESETTOKEN));
-            $this->assertEmpty($user->get(User::PROP_RESETTOKENEXPIRE));
-            $this->assertEmpty($user->get(User::PROP_RESETCODE));
-            $this->assertEmpty($user->get(User::PROP_RESETALLOWED));
+            $this->assertNotNull($usersService->isValidUser($email, "new$password"), 'logs in with the new password');
+            $this->assertEmpty($user->get(User::PROP_RESET_TOKEN));
+            $this->assertEmpty($user->get(User::PROP_RESET_TOKEN_EXPIRE));
+            $this->assertEmpty($user->get(User::PROP_RESET_CODE));
+            $this->assertEmpty($user->get(User::PROP_RESET_ALLOWED));
         } finally {
             // Restore the old password even when an assertion fails, so the tests that
             // log in as this user afterwards are not broken by this one
@@ -295,7 +295,7 @@ class LoginTest extends BaseApiTestCase
             ->withPsr7Request($this->getPsr7Request())
             ->withMethod('POST')
             ->withPath("/login/confirmcode")
-            ->withRequestBody(json_encode(["email" => $email, "code" => $user->get(User::PROP_RESETCODE), "token" => $user->get(User::PROP_RESETTOKEN)]))
+            ->withRequestBody(json_encode(["email" => $email, "code" => $user->get(User::PROP_RESET_CODE), "token" => $user->get(User::PROP_RESET_TOKEN)]))
             ->expectStatus(200)
         ;
         $this->sendRequest($request);

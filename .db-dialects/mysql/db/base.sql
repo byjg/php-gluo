@@ -6,7 +6,7 @@ create table users
     name varchar(50),
     email varchar(120),
     username varchar(20) not null,
-    password char(40) not null,
+    password varchar(255) not null,  -- bcrypt (60 characters) by byjg/gluo-core's BaseUser
     role varchar(50),
     created_at DATETIME DEFAULT (now()),
     updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
@@ -26,10 +26,10 @@ ALTER TABLE `users`
 -- The password of both users below is "!P4ssw0rdstr!".
 -- Please change it!
 insert into users (name, email, username, password, role) VALUES
-    ('Administrator', 'admin@example.com', 'admin', '9800aa1b77334ff0952b203062f0fbb0c480d3de', 'admin');   -- !P4ssw0rdstr!
+    ('Administrator', 'admin@example.com', 'admin', '$2y$12$PKzpeGEvPVZyHHAlyBVI4.Z9EYcaQ8rD0XQZXNUmKTxb.rhG80HWm', 'admin');   -- !P4ssw0rdstr!
 
 insert into users (userid, name, email, username, password, role) VALUES
-    (0x5f6e7fe7bd1b11ed8ca90242ac120002, 'Regular User', 'user@example.com', 'user', '9800aa1b77334ff0952b203062f0fbb0c480d3de', 'user')        -- !P4ssw0rdstr!
+    (0x5f6e7fe7bd1b11ed8ca90242ac120002, 'Regular User', 'user@example.com', 'user', '$2y$12$PKzpeGEvPVZyHHAlyBVI4.Z9EYcaQ8rD0XQZXNUmKTxb.rhG80HWm', 'user')        -- !P4ssw0rdstr!
 ;
 
 -- random binary(16) generator

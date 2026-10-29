@@ -8,7 +8,7 @@ create table users
     name varchar(50),
     email varchar(120),
     username varchar(20) not null,
-    password char(40) not null,
+    password varchar(255) not null,  -- bcrypt (60 characters) by byjg/gluo-core's BaseUser
     role varchar(50),
     created_at datetime DEFAULT CURRENT_TIMESTAMP,
     updated_at datetime,
@@ -31,10 +31,10 @@ create trigger tr_users_updated_at after update on users for each row begin upda
 -- (Comments go on their own line: one after the ";" would keep the migration from splitting
 -- the statements there.)
 insert into users (name, email, username, password, role) VALUES
-    ('Administrator', 'admin@example.com', 'admin', '9800aa1b77334ff0952b203062f0fbb0c480d3de', 'admin');
+    ('Administrator', 'admin@example.com', 'admin', '$2y$12$PKzpeGEvPVZyHHAlyBVI4.Z9EYcaQ8rD0XQZXNUmKTxb.rhG80HWm', 'admin');
 
 insert into users (userid, name, email, username, password, role) VALUES
-    (X'5f6e7fe7bd1b11ed8ca90242ac120002', 'Regular User', 'user@example.com', 'user', '9800aa1b77334ff0952b203062f0fbb0c480d3de', 'user')
+    (X'5f6e7fe7bd1b11ed8ca90242ac120002', 'Regular User', 'user@example.com', 'user', '$2y$12$PKzpeGEvPVZyHHAlyBVI4.Z9EYcaQ8rD0XQZXNUmKTxb.rhG80HWm', 'user')
 ;
 
 -- This table is used by the component byjg/authuser
