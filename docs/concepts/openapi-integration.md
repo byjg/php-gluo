@@ -11,7 +11,7 @@ This document explains what OpenAPI is, how the reference architecture uses it, 
 
 [OpenAPI](https://www.openapis.org/) (formerly Swagger) is a language-agnostic specification for describing HTTP APIs. A single `openapi.json` file documents every endpoint, its parameters, request bodies, and response schemas. This single source of truth drives:
 
-- **Runtime routing** – `OpenApiRouteList` reads `openapi.json` to map incoming requests to controller methods.
+- **Runtime routing** – `php gluo openapi` compiles `openapi.json` into `generated/routes.php`, which `CompiledRouteList` loads to map incoming requests to controller methods.
 - **Validation** – `#[ValidateRequest]` checks each request against it, and `SchemaValidator` checks each model against it before it is saved (see [The schema validates every save](#the-schema-validates-every-save)).
 - **API reference** – An interactive browser UI ([Scalar](https://github.com/scalar/scalar)) is served at `http://localhost:8080/docs/` so you can explore and test endpoints without a separate tool.
 - **Contract testing** – `OpenApiValidation` (via `ByJG\ApiTools`) asserts that every test response conforms to the declared schema.
@@ -108,7 +108,9 @@ See [Testing](../guides/testing.md) for practical examples.
 ## Keeping the Spec in Sync
 
 :::tip Keep docs in sync
-Whenever you change PHP attribute annotations in `src/`, rerun `APP_ENV=dev php gluo openapi`. The regenerated `public/docs/openapi.json` is what `OpenApiRouteList` reads at runtime and what the tests validate against.
+Whenever you change PHP attribute annotations in `src/`, rerun `APP_ENV=dev php gluo openapi`. It regenerates `public/docs/openapi.json`, what the tests validate against, and compiles it into `generated/`: `routes.php`, the routing table, and `openapi.php`, the spec `#[ValidateRequest]` reads. These are PHP arrays OPcache keeps in memory, so a request does not parse the JSON. Commit them with `openapi.json`; `php gluo openapi:check` fails when one of them is not what the sources generate.
+
+How the routes are compiled (the default output processor, an output processor for a route or a content type) is in `builder/Scripts.php`: override `getOpenApiRouteList()`.
 :::
 
 A common workflow:

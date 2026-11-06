@@ -9,7 +9,7 @@ REST controllers in this architecture map HTTP routes to PHP methods using PHP 8
 
 ## Defining Routes with PHP Attributes
 
-Annotate controller classes with `zircote/swagger-php` attributes to describe each endpoint. The tooling generates `public/docs/openapi.json` from these annotations, and `OpenApiRouteList` uses that file to dispatch requests at runtime.
+Annotate controller classes with `zircote/swagger-php` attributes to describe each endpoint. The tooling (`php gluo openapi`) generates `public/docs/openapi.json` from these annotations and compiles it into `generated/routes.php`, which `CompiledRouteList` uses to dispatch requests at runtime.
 
 ```php
 namespace RestReferenceArchitecture\Controller;

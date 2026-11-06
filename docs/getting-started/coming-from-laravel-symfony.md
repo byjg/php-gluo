@@ -18,9 +18,9 @@ most common source of "why does my endpoint 404".
 
 ### 1. The router is generated — attributes are the source, JSON is the truth
 
-Routes are not read from your PHP classes at runtime. `public/app.php` hands
-`OpenApiRouteList` the file `public/docs/openapi.json`, and *that* file is the routing
-table. It is produced from the `#[OA\...]` attributes on your controllers.
+Routes are not read from your PHP classes at runtime. The `#[OA\...]` attributes on your
+controllers produce `public/docs/openapi.json`, and `php gluo openapi` compiles it into
+`generated/routes.php`: *that* file is the routing table (`CompiledRouteList`).
 
 ```php
 #[OA\Get(path: "/project/{id}", tags: ["Project"])]
