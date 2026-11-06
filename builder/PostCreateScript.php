@@ -263,6 +263,7 @@ ENV;
             'tests/Builder/PostCreateScriptTest.php',
             'tests/Builder/SetupJsonTest.php',
             'tests/Builder/ContainerDetectionTest.php',
+            'tests/Builder/NodeDetectionTest.php',
             'tests/Builder/PhpVersionTest.php',
         ];
         foreach ($templateOnlyFiles as $file) {
@@ -466,14 +467,22 @@ ENV;
         }
 
         // Install frontend dependencies if the frontend was kept. npm/bun must exist
-        // *where Composer itself runs* — running create-project inside a PHP-only
-        // container (a dockerised `composer`, for instance) has no Node, and the SPA
-        // would silently end up without its dependencies. Say so instead.
+        // *where Composer itself runs*. Running create-project inside a PHP-only
+        // container (a dockerised `composer`, for instance) has no Node: that is not a
+        // failure, the frontend image installs them when it builds, so it is a note.
+        // npm/bun being there and failing is.
+        $notes = [];
         if (is_dir("$workdir/frontend")) {
-            passthru('cd frontend && (npm install || bun install)', $status);
-            if ($status !== 0) {
-                $warnings[] = "Frontend dependencies were NOT installed (no npm/bun where "
-                    . "Composer ran). The API is unaffected. Run: cd frontend && npm install";
+            if (!self::hasNodePackageManager()) {
+                $notes[] = "Frontend dependencies were not installed: there is no npm/bun here. "
+                    . "`docker compose up` installs them when it builds the frontend image. "
+                    . "For local frontend work, run: cd frontend && npm install";
+            } else {
+                passthru('cd frontend && (npm install || bun install)', $status);
+                if ($status !== 0) {
+                    $warnings[] = "Frontend dependencies were NOT installed (npm/bun install failed). "
+                        . "The API is unaffected. Run: cd frontend && npm install";
+                }
             }
         }
 
@@ -484,6 +493,9 @@ ENV;
                 echo "  - $warning\n";
             }
             echo str_repeat('!', 72) . "\n\n";
+        }
+        foreach ($notes as $note) {
+            echo "\nNote: $note\n\n";
         }
     }
 
@@ -687,6 +699,22 @@ ENV;
         foreach ($markers as $marker) {
             if (file_exists($marker)) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether npm or bun is on the PATH, i.e. the frontend dependencies can be installed where
+     * Composer runs.
+     */
+    protected static function hasNodePackageManager(?string $path = null): bool
+    {
+        foreach (explode(PATH_SEPARATOR, $path ?? (string)getenv('PATH')) as $dir) {
+            foreach (['npm', 'bun'] as $command) {
+                if ($dir !== '' && is_file("$dir/$command") && is_executable("$dir/$command")) {
+                    return true;
+                }
             }
         }
         return false;
