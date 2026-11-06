@@ -18,7 +18,7 @@ This document explains what OpenAPI is, how the reference architecture uses it, 
 
 ## How swagger-php Scans Your Code
 
-The project uses [`zircote/swagger-php`](https://zircote.github.io/swagger-php/guide/) to scan PHP attribute annotations and produce `public/docs/openapi.json`. It scans your `src/` directory plus the gluo-core `Trait/` directory (so the `OaCreatedAt`/`OaUpdatedAt`/`OaDeletedAt` properties appear in your schemas).
+The project uses [`zircote/swagger-php`](https://zircote.github.io/swagger-php/guide/) to scan PHP attribute annotations and produce `public/docs/openapi.json`. It scans your `src/` directory, plus the gluo-core `OaCreatedAt`/`OaUpdatedAt`/`OaDeletedAt` traits that a class of `src/` uses (so their properties appear in your schemas).
 
 Run the generator whenever you add or change annotations:
 
