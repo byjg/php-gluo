@@ -30,6 +30,8 @@ class PostCreateScript
     public function applyTemplate(string $workdir, string $namespace, string $composerName, string $phpVersion, array $dbConfig, string $timezone, bool $installExamples, bool $installFrontend = true): void
     {
         $this->applyDialect($workdir, $dbConfig['schema'] ?? 'mysql');
+        // The project is an application: it versions its composer.lock, so its builds install what was tested
+        self::removeGitignoreBlock($workdir, 'template');
 
         // The app in the rest container reaches the database by its service name (docker-compose.yml);
         // the commands run on the host (php gluo) through the published port
@@ -632,9 +634,19 @@ ENV;
         DbDialect::removeDir("$workdir/.db-dialects");
         echo "Database: $schema\n";
 
+        self::removeGitignoreBlock($workdir, 'dialect');
+    }
+
+    /**
+     * Remove a block of .gitignore, from "# >>> <name>" to "# <<< <name>": what the template repository leaves out
+     * and a created project versions
+     */
+    protected static function removeGitignoreBlock(string $workdir, string $name): void
+    {
         $gitignore = "$workdir/.gitignore";
         $contents = (string)file_get_contents($gitignore);
-        $contents = (string)preg_replace('/^#\s*>>>\s*dialect\b.*?^#\s*<<<\s*dialect[^\n]*\n/ms', '', $contents);
+        $name = preg_quote($name, '/');
+        $contents = (string)preg_replace('/^#\s*>>>\s*' . $name . '\b.*?^#\s*<<<\s*' . $name . '[^\n]*\n/ms', '', $contents);
         file_put_contents($gitignore, $contents);
     }
 

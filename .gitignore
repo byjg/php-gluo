@@ -3,7 +3,9 @@
 /Dockerfile
 
 # API (PHP) — the app root is the repository root
+# >>> template: the template does not version its lock (create-project resolves the latest versions); a created project versions its own
 /composer.lock
+# <<< template
 /vendor
 /tools/*/vendor/
 /tools/*/composer.lock
