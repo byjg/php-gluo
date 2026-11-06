@@ -306,6 +306,22 @@ class PostCreateScriptTest extends TestCase
         $this->assertSame('sqlite://{__ROOT__}/db/mydb_prod.sqlite', $this->envValue('prod', 'DBDRIVER_CONNECTION'));
     }
 
+    /**
+     * A created project is an application: it versions its composer.lock, so its builds install what was tested.
+     * The template repository does not version its own (create-project resolves the latest versions).
+     */
+    public function testTheProjectVersionsItsComposerLock(): void
+    {
+        $this->assertMatchesRegularExpression('#^/composer\.lock$#m', (string)file_get_contents($this->workdir . '/.gitignore'));
+
+        $this->applyTemplate(true);
+
+        $gitignore = (string)file_get_contents($this->workdir . '/.gitignore');
+        $this->assertDoesNotMatchRegularExpression('#^/composer\.lock$#m', $gitignore);
+        $this->assertMatchesRegularExpression('#^/vendor$#m', $gitignore);
+        $this->assertStringNotContainsString('>>>', $gitignore);
+    }
+
     public function testComposerJsonRenamed(): void
     {
         $this->applyTemplate(true);

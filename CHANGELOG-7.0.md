@@ -33,6 +33,11 @@
 
 ## Changes
 
+- **A created project versions its `composer.lock`.** The template repository still leaves its own lock out
+  (`create-project` resolves the latest versions), but the installer removes that rule from the new project's
+  `.gitignore` (the block `# >>> template` … `# <<< template`): an application commits its lock, so its builds and
+  its Docker image install what was tested.
+
 - **The routes and the spec are compiled into `generated/`.** `php gluo openapi` also writes `generated/routes.php`
   (the routing table, loaded by byjg/restserver's `CompiledRouteList`) and `generated/openapi.php` (the spec as a
   PHP array, read by `#[ValidateRequest]`), and `openapi:check` fails when they are out of date: commit them with
