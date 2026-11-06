@@ -16,7 +16,7 @@ sequenceDiagram
     participant Client
     participant app.php
     participant Config
-    participant OpenApiRouteList
+    participant CompiledRouteList
     participant Middleware
     participant Controller
     participant Service
@@ -25,8 +25,8 @@ sequenceDiagram
     Client->>app.php: HTTP Request
     app.php->>Config: Bootstrap (APP_ENV)
     Config-->>app.php: DI container ready
-    app.php->>OpenApiRouteList: Load public/docs/openapi.json
-    OpenApiRouteList-->>app.php: Route table
+    app.php->>CompiledRouteList: Load generated/routes.php
+    CompiledRouteList-->>app.php: Route table
     app.php->>Middleware: CorsMiddleware
     Middleware->>Middleware: JwtMiddleware (parse token)
     Middleware->>Controller: Route matched → dispatch
@@ -47,7 +47,7 @@ sequenceDiagram
 The web server (nginx/Apache/built-in) directs all requests to `public/app.php`. This file:
 
 1. Loads the Composer autoloader.
-2. Gets the `ByJG\Gluo\Http\Application` from `Config::get()` and calls its `handle()`; byjg/config initializes itself on that first use, from the `APP_ENV` environment variable. The `Application` is bound in `config/dev/03-api.php`, with the `Server` and the `OpenApiRouteList` injected.
+2. Gets the `ByJG\Gluo\Http\Application` from `Config::get()` and calls its `handle()`; byjg/config initializes itself on that first use, from the `APP_ENV` environment variable. The `Application` is bound in `config/dev/03-api.php`, with the `Server` and the route list (`CompiledRouteList`) injected.
 
 **Persistent workers.** A runtime that keeps PHP in memory between requests (RoadRunner, Swoole, a CLI worker) gets the `Application` once and calls `handle($request)` with each request as a PSR-7 `ServerRequestInterface`, because `php://input` is not the request body there. For that request, `handle()` also renders RestServer's HTTP errors (404, 401, 422...), which PHP-FPM leaves to the exception handler RestServer registers.
 
@@ -55,9 +55,9 @@ The web server (nginx/Apache/built-in) directs all requests to `public/app.php`.
 
 `config/ConfigBootstrap.php` defines the environment hierarchy (`dev → test`, `dev → staging → prod`). The DI container is built lazily from the numbered config files (`01-infrastructure.php` … `07-controllers.php`) inside the active environment's folder.
 
-### 3. Route Loading — `OpenApiRouteList`
+### 3. Route Loading — `CompiledRouteList`
 
-`OpenApiRouteList` reads `public/docs/openapi.json` and builds an in-memory routing table. Each `operationId` value in the spec encodes the target class and method name, so no separate routing configuration is needed.
+`CompiledRouteList` loads `generated/routes.php`, which `php gluo openapi` compiles from `public/docs/openapi.json`: the routes and the dispatcher's data, as arrays that OPcache keeps in memory, so a request neither parses the spec nor builds the dispatcher. Each `operationId` value in the spec encodes the target class and method name, so no separate routing configuration is needed. `#[ValidateRequest]` reads the spec the same way, from `generated/openapi.php`.
 
 ### 4. Middleware Stack
 

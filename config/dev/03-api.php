@@ -1,15 +1,13 @@
 <?php
 
 use ByJG\ApiTools\Base\Schema;
-use ByJG\Cache\Psr16\BaseCacheEngine;
 use ByJG\Config\DependencyInjection as DI;
 use ByJG\Config\Param;
 use ByJG\Gluo\Http\Application;
 use ByJG\JwtWrapper\JwtWrapper;
 use ByJG\RestServer\Middleware\CorsMiddleware;
 use ByJG\RestServer\Middleware\JwtMiddleware;
-use ByJG\RestServer\OutputProcessor\JsonCleanOutputProcessor;
-use ByJG\RestServer\Route\OpenApiRouteList;
+use ByJG\RestServer\Route\CompiledRouteList;
 use ByJG\RestServer\Route\RouteListInterface;
 use ByJG\RestServer\Server;
 use Psr\Log\LoggerInterface;
@@ -17,16 +15,18 @@ use Psr\Log\LoggerInterface;
 return [
 
     // OpenAPI Configuration
-    RouteListInterface::class => DI::bind(OpenApiRouteList::class)
+    // `php gluo openapi` writes public/docs/openapi.json from the controller attributes, and compiles it into
+    // generated/: the routes (routes.php) and the spec as a PHP array (openapi.php). OPcache keeps them in memory,
+    // so a request does not read openapi.json. How the routes are compiled (the output processors) is in
+    // builder/Scripts.php (getOpenApiRouteList()).
+    RouteListInterface::class => DI::bind(CompiledRouteList::class)
         ->withConstructorArgs([
-            __DIR__ . '/../../public/docs/openapi.json'
+            __DIR__ . '/../../generated/routes.php'
         ])
-        ->withMethodCall("withDefaultProcessor", [JsonCleanOutputProcessor::class])
-        ->withMethodCall("withCache", [Param::get(BaseCacheEngine::class)])
         ->toSingleton(),
 
     Schema::class => DI::bind(Schema::class)
-        ->withFactoryMethod('fromFile', [__DIR__ . '/../../public/docs/openapi.json'])
+        ->withFactoryMethod('fromFile', [__DIR__ . '/../../generated/openapi.php'])
         ->toSingleton(),
 
     // Middleware Configuration

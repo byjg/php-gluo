@@ -174,7 +174,7 @@ where to cache the resolved container:
 ```php
 <?php
 
-use ByJG\Cache\Psr16\FileSystemCacheEngine;
+use ByJG\Cache\Psr16\PhpFileCacheEngine;
 use ByJG\Config\Definition;
 use ByJG\Gluo\Config\BaseConfigBootstrap;
 
@@ -184,9 +184,10 @@ return new class extends BaseConfigBootstrap {
     {
         parent::configureDefinition($definition);
 
-        // Cache the resolved container in the system temp dir: each new container starts empty
-        $definition->getConfigObject('staging')->withCache(new FileSystemCacheEngine());
-        $definition->getConfigObject('prod')->withCache(new FileSystemCacheEngine());
+        // Cache the resolved container in the system temp dir (each new container starts empty), as PHP files
+        // OPcache keeps in memory (PhpFileCacheEngine): a request does not read nor decode the container from disk
+        $definition->getConfigObject('staging')->withCache(new PhpFileCacheEngine('config'));
+        $definition->getConfigObject('prod')->withCache(new PhpFileCacheEngine('config'));
     }
 };
 ```
@@ -263,7 +264,13 @@ database (01), services (05) build on repositories.
 Caching the resolved container saves reading the config files on every request. gluo-core
 doesn't set it, because where the cache lives depends on how you deploy: the project sets it
 in `config/ConfigBootstrap.php` ([Configuration Bootstrap](#configuration-bootstrap)), and
-the template caches `staging` and `prod` with `FileSystemCacheEngine` in the system temp dir.
+the template caches `staging` and `prod` with `PhpFileCacheEngine` in the system temp dir.
+
+`PhpFileCacheEngine` (byjg/cache-engine) writes each entry as a PHP file that OPcache keeps in memory: a request
+reads the container without opening nor unserializing a file per binding (~300 us less per request than
+`FileSystemCacheEngine`). Its files are `0600`, as the container holds the secrets of `credentials.env`. It is for
+entries written once, such as the container: keep `FileSystemCacheEngine` or Redis for the application's own
+cache (`BaseCacheEngine`), whose values change.
 
 `withCache()` accepts any PSR-16 cache, but it must be a ready-made instance: the cache is
 read before any config file is loaded, so it can't come from the DI container
@@ -275,9 +282,6 @@ must not outlive the deploy:
 - **Shared or persistent** (a memcached/Redis service, a persistent volume): the new release
   would load the previous release's container. Clear the cache on every deploy, or give each
   release its own keys (e.g. memcached's `OPT_PREFIX_KEY` set to the release version).
-
-The same applies to the route cache (`OpenApiRouteList::withCache()` in `03-api.php`), which
-uses the `BaseCacheEngine` binding.
 
 After changing config in an environment with a cache, clear it (or redeploy).
 

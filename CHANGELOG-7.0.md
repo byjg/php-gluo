@@ -33,6 +33,18 @@
 
 ## Changes
 
+- **The routes and the spec are compiled into `generated/`.** `php gluo openapi` also writes `generated/routes.php`
+  (the routing table, loaded by byjg/restserver's `CompiledRouteList`) and `generated/openapi.php` (the spec as a
+  PHP array, read by `#[ValidateRequest]`), and `openapi:check` fails when they are out of date: commit them with
+  `openapi.json`. `config/dev/03-api.php` binds `RouteListInterface` to `CompiledRouteList` and `Schema` to
+  `generated/openapi.php`. OPcache keeps them in memory, so a request no longer parses `openapi.json` (~390 us for
+  the routes, ~160 us for the validation) nor builds the dispatcher. The route cache (`OpenApiRouteList::withCache()`)
+  is gone; how the routes are compiled (the output processors) is in `builder/Scripts.php`, `getOpenApiRouteList()`.
+  The Docker image copies `generated/`.
+- **The container is cached as PHP files.** `config/ConfigBootstrap.php` caches `staging` and `prod` with
+  byjg/cache-engine's `PhpFileCacheEngine` (system temp dir, files `0600`) instead of `FileSystemCacheEngine`:
+  OPcache keeps the cached container in memory, ~300 us less per request.
+
 - **`public/app.php` uses gluo-core's `Application`.** It was a class `App` declaring what to
   handle; it is now `Config::get(Application::class)->handle();`, with `Application` bound in
   `config/dev/03-api.php`. `Application::handle()` also takes a PSR-7 request, so a persistent worker

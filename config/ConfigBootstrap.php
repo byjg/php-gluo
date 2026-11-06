@@ -1,6 +1,6 @@
 <?php
 
-use ByJG\Cache\Psr16\FileSystemCacheEngine;
+use ByJG\Cache\Psr16\PhpFileCacheEngine;
 use ByJG\Config\Definition;
 use ByJG\Gluo\Config\BaseConfigBootstrap;
 
@@ -19,8 +19,9 @@ return new class extends BaseConfigBootstrap {
     {
         parent::configureDefinition($definition);
 
-        // Cache the resolved container in the system temp dir: each new container starts empty
-        $definition->getConfigObject('staging')->withCache(new FileSystemCacheEngine());
-        $definition->getConfigObject('prod')->withCache(new FileSystemCacheEngine());
+        // Cache the resolved container in the system temp dir (each new container starts empty), as PHP files
+        // OPcache keeps in memory (PhpFileCacheEngine): a request does not read nor decode the container from disk
+        $definition->getConfigObject('staging')->withCache(new PhpFileCacheEngine('config'));
+        $definition->getConfigObject('prod')->withCache(new PhpFileCacheEngine('config'));
     }
 };

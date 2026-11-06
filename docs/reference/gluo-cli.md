@@ -46,8 +46,8 @@ loaded. It is not passed to the command.
 | `migrate:create` | Create the migration version table (alias: `migrate:install`) |
 | `codegen:all` | Generate every component for a table |
 | `codegen:model`, `codegen:repository`, `codegen:service`, `codegen:controller`, `codegen:test` | Generate one component (`codegen:repo` is an alias) |
-| `openapi` | Regenerate `public/docs/openapi.json` from the controller attributes |
-| `openapi:check` | Fail when the spec is not what its sources generate |
+| `openapi` | Regenerate `public/docs/openapi.json` from the controller attributes, and compile it into `generated/` (`routes.php`, `openapi.php`) |
+| `openapi:check` | Fail when the spec, or a file compiled from it, is not what its sources generate |
 | `terminal` | Open the [interactive PHP terminal](scriptify.md) |
 | `install` / `uninstall` | Install a project command as a system service, or remove it ([below](#running-a-command-as-a-service)) |
 
