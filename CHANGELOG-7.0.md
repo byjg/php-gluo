@@ -234,6 +234,13 @@
   from an earlier template keeps working on MySQL; replace the attribute to run it elsewhere.
 - The installer accepted only PHP 8.3, 8.4 and 8.5, although the project supports 8.6. It now
   accepts `8.6` too (interactive prompt and `php_version` in `setup.json`).
+- A Composer running where there is no Node (a dockerised `composer`, the create-project CI job)
+  ended with a warning that the frontend dependencies were NOT installed, although the frontend
+  image installs them when `docker compose up` builds it. Without npm/bun the installer now
+  prints a note instead; the warning stays for npm/bun being there and failing.
+- `http://localhost:8080/docs` redirected to `http://localhost/docs/`, without the port: nginx
+  in the container listens on 80 and does not know the published 8080. The redirect is now
+  relative (`absolute_redirect off`), to `/docs/` on the same host and port.
 
 ## Requirements
 
