@@ -31,8 +31,8 @@ HTTP Request
 JwtMiddleware          ← byjg/restserver middleware, parses/validates JWT,
     │                    stores decoded claims as request param "jwt.data"
     ▼
-OpenApiRouteList       ← matches URL+method to controller class::method
-    │                    (generated from public/docs/openapi.json)
+CompiledRouteList      ← matches URL+method to controller class::method
+    │                    (generated/routes.php, compiled from public/docs/openapi.json)
     ▼
 PHP Attribute Chain    ← run BEFORE the controller method:
   #[RequireAuthenticated]  → verifies JWT present; calls JwtContext::setRequest()
@@ -62,7 +62,7 @@ MySQL
 **DI container initialization order** (config files load in this exact sequence):
 1. `01-infrastructure.php` — DB driver, DatabaseExecutor, ORM setup, logging
 2. `02-security.php` — JWT, password policy, UsersService/Repository, CORS list
-3. `03-api.php` — OpenApiRouteList, JwtMiddleware, CorsMiddleware, HttpRequestHandler
+3. `03-api.php` — routes (`RouteListInterface` → `CompiledRouteList`), `Schema`, JwtMiddleware, CorsMiddleware, Server, Application
 4. `04-repositories.php` — your feature repositories
 5. `05-services.php` — your feature services
 6. `06-external.php` — external services (mail, etc.)
@@ -111,6 +111,8 @@ optional Vite + React frontend is a sibling package under `frontend/`.
 ```
 <repo root>/               # the PHP REST API — everything below is relative to the root
 ├── composer.json          # the single manifest (require, autoload, scripts)
+├── composer.lock          # committed: builds and the Docker image install what was tested
+├── generated/             # routes.php + openapi.php, compiled by `php gluo openapi`; commit them, never edit
 ├── docker-compose.yml     # API :8080, frontend :7080 (HTTPS :7443); includes docker-compose.database.yml
 ├── docker-compose.database.yml # the database server (`gluo-database`; none for SQLite)
 ├── docker/                # Dockerfile (API) + Dockerfile-html (frontend)
@@ -232,7 +234,8 @@ or adapting generated code. For advanced queries, read [Queries](references/quer
 - Current generated PUT routes take the key in the path and writable fields in the body.
 - Use `getOrFail()` for missing-record 404s and `OrderBy::fromQueryString()` for client sorting.
 - Regenerate OpenAPI after model or controller attribute changes. The generated JSON
-  drives routing, request validation, save-time model validation, and contract tests.
+  drives routing, request validation, save-time model validation, and contract tests;
+  the request reads it compiled in `generated/` — commit both together.
 - `ValidateRequest` strips nulls after validation by default; use
   `preserveNullValues: true` when callers must clear nullable fields.
 - Invalid-body tests must reach the server without client-side schema validation;
@@ -340,8 +343,8 @@ Throw to return the right HTTP status:
 | `composer update` | Upgrade dependencies when requested |
 | `composer psalm` | Run static analysis |
 | `php gluo test` | Run test suite (phpunit) |
-| `php gluo openapi` | Regenerate OpenAPI spec from attributes |
-| `php gluo openapi:check` | Fail if the spec is out of date (auto-run by `php gluo test`) |
+| `php gluo openapi` | Regenerate the OpenAPI spec from attributes and compile it into `generated/` (`routes.php`, `openapi.php`) |
+| `php gluo openapi:check` | Fail if the spec or a compiled file is out of date (auto-run by `php gluo test`) |
 | `php gluo --env=dev migrate:update` | Apply pending migrations (normal dev) |
 | `php gluo --env=dev migrate:reset` | Wipe and recreate the selected DB; only for an intended reset |
 | `php gluo --env=dev codegen:all --table=X --save` | Scaffold full CRUD for table X |

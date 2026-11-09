@@ -3,7 +3,7 @@
 ## Overview
 
 Tests are in-process (no real HTTP, no Docker port binding). `FakeApiRequester` routes
-requests through the same `JwtMiddleware` + `OpenApiRouteList` as production, so they
+requests through the same `JwtMiddleware` + route list (`RouteListInterface`) as production, so they
 exercise routing, auth attributes, controllers, and OpenAPI contracts. The harness builds
 its own `MockServer` and attaches JWT middleware; it does not inherit all middleware from
 the application's `Server` binding. Test CORS or custom middleware separately when relevant.

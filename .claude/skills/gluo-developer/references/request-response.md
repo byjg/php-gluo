@@ -6,20 +6,37 @@
 src/ PHP attributes
     │
     ▼  php gluo openapi
-public/docs/openapi.json   ←── single source of truth for routing + validation
+public/docs/openapi.json   ←── single source of truth for routing + validation (and contract tests)
     │
-    ├──► OpenApiRouteList   routes URL+method → Controller::method
-    │
-    └──► Schema::class      validates request bodies in #[ValidateRequest]
+    ▼  compiled by the same command
+generated/routes.php  ──► CompiledRouteList   routes URL+method → Controller::method
+generated/openapi.php ──► Schema::class       validates request bodies in #[ValidateRequest]
 ```
 
-`openapi.json` is generated from the PHP attributes in `src/`. **You never hand-edit it.**
-Run `php gluo openapi` after any model or controller attribute change — routing AND validation
-both break if the file is stale.
+`openapi.json` is generated from the PHP attributes in `src/`, and `generated/` from
+`openapi.json`. **You never hand-edit either.** Run `php gluo openapi` after any model or
+controller attribute change and commit all three files — routing AND validation both break if
+they are stale; `php gluo openapi:check` (run by `php gluo test`) fails when one is.
+
+The compiled files are PHP arrays that OPcache keeps in memory: a request neither parses the
+JSON nor builds the dispatcher. `config/dev/03-api.php` binds them:
+
+```php
+RouteListInterface::class => DI::bind(CompiledRouteList::class)
+    ->withConstructorArgs([__DIR__ . '/../../generated/routes.php'])
+    ->toSingleton(),
+
+Schema::class => DI::bind(Schema::class)
+    ->withFactoryMethod('fromFile', [__DIR__ . '/../../generated/openapi.php'])
+    ->toSingleton(),
+```
+
+`Application` and `FakeApiRequester` get the routes by the `RouteListInterface::class` key.
+There is no route cache to configure (`OpenApiRouteList::withCache()` is not used).
 
 ---
 
-## Route registration (OpenApiRouteList)
+## Route registration
 
 Routes are declared entirely through OpenAPI attributes on controller methods. The
 `operationId` that `zircote/swagger-php` generates becomes the routing key:
@@ -29,10 +46,11 @@ operationId: "App\\Controller\\ProjectController::getProject"
                  └── class (fully qualified)      └── method
 ```
 
-`OpenApiRouteList` reads `openapi.json` at startup, builds the route table from `operationId`,
-and registers the correct output processor per route (derived from the `responses.200.content`
-keys). No manual route registration is needed — adding an `#[OA\Get(...)]` attribute and
-running `php gluo openapi` is sufficient.
+`php gluo openapi` reads `openapi.json` with `OpenApiRouteList`, builds the route table from
+`operationId`, registers the correct output processor per route (derived from the
+`responses.200.content` keys), and writes it to `generated/routes.php`. No manual route
+registration is needed — adding an `#[OA\Get(...)]` attribute and running `php gluo openapi`
+is sufficient.
 
 ### How operationId is set
 
@@ -41,11 +59,17 @@ running `php gluo openapi` is sufficient.
 
 ### Default output processor
 
-The project sets `JsonCleanOutputProcessor` as the default in `03-api.php`:
+The output processors are fixed when the routes are compiled, not in `03-api.php`.
+`BaseScripts::getOpenApiRouteList()` (byjg/gluo-core) sets `JsonCleanOutputProcessor` as the
+default; to change it (a default, or a processor for one route or content type), override it
+in the project's `builder/Scripts.php` and rerun `php gluo openapi`:
 
 ```php
-DI::bind(OpenApiRouteList::class)
-    ->withMethodCall("withDefaultProcessor", [JsonCleanOutputProcessor::class])
+// builder/Scripts.php (class Scripts extends BaseScripts)
+protected function getOpenApiRouteList(string $openApiPath): RouteListInterface
+{
+    return (new OpenApiRouteList($openApiPath))->withDefaultProcessor(JsonCleanOutputProcessor::class);
+}
 ```
 
 `JsonCleanOutputProcessor` is `JsonOutputProcessor` with `buildNull = false` — it strips null
@@ -292,27 +316,55 @@ Both are needed — the OA attribute for documentation/contract, the PHP attribu
 
 ---
 
+## Client IP, user agent and persistent workers (byjg/restserver 7.0)
+
+Read the client from the `HttpRequest` the route receives: `$request->getRequestIp()` and
+`$request->getUserAgent()`. The static `HttpRequest::ip()` / `HttpRequest::userAgent()` are
+removed (they read `$_SERVER`, which is wrong for a PSR-7 request).
+
+`getRequestIp()` returns `REMOTE_ADDR` and ignores `X-Forwarded-For` (any client can send it).
+Behind a load balancer, reverse proxy or CDN, name the proxies on the `Server` binding in
+`config/{env}/03-api.php`, or every request has the proxy's address (rate limits, lockouts,
+audit logs):
+
+```php
+Server::class => DI::bind(Server::class)
+    // ...
+    ->withMethodCall('withTrustedProxies', [['10.0.0.0/8', '172.16.0.0/12']])
+    // RFC 7239 proxies: add TrustedProxies::FORWARDED as the second argument
+```
+
+The header is then read from the right, and the first address that is not a trusted proxy is
+the client. Other headers (`Client-IP`, `CF-Connecting-IP`, ...) are never read.
+
+`public/app.php` calls `Config::get(Application::class)->handle()`. A persistent worker
+(RoadRunner, Swoole, a CLI worker) gets the `Application` once and calls
+`handle($psr7Request)` for each request, since `php://input` is not the body there.
+
+---
+
 ## Full lifecycle summary
 
 ```
 1. Developer adds/changes OA attributes on a model or controller
    └── php gluo openapi
-       └── scans src/, writes public/docs/openapi.json
+       ├── scans src/, writes public/docs/openapi.json
+       └── compiles it into generated/routes.php (route table + output processors)
+           and generated/openapi.php (the spec as a PHP array)
 
-2. App startup
-   ├── OpenApiRouteList reads openapi.json
-   │   └── builds route table (URL+method → Controller::method + output processor)
-   └── Schema::class reads openapi.json
+2. App startup (public/app.php → Config::get(Application::class)->handle())
+   ├── CompiledRouteList loads generated/routes.php
+   └── Schema::class loads generated/openapi.php
        └── used by #[ValidateRequest] for request body validation
 
 3. HTTP request arrives
    ├── JwtMiddleware    parses/validates JWT → stores claims as request params
-   ├── OpenApiRouteList matches URL+method → selects Controller, method, output processor
+   ├── CompiledRouteList matches URL+method → selects Controller, method, output processor
    ├── #[RequireAuthenticated] or #[RequireRole]  → 401/403 if fails
    ├── #[ValidateRequest]
    │   ├── reads Content-Type header
    │   ├── parses body (JSON → array, XML → XmlDocument)
-   │   ├── validates against openapi.json requestBody schema → 400 if fails
+   │   ├── validates against the requestBody schema → 400 if fails
    │   └── stores result in ValidateRequest::$payload
    └── Controller method runs
        └── $response->write($data)

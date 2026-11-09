@@ -139,7 +139,7 @@ $prod = Environment::create('prod')->inheritFrom($staging, $dev);
 The starter's `config/ConfigBootstrap.php` extends it and explicitly enables caching:
 
 ```php
-use ByJG\Cache\Psr16\FileSystemCacheEngine;
+use ByJG\Cache\Psr16\PhpFileCacheEngine;
 use ByJG\Config\Definition;
 use ByJG\Gluo\Config\BaseConfigBootstrap;
 
@@ -147,8 +147,9 @@ return new class extends BaseConfigBootstrap {
     protected function configureDefinition(Definition $definition): void
     {
         parent::configureDefinition($definition);
-        $definition->getConfigObject('staging')->withCache(new FileSystemCacheEngine());
-        $definition->getConfigObject('prod')->withCache(new FileSystemCacheEngine());
+        // PHP files in the system temp dir, kept in memory by OPcache
+        $definition->getConfigObject('staging')->withCache(new PhpFileCacheEngine('config'));
+        $definition->getConfigObject('prod')->withCache(new PhpFileCacheEngine('config'));
     }
 };
 ```
@@ -252,9 +253,9 @@ HttpClient::class => DI::bind(MockClient::class)
 
 ```php
 // Call a method after instantiation (chainable)
-DI::bind(OpenApiRouteList::class)
-    ->withInjectedConstructor()
-    ->withMethodCall('withDefaultProcessor', [JsonCleanOutputProcessor::class])
+DI::bind(Server::class)
+    ->withConstructorArgs([Param::get(LoggerInterface::class)])
+    ->withMethodCall('withMiddleware', [Param::get(JwtMiddleware::class)])
     ->toSingleton()
 
 // Use a static factory method instead of `new`
