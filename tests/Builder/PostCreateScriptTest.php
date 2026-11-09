@@ -242,7 +242,7 @@ class PostCreateScriptTest extends TestCase
         $this->assertSame($base, file_get_contents($this->workdir . '/db/base.sql'));
         $compose = $this->composeDatabase();
         $this->assertSame(['db-host'], array_keys($compose['services']));
-        $this->assertSame('mysql:8.0', $compose['services']['db-host']['image']);
+        $this->assertSame('mysql:8.4', $compose['services']['db-host']['image']);
         $this->assertSame('secret123', $compose['services']['db-host']['environment']['MYSQL_ROOT_PASSWORD']);
         $this->assertSame(['mysql-volume'], array_keys($compose['volumes']));
         $this->assertSame('mysql://root:secret123@127.0.0.1/shopdev', $this->envValue('dev', 'DBDRIVER_CONNECTION'));
