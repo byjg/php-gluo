@@ -65,7 +65,9 @@ load.sh byjg-gluo -- my-api --namespace=MyApp --name=mycompany/my-api
 load.sh byjg-gluo -- my-api \
   --namespace=MyApp \
   --name=mycompany/my-api \
-  --mysql-uri=mysql://root:secret@gluo-database/mydb \
+  --db=postgres \
+  --db-uri=postgres://postgres:secret@gluo-database/mydb \
+  --install-frontend=n \
   --install-examples=n \
   --version="^7.0" \
   --php-version=8.4 \
@@ -77,8 +79,19 @@ The script:
 - Runs `composer create-project byjg/gluo ...` using those values.
 - Cleans up `setup.json` after success. If the target folder already exists, the script refuses to run (safety measure) — remove the folder first to re-run.
 
-Required flags: the target folder, `--namespace`, and `--name`. Everything else is optional (defaults match the interactive installer). 
-Ensure Composer exists locally or combine it with `load.sh php-docker` first.
+Required flags: the target folder, `--namespace`, and `--name`. Everything else is optional (defaults match the interactive installer):
+`--db` is `mysql`, `postgres` or `sqlite` (default `mysql`); `--db-uri` is the connection of a MySQL or PostgreSQL server
+(without it, the template's defaults); `--install-frontend` and `--install-examples` take `Y` or `n`. `--mysql-uri` still
+works, as `--db-uri`. Run `load.sh byjg-gluo -- --help` for the full list.
+
+### Without PHP on your machine
+
+Install Docker-backed `php` and `composer` wrappers (in `~/.shellscript/bin`, from the `byjg/php` CLI image), then use
+either installation method above:
+
+```bash
+load.sh php-docker -- 8.5
+```
 
 ### Setup Configuration
 

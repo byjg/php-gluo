@@ -1,10 +1,11 @@
 ---
 name: gluo-developer
 description: >
-  Develop and maintain PHP REST APIs created with byjg/gluo: endpoints, models,
-  persistence, DI configuration, migrations, authentication, OpenAPI, and tests.
-  Use whenever working on a Gluo PHP application, even for generic requests such
-  as "add a new endpoint" or "fix this bug" that do not name Gluo explicitly.
+  Create, develop and maintain PHP REST APIs with byjg/gluo: new projects,
+  endpoints, models, persistence, DI configuration, migrations, authentication,
+  OpenAPI, and tests. Use whenever creating or working on a Gluo PHP application,
+  even for generic requests such as "start a new PHP API", "add a new endpoint" or
+  "fix this bug" that do not name Gluo explicitly.
   Follow the project's installed dependency versions and existing conventions.
   Frontend-only work needs this skill only when it changes the API integration.
 ---
@@ -17,6 +18,44 @@ testability.
 
 **Core libraries:** `byjg/restserver` (routing), `byjg/micro-orm` (ORM), `byjg/authuser`
 (JWT auth), `byjg/config` (DI container), `byjg/migration` (DB migrations)
+
+---
+
+## Create a project
+
+Needs PHP 8.3+ and Composer, and Docker to run it. **Without PHP on the machine**, install
+Docker-backed `php` and `composer` wrappers with the shellscript.download loader, then use
+them as usual:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://shellscript.download/install/loader)"   # once: installs load.sh
+load.sh php-docker -- 8.5                                                    # php + composer in ~/.shellscript/bin
+```
+
+Interactive (asks namespace, database, frontend, examples...):
+
+```bash
+composer create-project byjg/gluo my-api ^7.0
+```
+
+Unattended (the target folder must not exist):
+
+```bash
+load.sh byjg-gluo -- my-api --namespace=MyApp --name=mycompany/my-api \
+  [--db=mysql|postgres|sqlite] [--db-uri=postgres://user:pw@host/db] \
+  [--install-frontend=n] [--install-examples=n] [--php-version=8.5] [--timezone=UTC]
+```
+
+Then create the new, empty database and check it:
+
+```bash
+cd my-api
+docker compose up -d
+php gluo --env=dev migrate:reset   # fresh project only: reset destroys existing data
+php gluo test
+```
+
+`php gluo` can also run inside the API container: `docker compose exec rest php gluo ...`.
 
 ---
 
