@@ -68,7 +68,6 @@ jobs:
         image: mysql:8.4
         env:
           MYSQL_ROOT_PASSWORD: mysqlp455w0rd
-          MYSQL_AUTHENTICATION_PLUGIN: mysql_native_password
         ports:
           - "3306:3306"
         options: >-
