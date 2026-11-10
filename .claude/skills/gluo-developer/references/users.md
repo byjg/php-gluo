@@ -174,7 +174,8 @@ set on `BaseUser::$password` (byjg/gluo-core).
 Redeclare `$password` in `src/Model/User.php` with another mapper, e.g. to stay on SHA-1:
 `#[FieldAttribute(updateFunction: PasswordSha1Mapper::class)] protected ?string $password = null;`.
 A custom mapper implements `PasswordMapperInterface`: `processedValue()`, `isPasswordEncrypted()`,
-`verifyPassword()` and `needsRehash()`.
+`verifyPassword()` and `needsRehash()`, and keeps no state between calls (see "Custom field
+mapper functions must be stateless" in [Queries](queries.md)).
 
 ---
 

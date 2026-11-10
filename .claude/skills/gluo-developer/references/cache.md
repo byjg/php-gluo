@@ -13,6 +13,7 @@ real engine is swapped per environment.
 | `NoCacheEngine` | None (pass-through) | Dev / testing — default in dev | `new NoCacheEngine()` |
 | `ArrayCacheEngine` | PHP array (per-request) | Single request / unit tests | `new ArrayCacheEngine()` |
 | `FileSystemCacheEngine` | Disk files | Prod when Redis isn't available | `new FileSystemCacheEngine($prefix, $path)` |
+| `PhpFileCacheEngine` | PHP files read through OPcache | Entries written once, read every request (the DI container cache) — not values that change | `new PhpFileCacheEngine($prefix, $path)` |
 | `TmpfsCacheEngine` | `/dev/shm` (RAM disk) | Fast single-server | `new TmpfsCacheEngine($prefix)` |
 | `RedisCacheEngine` | Redis | Distributed, high-throughput | `new RedisCacheEngine($server, $password)` |
 | `MemcachedEngine` | Memcached cluster | Distributed | `new MemcachedEngine($servers[])` |
@@ -156,42 +157,39 @@ new CacheQueryResult($this->cache, "product:name:{$name}", 60)
 
 ---
 
-## Caching the OpenAPI route list
+## The OpenAPI routes and spec need no cache
 
-Parsing `openapi.json` on every request is wasteful in production. Cache it via
-`withCache()` on `OpenApiRouteList`:
-
-```php
-// config/prod/03-api.php
-RouteListInterface::class => DI::bind(OpenApiRouteList::class)
-    ->withConstructorArgs([__DIR__ . '/../../public/docs/openapi.json'])
-    ->withMethodCall('withCache', [Param::get(BaseCacheEngine::class)])
-    ->toSingleton(),
-```
-
-The starter uses `NoCacheEngine` in dev; keep that binding when route caching is not needed.
+Do not cache the route list. `php gluo openapi` compiles the routes and the spec into
+`generated/` as PHP arrays that OPcache keeps in memory (see
+[request-response.md](request-response.md)); `OpenApiRouteList::withCache()` is not used.
 
 ---
 
 ## Caching the DI config itself
 
 For staging and prod, the resolved DI config can be cached to avoid re-processing config
-files on every cold start. This is configured in `config/ConfigBootstrap.php`:
+files on every request. This is configured in `config/ConfigBootstrap.php`:
 
 ```php
 // Inside configureDefinition(Definition $definition), after calling the parent:
-$definition->getConfigObject('prod')->withCache(
-    new FileSystemCacheEngine(prefix: 'config', path: '/tmp/config-cache', createPath: true)
-);
+$definition->getConfigObject('staging')->withCache(new PhpFileCacheEngine('config'));
+$definition->getConfigObject('prod')->withCache(new PhpFileCacheEngine('config'));
 ```
 
-`FileSystemCacheEngine` takes a prefix first and an optional directory second. The optional
-second argument of `Environment::withCache()` is a `ByJG\Config\CacheModeEnum`, not a
-cache-key string; omit it to use the default mode.
+`PhpFileCacheEngine` writes each entry as a PHP file (mode `0600`: the container holds the
+secrets of `credentials.env`) that OPcache keeps in memory, so a request does not read nor
+unserialize the container. It takes a prefix first and an optional directory second (default:
+system temp dir). The optional second argument of `Environment::withCache()` is a
+`ByJG\Config\CacheModeEnum`, not a cache-key string; omit it to use the default mode.
 
-The core does not enable config caching. The starter enables it for staging and prod in
-`config/ConfigBootstrap.php`, using the default system-temp location. Keep caching off in
-dev and test so configuration changes are visible, and adapt the location to deployment.
+The cache is read before any config file loads, so it must be a ready-made instance, not a
+container binding. It must not outlive a deploy: clear it on every deploy (or give each
+release its own prefix), and after changing config in an environment that caches.
+
+The core does not enable config caching. The starter enables it for staging and prod; keep
+caching off in dev and test so configuration changes are visible. Keep
+`FileSystemCacheEngine` or Redis for the application's own cache (`BaseCacheEngine`), whose
+values change.
 
 ---
 
@@ -201,6 +199,7 @@ dev and test so configuration changes are visible, and adapt the location to dep
 |---|---|
 | Default dev (no-op) | `new NoCacheEngine()` |
 | File-based | `new FileSystemCacheEngine('prefix', '/path')` |
+| DI container cache | `withCache(new PhpFileCacheEngine('config'))` in `ConfigBootstrap.php` |
 | Redis | `new RedisCacheEngine('host:port', $password)` |
 | Get with fallback | `$cache->get('key') ?? compute()` |
 | Set with TTL | `$cache->set('key', $value, 300)` |

@@ -31,7 +31,7 @@ composer require "byjg/anydataset-nosql"    # MongoDB, DynamoDB, S3, Cloudflare 
 ```
 AnyDataset / XmlDataset / JsonDataset / TextFileDataset
     │
-    └── getIterator()  →  GenericIterator (implements PHP Iterator)
+    └── getIterator()  →  GenericIterator (IteratorAggregate over a generator)
                                 │
                                 └── current()  →  Row / RowArray / RowObject
                                                        │
@@ -43,6 +43,12 @@ AnyDataset / XmlDataset / JsonDataset / TextFileDataset
 Every iterator is a standard PHP `foreach`-able sequence of `Row` objects.
 `GenericIterator` also provides terminal methods: `toArray()`, `toEntities()`,
 `first()`, `firstOrFail()`, `exists()`.
+
+An iterator moves **forward only** and is read once: call `getIterator()` again to read the
+rows twice. It is a `\Traversable` (`IteratorAggregate`), not an `\Iterator`: wrap it with
+`new \IteratorIterator($it)` for `LimitIterator`, `CachingIterator` or an `\Iterator` type
+check. A custom iterator extends `GenericIterator` and returns its rows from
+`rows(): Generator`, built in a **static** function.
 
 ---
 

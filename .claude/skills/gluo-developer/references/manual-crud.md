@@ -241,9 +241,11 @@ which drives both routing and contract testing. Forgetting it makes the endpoint
 `php gluo openapi:check` (run automatically by `php gluo test`) fails when the spec is not what
 the attributes generate.
 
-`openapi.json` is the single source of truth: `OpenApiRouteList` reads it to build the route
-table (URL+method → Controller::method), `#[ValidateRequest]` reads it to validate request
-bodies, and `SchemaValidator` reads it to validate each model before it is saved. See `request-response.md` for the full pipeline, content negotiation, and
+`openapi.json` is the single source of truth: `php gluo openapi` compiles it into
+`generated/routes.php`, the route table `CompiledRouteList` loads (URL+method →
+Controller::method), and `generated/openapi.php`, which `#[ValidateRequest]` reads to validate
+request bodies and `SchemaValidator` to validate each model before it is saved. Commit the
+three files together. See `request-response.md` for the full pipeline, content negotiation, and
 OpenAPI attribute patterns.
 
 ## 8. Tests

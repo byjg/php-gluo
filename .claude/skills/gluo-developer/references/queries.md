@@ -245,6 +245,12 @@ foreach ($iterator as $row) {
 }
 ```
 
+The iterator moves **forward only** and is read once (anydataset 7.0, generator based): run
+the query again to read the rows twice. It is an `IteratorAggregate`, not an `Iterator`: wrap
+it with `new \IteratorIterator($iterator)` before `LimitIterator`, `CachingIterator` or any
+code that requires `\Iterator`. The cursor is released at the last row, or as soon as the
+iterator is dropped (`first()`, a `foreach` with `break`).
+
 **Summary:**
 
 | Aspect | getByQuery() | getIterator() |
@@ -255,6 +261,16 @@ foreach ($iterator as $row) {
 
 
 
+
+## Custom field mapper functions must be stateless
+
+A field's `selectFunction` / `updateFunction` (`#[FieldAttribute(...)]`, or
+`FieldMapping::with*Function()`) implements `MapperFunctionInterface::processedValue($value,
+$instance, $executor)`. A class given by name is created **once per field mapping** and reused
+for every row and query (micro-orm 7.0), not once per value: keep no state between calls, take
+everything from the arguments.
+
+---
 
 ## Raw query (escape hatch)
 
