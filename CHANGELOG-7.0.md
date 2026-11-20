@@ -246,9 +246,10 @@
 
 - PHP 8.3, 8.4, 8.5 and 8.6 are now supported: `"php": ">=8.3 <8.7"`.
   The previous `<8.6` upper bound excluded PHP 8.6, since `<8.6` is exclusive.
-- The Docker image is based on `byjg/php:8.5-fpm-nginx-2026.10` (was `2026.06`). The installer
-  replaces the PHP version in that tag, and `2026.06` was never published for 8.6; `2026.10`
-  exists for 8.3, 8.4, 8.5 and 8.6.
+- The Docker image is based on `byjg/php:8.5-fpm-nginx-2026.11` (was `2026.06`). The installer
+  replaces the PHP version in that tag, and `2026.06` was never published for 8.6; `2026.11`
+  exists for 8.3, 8.4, 8.5 and 8.6. `2026.11` ships nginx 1.30.7, which fixes CVE-2026-123633
+  and CVE-2026-123007 (HTTP/2); `2026.10` has nginx 1.30.6.
 
 ### ByJG dependencies
 
